@@ -1,0 +1,3 @@
+domain: my.domain
+repo: github.com/int128/argocd-commenter
+version: "2"
