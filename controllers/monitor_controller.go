@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -47,7 +48,7 @@ func (r *MonitorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
 		log.Error(err, "unable to get the Application")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	var operationMessage string
@@ -70,5 +71,35 @@ func (r *MonitorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdcommenterv1.Monitor{}).
 		Watches(&source.Kind{Type: &argocdv1alpha1.Application{}}, &handler.EnqueueRequestForObject{}).
+		WithEventFilter(&applicationStatusUpdatePredicate{}).
 		Complete(r)
+}
+
+type applicationStatusUpdatePredicate struct{}
+
+func (p applicationStatusUpdatePredicate) Create(event.CreateEvent) bool {
+	return false
+}
+
+func (p applicationStatusUpdatePredicate) Delete(event.DeleteEvent) bool {
+	return false
+}
+
+func (p applicationStatusUpdatePredicate) Update(e event.UpdateEvent) bool {
+	applicationOld, ok := e.ObjectOld.(*argocdv1alpha1.Application)
+	if !ok {
+		return false
+	}
+	applicationNew, ok := e.ObjectNew.(*argocdv1alpha1.Application)
+	if !ok {
+		return false
+	}
+	if applicationOld.Status.Sync != applicationNew.Status.Sync {
+		return true
+	}
+	return false
+}
+
+func (p applicationStatusUpdatePredicate) Generic(event.GenericEvent) bool {
+	return false
 }
