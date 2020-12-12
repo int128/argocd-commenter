@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	"github.com/go-logr/logr"
@@ -25,6 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/int128/argocd-commenter/pkg/github"
 )
 
 // ApplicationReconciler reconciles an Application object
@@ -46,21 +49,44 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
+	if err != nil {
+		log.Error(err, "Skipped the Application for non-GitHub repository")
+		return ctrl.Result{}, nil
+	}
+	commitComment := commitCommentFor(*repository, application)
+	log.Info("Creating a commit comment", "body", commitComment.Body)
+	if err := github.CreateCommitComment(ctx, commitComment); err != nil {
+		if github.IsRetryableError(err) {
+			return ctrl.Result{}, err
+		}
+		log.Error(err, "Ignored the permanent error")
+		return ctrl.Result{}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+func commitCommentFor(repository github.Repository, application argocdv1alpha1.Application) github.CommitComment {
 	var operationMessage string
 	if application.Status.OperationState != nil {
 		operationMessage = application.Status.OperationState.Message
 	}
-
-	log.Info("Application",
-		"name", application.Name,
-		"sync", application.Status.Sync.Status,
-		"health", application.Status.Health.Status,
-		"operation", operationMessage,
-		"repoURL", application.Spec.Source.RepoURL,
-		"revision", application.Status.Sync.Revision,
+	body := fmt.Sprintf(`name: %s/%s
+sync-status: %s
+health-status: %s (%s)
+operation-message: %s`,
+		application.Namespace,
+		application.Name,
+		application.Status.Sync.Status,
+		application.Status.Health.Status,
+		application.Status.Health.Message,
+		operationMessage,
 	)
-
-	return ctrl.Result{}, nil
+	return github.CommitComment{
+		Repository: repository,
+		CommitSHA:  application.Status.Sync.Revision,
+		Body:       body,
+	}
 }
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
