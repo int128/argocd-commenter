@@ -1,7 +1,3 @@
 domain: int128.github.io
 repo: github.com/int128/argocd-commenter
-resources:
-- group: argocdcommenter
-  kind: Monitor
-  version: v1
 version: "2"

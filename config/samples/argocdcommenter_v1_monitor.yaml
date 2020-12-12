@@ -1,7 +1,0 @@
-apiVersion: argocdcommenter.int128.github.io/v1
-kind: Monitor
-metadata:
-  name: monitor-sample
-spec:
-  # Add fields here
-  foo: bar

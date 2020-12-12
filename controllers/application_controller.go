@@ -25,25 +25,20 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 )
 
-// MonitorReconciler reconciles a Monitor object
-type MonitorReconciler struct {
+// ApplicationReconciler reconciles an Application object
+type ApplicationReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=monitors,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=monitors/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch
 
-func (r *MonitorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("monitor", req.NamespacedName)
+	log := r.Log.WithValues("application", req.NamespacedName)
 
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
@@ -67,10 +62,9 @@ func (r *MonitorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *MonitorReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&argocdcommenterv1.Monitor{}).
-		Watches(&source.Kind{Type: &argocdv1alpha1.Application{}}, &handler.EnqueueRequestForObject{}).
+		For(&argocdv1alpha1.Application{}).
 		WithEventFilter(&applicationStatusUpdatePredicate{}).
 		Complete(r)
 }

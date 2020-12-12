@@ -7,22 +7,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - argocdcommenter.int128.github.io
+  - argoproj.io
   resources:
-  - monitors
+  - applications
   verbs:
-  - create
-  - delete
   - get
-  - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - argocdcommenter.int128.github.io
-  resources:
-  - monitors/status
-  verbs:
-  - get
-  - patch
-  - update

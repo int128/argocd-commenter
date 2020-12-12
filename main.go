@@ -69,12 +69,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.MonitorReconciler{
+	if err = (&controllers.ApplicationReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Monitor"),
+		Log:    ctrl.Log.WithName("controllers").WithName("Application"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Monitor")
+		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
