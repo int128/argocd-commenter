@@ -56,6 +56,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		"sync", application.Status.Sync.Status,
 		"health", application.Status.Health.Status,
 		"operation", operationMessage,
+		"repoURL", application.Spec.Source.RepoURL,
 		"revision", application.Status.Sync.Revision,
 	)
 
@@ -89,6 +90,9 @@ func (p applicationStatusUpdatePredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 	if applicationOld.Status.Sync != applicationNew.Status.Sync {
+		return true
+	}
+	if applicationOld.Status.Health != applicationNew.Status.Health {
 		return true
 	}
 	return false
