@@ -14,14 +14,17 @@ type Repository struct {
 	Name  string
 }
 
-func ParseRepositoryURL(u string) (*Repository, error) {
-	p, err := url.Parse(u)
+func ParseRepositoryURL(urlstr string) (*Repository, error) {
+	u, err := url.Parse(urlstr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid url: %w", err)
 	}
-	c := strings.SplitN(p.Path, "/", 2)
+	path := u.Path
+	path = strings.TrimSuffix(path, ".git")
+	path = strings.TrimPrefix(path, "/")
+	c := strings.SplitN(path, "/", 2)
 	if len(c) != 2 {
-		return nil, fmt.Errorf("invalid path %s", p.Path)
+		return nil, fmt.Errorf("invalid path %s", u.Path)
 	}
 	return &Repository{Owner: c[0], Name: c[1]}, nil
 }
