@@ -49,14 +49,13 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
+	commitComment, err := commitCommentFor(application)
 	if err != nil {
-		log.Error(err, "Skipped the Application for non-GitHub repository")
+		log.Error(err, "Skipped the event", "Application", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
-	commitComment := commitCommentFor(*repository, application)
-	log.Info("Creating a commit comment", "body", commitComment.Body)
-	if err := github.CreateCommitComment(ctx, commitComment); err != nil {
+	log.Info("Creating a commit comment", "commitComment", commitComment)
+	if err := github.CreateCommitComment(ctx, *commitComment); err != nil {
 		if github.IsRetryableError(err) {
 			return ctrl.Result{}, err
 		}
@@ -66,27 +65,23 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	return ctrl.Result{}, nil
 }
 
-func commitCommentFor(repository github.Repository, application argocdv1alpha1.Application) github.CommitComment {
-	var operationMessage string
-	if application.Status.OperationState != nil {
-		operationMessage = application.Status.OperationState.Message
+func commitCommentFor(application argocdv1alpha1.Application) (*github.CommitComment, error) {
+	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
+	if err != nil {
+		return nil, fmt.Errorf("non-GitHub URL: %w", err)
 	}
-	body := fmt.Sprintf(`name: %s/%s
-sync-status: %s
-health-status: %s (%s)
-operation-message: %s`,
-		application.Namespace,
-		application.Name,
-		application.Status.Sync.Status,
-		application.Status.Health.Status,
-		application.Status.Health.Message,
-		operationMessage,
-	)
-	return github.CommitComment{
-		Repository: repository,
+	if application.Status.OperationState == nil {
+		return nil, fmt.Errorf("status.operationState is nil") // should not reach here
+	}
+	return &github.CommitComment{
+		Repository: *repository,
 		CommitSHA:  application.Status.Sync.Revision,
-		Body:       body,
-	}
+		Body: fmt.Sprintf("ArgoCD: %s: %s: %s",
+			application.Name,
+			application.Status.OperationState.Phase,
+			application.Status.OperationState.Message,
+		),
+	}, nil
 }
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -115,10 +110,17 @@ func (p applicationStatusUpdatePredicate) Update(e event.UpdateEvent) bool {
 	if !ok {
 		return false
 	}
-	if applicationOld.Status.Sync != applicationNew.Status.Sync {
+
+	if applicationNew.Status.OperationState == nil {
+		return false
+	}
+	if applicationNew.Status.OperationState.SyncResult == nil {
+		return false
+	}
+	if applicationOld.Status.OperationState == nil {
 		return true
 	}
-	if applicationOld.Status.Health != applicationNew.Status.Health {
+	if applicationOld.Status.OperationState.Phase != applicationNew.Status.OperationState.Phase {
 		return true
 	}
 	return false
