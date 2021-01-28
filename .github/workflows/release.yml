@@ -1,0 +1,34 @@
+name: release
+
+on:
+  push:
+    branches:
+      - test-release
+    tags:
+      - v*
+
+env:
+  GCR_REPOSITORY: gcr.io/int128-1313/argocd-commenter
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: cd config/manager && kustomize edit set image controller="${GCR_REPOSITORY}:${GITHUB_REF##*/}"
+      - run: kustomize build config/default | tee /tmp/argocd-commenter.yaml
+      - uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /tmp/argocd-commenter.yaml
+          asset_name: argocd-commenter.yaml
+          asset_content_type: text/plain
