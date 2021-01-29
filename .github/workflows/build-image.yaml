@@ -1,0 +1,25 @@
+name: build-image
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: 1
+      DOCKER_REPOSITORY: ghcr.io/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - run: ([[ $GITHUB_REF == refs/tags/* ]] && echo "tag=${GITHUB_REF##*/}" || echo tag=latest) >> "$GITHUB_ENV"
+      - run: docker build . --tag "$DOCKER_REPOSITORY:$tag" --cache-from "$DOCKER_REPOSITORY:latest" --build-arg BUILDKIT_INLINE_CACHE=1
+      - run: docker push "$DOCKER_REPOSITORY:$tag"
+        if: github.event_name == 'push'
