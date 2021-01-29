@@ -2,22 +2,23 @@ name: release
 
 on:
   push:
-    branches:
-      - test-release
     tags:
       - v*
+  pull_request:
+    branches: [master]
 
 env:
-  GCR_REPOSITORY: gcr.io/int128-1313/argocd-commenter
+  DOCKER_REPOSITORY: ghcr.io/int128/argocd-commenter
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: cd config/manager && kustomize edit set image controller="${GCR_REPOSITORY}:${GITHUB_REF##*/}"
+      - run: cd config/manager && kustomize edit set image controller="${DOCKER_REPOSITORY}:${GITHUB_REF##*/}"
       - run: kustomize build config/default | tee /tmp/argocd-commenter.yaml
       - uses: actions/create-release@v1
+        if: github.event_name == 'push'
         id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,6 +26,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
       - uses: actions/upload-release-asset@v1
+        if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
