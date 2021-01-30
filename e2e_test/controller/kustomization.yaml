@@ -1,0 +1,4 @@
+bases:
+  - ../../config/default
+patchesStrategicMerge:
+  - deployment/argocd-commenter-controller-manager.yaml
