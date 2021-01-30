@@ -22,3 +22,6 @@ bin
 *.swp
 *.swo
 *~
+
+# e2e test
+/e2e_test/output/
