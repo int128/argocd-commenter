@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: argocd-application-controller
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-application-controller
+          # https://argoproj.github.io/argo-cd/operator-manual/server-commands/argocd-application-controller/
+          command:
+            - argocd-application-controller
+            - --status-processors
+            - "5"
+            - --operation-processors
+            - "5"
+            # poll github every 30 sec
+            - --app-resync
+            - "30"

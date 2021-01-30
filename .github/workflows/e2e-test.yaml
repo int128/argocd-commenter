@@ -1,0 +1,34 @@
+name: e2e-test
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - e2e_test/**
+      - "*.go"
+      - go.*
+  pull_request:
+    branches:
+      - master
+    paths:
+      - e2e_test/**
+      - "*.go"
+      - go.*
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+        id: go
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-
+      - run: make -C e2e_test

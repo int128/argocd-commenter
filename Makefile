@@ -14,15 +14,15 @@ endif
 all: manager
 
 # Run tests
-test: generate fmt vet manifests
+test: generate manifests
 	go test ./... -coverprofile cover.out
 
 # Build manager binary
-manager: generate fmt vet
+manager: generate
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: generate manifests
 	go run ./main.go
 
 # Install CRDs into a cluster
@@ -41,14 +41,6 @@ deploy: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
-# Run go fmt against code
-fmt:
-	go fmt ./...
-
-# Run go vet against code
-vet:
-	go vet ./...
 
 # Generate code
 generate: controller-gen
