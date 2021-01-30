@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app: echoserver
+        foo: bar
     spec:
       containers:
         - image: gcr.io/google_containers/echoserver:1.8
