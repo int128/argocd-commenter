@@ -54,7 +54,6 @@ undeploy:
 ci-setup:
 	git config user.name ci
 	git config user.email ci@example.com
-	echo "$(GITHUB_TOKEN)" | gh auth login --with-token
 
 ci-cleanup:
 	-git push origin --delete $(MAIN_BRANCH_NAME)
