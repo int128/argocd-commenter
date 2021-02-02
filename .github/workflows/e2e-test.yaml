@@ -1,0 +1,35 @@
+name: e2e-test
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - e2e_test/**
+      - "*.go"
+      - go.*
+  pull_request:
+    branches:
+      - master
+    paths:
+      - e2e_test/**
+      - "*.go"
+      - go.*
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - run: make -C e2e_test ci-setup
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: make -C e2e_test -j2 deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: make -C e2e_test test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: make -C e2e_test ci-cleanup
+        if: always()
