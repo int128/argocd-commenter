@@ -17,6 +17,7 @@ test:
 	git checkout -b $(MAIN_BRANCH_NAME)-fixture1
 	sed -i -e 's/name: echoserver/name: echoserver-fixture1/g' helloworld/deployment/echoserver.yaml
 	git commit -a -m "fixture1"
+	git push origin $(MAIN_BRANCH_NAME)-fixture1
 	gh pr create --fill --base $(MAIN_BRANCH_NAME)
 	gh pr merge --squash
 	git checkout $(MAIN_BRANCH_NAME)
