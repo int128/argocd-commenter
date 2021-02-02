@@ -10,6 +10,6 @@ for (( i = 0; i < 10; i++ )); do
   if [[ $status == Synced/$want_revision ]]; then
     exit 0
   fi
-  sleep 3
+  sleep "$i"
 done
 exit 1
