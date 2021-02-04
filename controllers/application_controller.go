@@ -37,7 +37,7 @@ type ApplicationReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch
+// +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 
 func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
