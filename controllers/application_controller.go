@@ -89,18 +89,23 @@ func (p applicationStatusUpdatePredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 
+	if applicationOld.Status.OperationState == nil {
+		return false
+	}
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}
-	if applicationNew.Status.OperationState.SyncResult == nil {
-		return false
-	}
-	if applicationOld.Status.OperationState == nil {
+
+	// change of status.operationState.phase from incomplete to completed
+	if !applicationOld.Status.OperationState.Phase.Completed() && applicationNew.Status.OperationState.Phase.Completed() {
 		return true
 	}
-	if applicationOld.Status.OperationState.Phase != applicationNew.Status.OperationState.Phase {
+
+	// change of status.sync.status
+	if applicationOld.Status.Sync.Status != applicationNew.Status.Sync.Status {
 		return true
 	}
+
 	return false
 }
 
