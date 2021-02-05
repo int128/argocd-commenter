@@ -15,6 +15,8 @@ type ApplicationOperationState struct {
 }
 
 func (cmt *ApplicationOperationState) Do(ctx context.Context, application argocdv1alpha1.Application) error {
+	cmt.Log.Info("start notification", "application", application)
+
 	if application.Status.OperationState == nil {
 		cmt.Log.Info("application.status.operationState is nil (should not reach here)", "application.status", application.Status)
 		return nil
