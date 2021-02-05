@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	"github.com/go-logr/logr"
@@ -27,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
+	"github.com/int128/argocd-commenter/pkg/commenter"
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
@@ -49,39 +49,17 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	commitComment, err := commitCommentFor(application)
-	if err != nil {
-		log.Error(err, "Skipped the event", "Application", req.NamespacedName)
-		return ctrl.Result{}, nil
+	cmt := commenter.ApplicationOperationState{
+		Log: log,
 	}
-	log.Info("Creating a commit comment", "commitComment", commitComment)
-	if err := github.CreateCommitComment(ctx, *commitComment); err != nil {
+	if err := cmt.Do(ctx, application); err != nil {
 		if github.IsRetryableError(err) {
 			return ctrl.Result{}, err
 		}
-		log.Error(err, "Ignored the permanent error")
+		log.Error(err, "unable to add a comment")
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
-}
-
-func commitCommentFor(application argocdv1alpha1.Application) (*github.CommitComment, error) {
-	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
-	if err != nil {
-		return nil, fmt.Errorf("non-GitHub URL: %w", err)
-	}
-	if application.Status.OperationState == nil {
-		return nil, fmt.Errorf("status.operationState is nil") // should not reach here
-	}
-	return &github.CommitComment{
-		Repository: *repository,
-		CommitSHA:  application.Status.Sync.Revision,
-		Body: fmt.Sprintf("ArgoCD: %s: %s: %s",
-			application.Name,
-			application.Status.OperationState.Phase,
-			application.Status.OperationState.Message,
-		),
-	}, nil
 }
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
