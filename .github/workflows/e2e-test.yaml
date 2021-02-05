@@ -6,14 +6,22 @@ on:
       - master
     paths:
       - e2e_test/**
-      - "*.go"
+      - api/**
+      - controllers/**
+      - pkg/**
+      - config/**
+      - main.go
       - go.*
   pull_request:
     branches:
       - master
     paths:
       - e2e_test/**
-      - "*.go"
+      - api/**
+      - controllers/**
+      - pkg/**
+      - config/**
+      - main.go
       - go.*
 
 jobs:
