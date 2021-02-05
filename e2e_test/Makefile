@@ -22,7 +22,7 @@ test:
 	git pull origin --ff-only $(MAIN_BRANCH_NAME)
 	./wait-for-synced.sh helloworld
 	kubectl -n helloworld rollout status deployment echoserver-fixture1
-	sleep 10
+	sleep 30
 
 # environment
 cluster: $(KUBECONFIG)
