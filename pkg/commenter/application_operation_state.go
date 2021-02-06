@@ -27,13 +27,18 @@ func (cmt *ApplicationOperationState) Do(ctx context.Context, application argocd
 		return nil
 	}
 
-	commitComment := github.CommitComment{
+	commentBody := cmt.commentBody(application)
+	if commentBody == "" {
+		cmt.Log.Info("skip comment", "status", application.Status)
+		return nil
+	}
+	comment := github.CommitComment{
 		Repository: *repository,
 		CommitSHA:  application.Status.Sync.Revision,
-		Body:       cmt.commentBody(application),
+		Body:       commentBody,
 	}
-	cmt.Log.Info("creating a commit comment", "commitComment", commitComment)
-	if err := github.CreateCommitComment(ctx, commitComment); err != nil {
+	cmt.Log.Info("adding a comment", "commitComment", comment)
+	if err := github.CreateCommitComment(ctx, comment); err != nil {
 		return fmt.Errorf("could not add a comment: %w", err)
 	}
 	return nil
@@ -52,8 +57,10 @@ func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.App
 	switch application.Status.OperationState.Phase {
 	case common.OperationSucceeded:
 		operationStatePhase = fmt.Sprintf(":white_check_mark: %s", application.Status.OperationState.Phase)
-	default:
+	case common.OperationError, common.OperationFailed:
 		operationStatePhase = fmt.Sprintf(":warning: %s", application.Status.OperationState.Phase)
+	default:
+		return ""
 	}
 
 	var statusYAML strings.Builder
