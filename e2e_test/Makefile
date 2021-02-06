@@ -3,41 +3,41 @@ KUBECONFIG := output/kubeconfig.yaml
 export KUBECONFIG
 
 GITHUB_RUN_ID ?= 0
-MAIN_BRANCH_NAME := e2e-test-$(GITHUB_RUN_ID)-main
+FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_ID)
 
 GITHUB_PR_NUMBER ?= 0
 
 all:
 
-test: testcase1 testcase2
-
-.NOTPARALLEL: testcase1 testcase2
-testcase1:
-	# create a pull request
-	git checkout -b $(MAIN_BRANCH_NAME)-fixture1
-	sed -i -e 's/name: echoserver/name: echoserver-fixture1/g' helloworld/deployment/echoserver.yaml
-	git commit -a -m "e2e-test-fixture1"
-	git push origin $(MAIN_BRANCH_NAME)-fixture1
-	gh pr create --base $(MAIN_BRANCH_NAME) --title "e2e-test: sync success" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)"
-	gh pr merge --squash
+test:
 	# wait for sync
-	git checkout $(MAIN_BRANCH_NAME)
-	git pull origin --ff-only $(MAIN_BRANCH_NAME)
-	./wait-for-sync-status.sh helloworld Synced
-	kubectl -n helloworld rollout status deployment echoserver-fixture1
-
-testcase2:
-	# create a pull request
-	git checkout -b $(MAIN_BRANCH_NAME)-fixture2
-	sed -i -e 's/app: echoserver/app: echoserver-fixture2/g' helloworld/deployment/echoserver.yaml
-	git commit -a -m "e2e-test-fixture2"
-	git push origin $(MAIN_BRANCH_NAME)-fixture2
-	gh pr create --base $(MAIN_BRANCH_NAME) --title "e2e-test: sync failure" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)"
+	./wait-for-sync-status.sh test1-fixture $(FIXTURE_BRANCH)-test1-main Synced Succeeded
+	./wait-for-sync-status.sh test2-fixture $(FIXTURE_BRANCH)-test2-main Synced Succeeded
+	# test1 (sync success)
+	git checkout $(FIXTURE_BRANCH)-test1-main
+	git checkout -b $(FIXTURE_BRANCH)-test1-topic
+	sed -i -e 's/name: echoserver/name: echoserver-test1/g' test1-fixture/deployment/echoserver.yaml
+	git commit -a -m $(FIXTURE_BRANCH)-test1-topic
+	git push origin $(FIXTURE_BRANCH)-test1-topic
+	gh pr create --base $(FIXTURE_BRANCH)-test1-main --title "e2e-test: test1" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)"
 	gh pr merge --squash
+	git checkout $(FIXTURE_BRANCH)-test1-main
+	git pull origin --ff-only $(FIXTURE_BRANCH)-test1-main
+	git branch -D $(FIXTURE_BRANCH)-test1-topic
+	# test2 (sync failure)
+	git checkout $(FIXTURE_BRANCH)-test2-main
+	git checkout -b $(FIXTURE_BRANCH)-test2-topic
+	sed -i -e 's/app: echoserver/app: echoserver-test2/g' test2-fixture/deployment/echoserver.yaml
+	git commit -a -m $(FIXTURE_BRANCH)-test2-topic
+	git push origin $(FIXTURE_BRANCH)-test2-topic
+	gh pr create --base $(FIXTURE_BRANCH)-test2-main --title "e2e-test: test2" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)"
+	gh pr merge --squash
+	git checkout $(FIXTURE_BRANCH)-test2-main
+	git pull origin --ff-only $(FIXTURE_BRANCH)-test2-main
+	git branch -D $(FIXTURE_BRANCH)-test2-topic
 	# wait for sync
-	git checkout $(MAIN_BRANCH_NAME)
-	git pull origin --ff-only $(MAIN_BRANCH_NAME)
-	./wait-for-sync-status.sh helloworld OutOfSync
+	./wait-for-sync-status.sh test1-fixture $(FIXTURE_BRANCH)-test1-main Synced Succeeded
+	./wait-for-sync-status.sh test2-fixture $(FIXTURE_BRANCH)-test2-main OutOfSync Failed
 
 # environment
 cluster: $(KUBECONFIG)
@@ -52,11 +52,8 @@ deploy: deploy-argocd deploy-controller
 
 deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
-	git branch $(MAIN_BRANCH_NAME)
-	git push origin $(MAIN_BRANCH_NAME)
-	kustomize build applications | sed -e "s/MAIN_BRANCH_NAME/$(MAIN_BRANCH_NAME)/g" | kubectl apply -f -
+	kustomize build applications | sed -e "s/FIXTURE_BRANCH/$(FIXTURE_BRANCH)/g" | kubectl apply -f -
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
-	./wait-for-sync-status.sh helloworld Synced
 
 deploy-controller: cluster build-controller
 	kind load docker-image controller:latest --name $(CLUSTER_NAME)
@@ -70,13 +67,20 @@ build-controller:
 undeploy:
 	kubectl delete namespace/argocd namespace/argocd-commenter-system
 
-# CI specific tasks
-ci-setup:
-	git config user.name ci
-	git config user.email ci@example.com
+setup:
+	git branch -f $(FIXTURE_BRANCH)-test1-main
+	git branch -f $(FIXTURE_BRANCH)-test2-main
+	git push origin -f $(FIXTURE_BRANCH)-test1-main $(FIXTURE_BRANCH)-test2-main
 
-ci-cleanup:
-	-git push origin --delete $(MAIN_BRANCH_NAME)
-	-git push origin --delete $(MAIN_BRANCH_NAME)-fixture1
-	-git push origin --delete $(MAIN_BRANCH_NAME)-fixture2
+cleanup:
+	-git branch -D \
+		$(FIXTURE_BRANCH)-test1-main \
+		$(FIXTURE_BRANCH)-test1-topic \
+		$(FIXTURE_BRANCH)-test2-main \
+		$(FIXTURE_BRANCH)-test2-topic
+	-git push origin --delete \
+		$(FIXTURE_BRANCH)-test1-main \
+		$(FIXTURE_BRANCH)-test1-topic \
+		$(FIXTURE_BRANCH)-test2-main \
+		$(FIXTURE_BRANCH)-test2-topic
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers
