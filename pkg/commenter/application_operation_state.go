@@ -51,5 +51,19 @@ func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.App
 		healthStatus = fmt.Sprintf(":warning: %s", application.Status.Health.Status)
 	}
 
-	return fmt.Sprintf("%s %s (%s)", syncStatus, healthStatus, application.Name)
+	var operationMessage string
+	if application.Status.OperationState != nil {
+		operationMessage = fmt.Sprintf("```\n%s\n```", application.Status.OperationState.Message)
+	}
+
+	return fmt.Sprintf(`## %s
+%s %s -> %s %s
+%s`,
+		application.Name,
+		syncStatus,
+		healthStatus,
+		application.Status.Sync.Revision,
+		application.Status.Sync.ComparedTo.Source.Path,
+		operationMessage,
+	)
 }
