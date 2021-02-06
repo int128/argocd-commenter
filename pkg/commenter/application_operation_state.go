@@ -3,11 +3,13 @@ package commenter
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
+	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
-
 	"github.com/int128/argocd-commenter/pkg/github"
+	"gopkg.in/yaml.v3"
 )
 
 type ApplicationOperationState struct {
@@ -15,29 +17,63 @@ type ApplicationOperationState struct {
 }
 
 func (cmt *ApplicationOperationState) Do(ctx context.Context, application argocdv1alpha1.Application) error {
-	if application.Status.OperationState == nil {
-		cmt.Log.Info("application.status.operationState is nil (should not reach here)", "application.status", application.Status)
-		return nil
-	}
 	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
 	if err != nil {
 		cmt.Log.Info("skip non-GitHub URL", "error", err)
 		return nil
 	}
-
-	commitComment := github.CommitComment{
-		Repository: *repository,
-		CommitSHA:  application.Status.Sync.Revision,
-		Body: fmt.Sprintf("ArgoCD: %s: %s: %s",
-			application.Name,
-			application.Status.OperationState.Phase,
-			application.Status.OperationState.Message,
-		),
+	if application.Status.OperationState == nil {
+		cmt.Log.Info("skip nil operationState (never reach here)", "status", application.Status)
+		return nil
 	}
 
-	cmt.Log.Info("creating a commit comment", "commitComment", commitComment)
-	if err := github.CreateCommitComment(ctx, commitComment); err != nil {
+	commentBody := cmt.commentBody(application)
+	if commentBody == "" {
+		cmt.Log.Info("skip comment", "status", application.Status)
+		return nil
+	}
+	comment := github.CommitComment{
+		Repository: *repository,
+		CommitSHA:  application.Status.Sync.Revision,
+		Body:       commentBody,
+	}
+	cmt.Log.Info("adding a comment", "commitComment", comment)
+	if err := github.CreateCommitComment(ctx, comment); err != nil {
 		return fmt.Errorf("could not add a comment: %w", err)
 	}
 	return nil
+}
+
+func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.Application) string {
+	var syncStatus string
+	switch application.Status.Sync.Status {
+	case argocdv1alpha1.SyncStatusCodeSynced:
+		syncStatus = fmt.Sprintf(":white_check_mark: %s", application.Status.Sync.Status)
+	default:
+		syncStatus = fmt.Sprintf(":warning: %s", application.Status.Sync.Status)
+	}
+
+	var operationStatePhase string
+	switch application.Status.OperationState.Phase {
+	case common.OperationSucceeded:
+		operationStatePhase = fmt.Sprintf(":white_check_mark: %s", application.Status.OperationState.Phase)
+	case common.OperationError, common.OperationFailed:
+		operationStatePhase = fmt.Sprintf(":warning: %s", application.Status.OperationState.Phase)
+	default:
+		return ""
+	}
+
+	var statusYAML strings.Builder
+	_, _ = fmt.Fprintln(&statusYAML, "```yaml")
+	_ = yaml.NewEncoder(&statusYAML).Encode(&application.Status)
+	_, _ = fmt.Fprintln(&statusYAML, "```")
+
+	return fmt.Sprintf("%s %s **%s** -> `/%s` @ %s\n%s",
+		syncStatus,
+		operationStatePhase,
+		application.Name,
+		application.Status.Sync.ComparedTo.Source.Path,
+		application.Status.Sync.Revision,
+		statusYAML.String(),
+	)
 }
