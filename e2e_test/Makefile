@@ -37,7 +37,8 @@ testcase2:
 	# wait for sync
 	git checkout $(MAIN_BRANCH_NAME)
 	git pull origin --ff-only $(MAIN_BRANCH_NAME)
-	./wait-for-sync-status.sh helloworld OutOfSync
+	./wait-for-sync-status.sh helloworld Synced #FIXME
+	sleep 60
 
 # environment
 cluster: $(KUBECONFIG)
