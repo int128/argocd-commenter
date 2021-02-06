@@ -43,12 +43,14 @@ deploy-argocd: cluster
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 	./wait-for-synced.sh helloworld
 
-deploy-controller: cluster
-	DOCKER_BUILDKIT=1 docker build .. --tag controller:latest --cache-from ghcr.io/int128/argocd-commenter:latest --build-arg BUILDKIT_INLINE_CACHE=1
+deploy-controller: cluster build-controller
 	kind load docker-image controller:latest --name $(CLUSTER_NAME)
 	kustomize build controller | kubectl apply -f -
 	-kubectl -n argocd-commenter-system create secret generic argocd-commenter-secret --from-literal="GITHUB_TOKEN=$(GITHUB_TOKEN)"
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
+
+build-controller:
+	DOCKER_BUILDKIT=1 docker build .. --tag controller:latest --cache-from ghcr.io/int128/argocd-commenter:latest --build-arg BUILDKIT_INLINE_CACHE=1
 
 undeploy:
 	kubectl delete namespace/argocd namespace/argocd-commenter-system
