@@ -1,2 +1,3 @@
 resources:
-  - helloworld.yaml
+  - test1-fixture.yaml
+  - test2-fixture.yaml
