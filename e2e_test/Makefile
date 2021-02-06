@@ -57,8 +57,6 @@ undeploy:
 ci-setup:
 	git config user.name ci
 	git config user.email ci@example.com
-	-git push origin --delete $(MAIN_BRANCH_NAME)
-	-git push origin --delete $(MAIN_BRANCH_NAME)-fixture1
 
 ci-cleanup:
 	-git push origin --delete $(MAIN_BRANCH_NAME)
