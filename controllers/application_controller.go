@@ -97,7 +97,7 @@ func (p applicationStatusUpdatePredicate) Update(e event.UpdateEvent) bool {
 	}
 
 	// change of status.operationState.phase from incomplete to completed
-	if !applicationOld.Status.OperationState.Phase.Completed() && applicationNew.Status.OperationState.Phase.Completed() {
+	if applicationOld.Status.OperationState.Phase != applicationNew.Status.OperationState.Phase {
 		return true
 	}
 
