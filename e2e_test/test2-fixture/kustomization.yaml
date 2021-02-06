@@ -1,0 +1,4 @@
+namespace: test2-fixture
+resources:
+  - namespace/test2-fixture.yaml
+  - deployment/echoserver.yaml
