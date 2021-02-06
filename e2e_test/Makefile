@@ -9,20 +9,35 @@ GITHUB_PR_NUMBER ?= 0
 
 all:
 
-test:
+test: testcase1 testcase2
+
+.NOTPARALLEL: testcase1 testcase2
+testcase1:
 	# create a pull request
 	git checkout -b $(MAIN_BRANCH_NAME)-fixture1
 	sed -i -e 's/name: echoserver/name: echoserver-fixture1/g' helloworld/deployment/echoserver.yaml
-	git commit -a -m "fixture1"
+	git commit -a -m "e2e-test-fixture1"
 	git push origin $(MAIN_BRANCH_NAME)-fixture1
-	gh pr create --base $(MAIN_BRANCH_NAME) --title "e2e-test: fixture1" --body "This is created by #$(GITHUB_PR_NUMBER)"
+	gh pr create --base $(MAIN_BRANCH_NAME) --title "e2e-test: sync success" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)"
 	gh pr merge --squash
 	# wait for sync
 	git checkout $(MAIN_BRANCH_NAME)
 	git pull origin --ff-only $(MAIN_BRANCH_NAME)
 	./wait-for-synced.sh helloworld
 	kubectl -n helloworld rollout status deployment echoserver-fixture1
-	sleep 10
+
+testcase2:
+	# create a pull request
+	git checkout -b $(MAIN_BRANCH_NAME)-fixture2
+	sed -i -e 's/app: echoserver/app: echoserver-fixture2/g' helloworld/deployment/echoserver.yaml
+	git commit -a -m "e2e-test-fixture2"
+	git push origin $(MAIN_BRANCH_NAME)-fixture2
+	gh pr create --base $(MAIN_BRANCH_NAME) --title "e2e-test: sync failure" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)"
+	gh pr merge --squash
+	# wait for sync
+	git checkout $(MAIN_BRANCH_NAME)
+	git pull origin --ff-only $(MAIN_BRANCH_NAME)
+	./wait-for-synced.sh helloworld
 
 # environment
 cluster: $(KUBECONFIG)
@@ -63,4 +78,5 @@ ci-setup:
 ci-cleanup:
 	-git push origin --delete $(MAIN_BRANCH_NAME)
 	-git push origin --delete $(MAIN_BRANCH_NAME)-fixture1
+	-git push origin --delete $(MAIN_BRANCH_NAME)-fixture2
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers
