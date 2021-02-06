@@ -3,10 +3,12 @@ package commenter
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/util/json"
 
 	"github.com/int128/argocd-commenter/pkg/github"
 )
@@ -55,10 +57,12 @@ func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.App
 		operationStatePhase = fmt.Sprintf(":warning: %s", application.Status.OperationState.Phase)
 	}
 
-	var operationMessage string
-	if application.Status.OperationState.Message != "" {
-		operationMessage = fmt.Sprintf("```\n%s\n```", application.Status.OperationState.Message)
-	}
+	var statusJSON strings.Builder
+	_, _ = fmt.Fprintln(&statusJSON, "```")
+	e := json.NewEncoder(&statusJSON)
+	e.SetIndent("", "  ")
+	_ = e.Encode(&application.Status)
+	_, _ = fmt.Fprintln(&statusJSON, "```")
 
 	return fmt.Sprintf("%s %s **%s** -> `/%s` @ %s\n%s",
 		syncStatus,
@@ -66,6 +70,6 @@ func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.App
 		application.Name,
 		application.Status.Sync.ComparedTo.Source.Path,
 		application.Status.Sync.Revision,
-		operationMessage,
+		statusJSON.String(),
 	)
 }
