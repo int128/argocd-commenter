@@ -3,12 +3,13 @@ package commenter
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
-
 	"github.com/int128/argocd-commenter/pkg/github"
+	"gopkg.in/yaml.v3"
 )
 
 type ApplicationOperationState struct {
@@ -55,10 +56,10 @@ func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.App
 		operationStatePhase = fmt.Sprintf(":warning: %s", application.Status.OperationState.Phase)
 	}
 
-	var operationMessage string
-	if application.Status.OperationState.Message != "" {
-		operationMessage = fmt.Sprintf("```\n%s\n```", application.Status.OperationState.Message)
-	}
+	var statusYAML strings.Builder
+	_, _ = fmt.Fprintln(&statusYAML, "```yaml")
+	_ = yaml.NewEncoder(&statusYAML).Encode(&application.Status)
+	_, _ = fmt.Fprintln(&statusYAML, "```")
 
 	return fmt.Sprintf("%s %s **%s** -> `/%s` @ %s\n%s",
 		syncStatus,
@@ -66,6 +67,6 @@ func (cmt *ApplicationOperationState) commentBody(application argocdv1alpha1.App
 		application.Name,
 		application.Status.Sync.ComparedTo.Source.Path,
 		application.Status.Sync.Revision,
-		operationMessage,
+		statusYAML.String(),
 	)
 }
