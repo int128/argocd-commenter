@@ -73,14 +73,12 @@ setup:
 	git push origin -f $(FIXTURE_BRANCH)-test1-main $(FIXTURE_BRANCH)-test2-main
 
 cleanup:
-	-git branch -D \
-		$(FIXTURE_BRANCH)-test1-main \
-		$(FIXTURE_BRANCH)-test1-topic \
-		$(FIXTURE_BRANCH)-test2-main \
-		$(FIXTURE_BRANCH)-test2-topic
-	-git push origin --delete \
-		$(FIXTURE_BRANCH)-test1-main \
-		$(FIXTURE_BRANCH)-test1-topic \
-		$(FIXTURE_BRANCH)-test2-main \
-		$(FIXTURE_BRANCH)-test2-topic
+	-git branch -D $(FIXTURE_BRANCH)-test1-main
+	-git branch -D $(FIXTURE_BRANCH)-test1-topic
+	-git branch -D $(FIXTURE_BRANCH)-test2-main
+	-git branch -D $(FIXTURE_BRANCH)-test2-topic
+	-git push origin --delete $(FIXTURE_BRANCH)-test1-main
+	-git push origin --delete $(FIXTURE_BRANCH)-test1-topic
+	-git push origin --delete $(FIXTURE_BRANCH)-test2-main
+	-git push origin --delete $(FIXTURE_BRANCH)-test2-topic
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers
