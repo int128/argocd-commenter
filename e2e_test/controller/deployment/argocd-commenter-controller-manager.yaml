@@ -10,9 +10,3 @@ spec:
         - name: manager
           # https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster
           imagePullPolicy: Never
-          env:
-            - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: argocd-commenter-secret
-                  key: GITHUB_TOKEN
