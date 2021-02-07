@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: helloworld
+  name: test2-fixture
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/int128/argocd-commenter
-    targetRevision: MAIN_BRANCH_NAME
-    path: e2e_test/helloworld
+    targetRevision: FIXTURE_BRANCH-test2-main
+    path: e2e_test/test2-fixture
   destination:
     server: https://kubernetes.default.svc
-    namespace: helloworld
+    namespace: test2-fixture
   syncPolicy:
     automated:
       prune: true
