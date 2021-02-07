@@ -27,6 +27,13 @@ spec:
         - /manager
         args:
         - --enable-leader-election
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: controller-manager
+              key: GITHUB_TOKEN
+              optional: true
         image: controller:latest
         name: manager
         resources:
