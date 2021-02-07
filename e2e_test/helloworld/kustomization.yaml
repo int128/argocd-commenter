@@ -1,4 +1,0 @@
-namespace: helloworld
-resources:
-  - namespace/helloworld.yaml
-  - deployment/echoserver.yaml
