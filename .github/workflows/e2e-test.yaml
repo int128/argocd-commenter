@@ -30,13 +30,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-      - run: make -C e2e_test ci-setup
-      - run: make -C e2e_test -j3 deploy
+      - run: git config user.name ci
+      - run: git config user.email ci@example.com
+      - run: make -C e2e_test setup
+      - run: make -C e2e_test -j4 deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: make -C e2e_test test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-      - run: make -C e2e_test ci-cleanup
+      - run: make -C e2e_test cleanup
         if: always()
