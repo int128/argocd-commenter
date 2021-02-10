@@ -1,10 +1,28 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/shurcooL/githubv4"
+	"golang.org/x/oauth2"
 )
+
+type Client interface {
+	AddComment(ctx context.Context, comment Comment) error
+}
+
+func NewClient(ctx context.Context, token string) *client {
+	return &client{
+		graphql: githubv4.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))),
+	}
+}
+
+type client struct {
+	graphql *githubv4.Client
+}
 
 type Repository struct {
 	Owner string
@@ -24,9 +42,4 @@ func ParseRepositoryURL(urlstr string) (*Repository, error) {
 		return nil, fmt.Errorf("invalid path %s", u.Path)
 	}
 	return &Repository{Owner: c[0], Name: c[1]}, nil
-}
-
-func IsRetryableError(_ error) bool {
-	// discard errors because github.com/shurcooL/graphql does not export any error interface
-	return false
 }

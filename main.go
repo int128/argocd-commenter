@@ -17,10 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
+	"github.com/int128/argocd-commenter/pkg/github"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -57,6 +59,9 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
+	ctx := context.Background()
+	githubClient := github.NewClient(ctx, os.Getenv("GITHUB_TOKEN"))
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
@@ -70,17 +75,19 @@ func main() {
 	}
 
 	if err = (&controllers.ApplicationSyncStatusReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ApplicationSyncStatus"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("ApplicationSyncStatus"),
+		Scheme:       mgr.GetScheme(),
+		GitHubClient: githubClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationSyncStatus")
 		os.Exit(1)
 	}
 	if err = (&controllers.ApplicationPhaseReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ApplicationPhase"),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("ApplicationPhase"),
+		Scheme:       mgr.GetScheme(),
+		GitHubClient: githubClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
 		os.Exit(1)

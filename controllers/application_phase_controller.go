@@ -35,8 +35,9 @@ import (
 // ApplicationPhaseReconciler reconciles an Application object
 type ApplicationPhaseReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	GitHubClient github.Client
 }
 
 // +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
@@ -55,13 +56,13 @@ func (r *ApplicationPhaseReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		log.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
 		return ctrl.Result{}, nil
 	}
-	comment := github.CommitComment{
+	comment := github.Comment{
 		Repository: *repository,
 		CommitSHA:  application.Status.Sync.Revision,
 		Body:       phaseCommentFor(application),
 	}
 	log.Info("adding a comment", "phase", application.Status.OperationState.Phase, "comment", comment)
-	if err := github.CreateCommitComment(ctx, comment); err != nil {
+	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
 		log.Error(err, "unable to add a comment", "comment", comment)
 		return ctrl.Result{}, nil
 	}

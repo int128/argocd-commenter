@@ -32,8 +32,9 @@ import (
 // ApplicationSyncStatusReconciler reconciles an Application object
 type ApplicationSyncStatusReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	GitHubClient github.Client
 }
 
 // +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
@@ -53,13 +54,13 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 		log.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
 		return ctrl.Result{}, nil
 	}
-	comment := github.CommitComment{
+	comment := github.Comment{
 		Repository: *repository,
 		CommitSHA:  application.Status.Sync.Revision,
 		Body:       syncStatusCommentFor(application),
 	}
 	log.Info("adding a comment", "sync.status", application.Status.Sync.Status, "comment", comment)
-	if err := github.CreateCommitComment(ctx, comment); err != nil {
+	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
 		log.Error(err, "unable to add a comment", "comment", comment)
 		return ctrl.Result{}, nil
 	}
