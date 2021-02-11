@@ -3,22 +3,17 @@ package github
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/shurcooL/githubv4"
-	"golang.org/x/oauth2"
 )
 
-type CommitComment struct {
+type Comment struct {
 	Repository Repository
 	CommitSHA  string
 	Body       string
 }
 
-func CreateCommitComment(ctx context.Context, c CommitComment) error {
-	tc := oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")}))
-	client := githubv4.NewClient(tc)
-
+func (c *client) AddComment(ctx context.Context, comment Comment) error {
 	var q struct {
 		Repository struct {
 			Object struct {
@@ -34,15 +29,15 @@ func CreateCommitComment(ctx context.Context, c CommitComment) error {
 		} `graphql:"repository(owner: $owner, name: $name)"`
 	}
 	v := map[string]interface{}{
-		"owner":     githubv4.String(c.Repository.Owner),
-		"name":      githubv4.String(c.Repository.Name),
-		"commitSHA": githubv4.GitObjectID(c.CommitSHA),
+		"owner":     githubv4.String(comment.Repository.Owner),
+		"name":      githubv4.String(comment.Repository.Name),
+		"commitSHA": githubv4.GitObjectID(comment.CommitSHA),
 	}
-	if err := client.Query(ctx, &q, v); err != nil {
+	if err := c.graphql.Query(ctx, &q, v); err != nil {
 		return fmt.Errorf("query error from GitHub API: %w", err)
 	}
 	if len(q.Repository.Object.Commit.AssociatedPullRequests.Nodes) == 0 {
-		return fmt.Errorf("could not find a pull request associated to commit %s", c.CommitSHA)
+		return fmt.Errorf("could not find a pull request associated to commit %s", comment.CommitSHA)
 	}
 	associatedPullRequest := q.Repository.Object.Commit.AssociatedPullRequests.Nodes[0]
 
@@ -55,9 +50,9 @@ func CreateCommitComment(ctx context.Context, c CommitComment) error {
 	}
 	input := githubv4.AddCommentInput{
 		SubjectID: associatedPullRequest.ID,
-		Body:      githubv4.String(c.Body),
+		Body:      githubv4.String(comment.Body),
 	}
-	if err := client.Mutate(ctx, &m, input, nil); err != nil {
+	if err := c.graphql.Mutate(ctx, &m, input, nil); err != nil {
 		return fmt.Errorf("could not add a comment to pull request #%d: %w", associatedPullRequest.Number, err)
 	}
 	return nil
