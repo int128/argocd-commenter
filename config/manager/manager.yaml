@@ -34,6 +34,24 @@ spec:
               name: controller-manager
               key: GITHUB_TOKEN
               optional: true
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: controller-manager
+              key: GITHUB_APP_ID
+              optional: true
+        - name: GITHUB_APP_INSTALLATION_ID
+          valueFrom:
+            secretKeyRef:
+              name: controller-manager
+              key: GITHUB_APP_INSTALLATION_ID
+              optional: true
+        - name: GITHUB_APP_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: controller-manager
+              key: GITHUB_APP_PRIVATE_KEY
+              optional: true
         image: controller:latest
         name: manager
         resources:

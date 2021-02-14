@@ -60,7 +60,11 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	ctx := context.Background()
-	githubClient := github.NewClient(ctx, os.Getenv("GITHUB_TOKEN"))
+	githubClient, err := github.NewClient(ctx)
+	if err != nil {
+		setupLog.Error(err, "unable to set up GitHub client")
+		os.Exit(1)
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
