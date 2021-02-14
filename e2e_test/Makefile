@@ -58,7 +58,7 @@ deploy-argocd: cluster
 deploy-controller: cluster build-controller
 	kind load docker-image controller:latest --name $(CLUSTER_NAME)
 	kustomize build controller | kubectl apply -f -
-	-kubectl -n argocd-commenter-system create secret generic controller-manager --from-literal="GITHUB_TOKEN=$(GITHUB_TOKEN)"
+	./create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
 build-controller:
