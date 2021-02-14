@@ -1,23 +1,23 @@
 # argocd-commenter
 
-This is a Kubernetes Controller to add a comment to the pull request when ArgoCD performs sync operations.
+This is a Kubernetes Controller to add a comment to pull request when Argo CD performs sync operations.
 
-TODO: example screenshot
+![screenshot](https://user-images.githubusercontent.com/321266/107874806-84e13680-6eff-11eb-87c1-3fcf2f8e1efe.png)
 
 
 ## Getting Started
 
 ### Prerequisite
 
-ArgoCD must be deployed to your cluster.
+Argo CD is running in your Kubernetes cluster.
 
 
-### Deploy
+### Setup
 
 To deploy the manifest:
 
 ```shell
-kubectl apply -f https://github.com/int128/argocd-commenter/releases/download/v0.2.0/argocd-commenter.yaml
+kubectl apply -f https://github.com/int128/argocd-commenter/releases/download/v0.3.0/argocd-commenter.yaml
 ```
 
 You need to create either Personal Access Token or GitHub App.
@@ -55,6 +55,15 @@ You need to create either Personal Access Token or GitHub App.
       --from-literal="GITHUB_APP_INSTALLATION_ID=$YOUR_GITHUB_APP_INSTALLATION_ID" \
       --from-file="GITHUB_APP_PRIVATE_KEY=/path/to/private-key.pem"
     ```
+
+
+### Verify setup
+
+Make sure the controller is running.
+
+```shell
+kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
+```
 
 
 ## Contribution
