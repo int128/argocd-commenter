@@ -38,8 +38,6 @@ jobs:
       - run: make -C e2e_test setup
       - run: make -C e2e_test -j4 deploy
         env:
-          #TODO: remove after GitHub App implementation
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
