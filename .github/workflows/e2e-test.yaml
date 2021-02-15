@@ -1,17 +1,6 @@
 name: e2e-test
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - e2e_test/**
-      - api/**
-      - controllers/**
-      - pkg/**
-      - config/**
-      - main.go
-      - go.*
   pull_request:
     branches:
       - master
