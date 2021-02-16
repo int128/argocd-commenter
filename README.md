@@ -43,7 +43,7 @@ You need to create either Personal Access Token or GitHub App.
 
 1. Create your GitHub App from either link:
     - For a user: https://github.com/settings/apps/new?name=argocd-commenter&url=https://github.com/int128/argocd-commenter&webhook_active=false&pull_requests=write
-    - For an organization: https://github.com/:org/settings/apps/new?name=argocd-commenter&url=https://github.com/int128/argocd-commenter&webhook_active=false&pull_requests=write (replace `:org` with your organization)
+    - For an organization: https://github.com/organizations/:org/settings/apps/new?name=argocd-commenter&url=https://github.com/int128/argocd-commenter&webhook_active=false&pull_requests=write (replace `:org` with your organization)
 1. Get the **App ID** from the setting page
 1. [Download a private key of the GitHub App](https://docs.github.com/en/developers/apps/authenticating-with-github-apps)
 1. [Set a custom badge for the GitHub App](https://docs.github.com/en/developers/apps/creating-a-custom-badge-for-your-github-app)
