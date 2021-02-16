@@ -43,9 +43,11 @@ You need to create either Personal Access Token or GitHub App.
 
 1. Create your GitHub App from either link:
     - For a user: https://github.com/settings/apps/new?name=argocd-commenter&url=https://github.com/int128/argocd-commenter&webhook_active=false&pull_requests=write
-    - For an organization: https://github.com/:org/settings/apps/new?name=argocd-commenter&url=https://github.com/int128/argocd-commenter&webhook_active=false&pull_requests=write
+    - For an organization: https://github.com/:org/settings/apps/new?name=argocd-commenter&url=https://github.com/int128/argocd-commenter&webhook_active=false&pull_requests=write (replace `:org` with your organization)
 1. Get the **App ID** from the setting page
 1. [Download a private key of the GitHub App](https://docs.github.com/en/developers/apps/authenticating-with-github-apps)
+1. [Set a custom badge for the GitHub App](https://docs.github.com/en/developers/apps/creating-a-custom-badge-for-your-github-app)
+    - Logo of Argo CD is available in [CNCF Branding](https://cncf-branding.netlify.app/projects/argo/)
 1. [Install your GitHub App on your repository or organization](https://docs.github.com/en/developers/apps/installing-github-apps)
 1. Get the **Installation ID** from the URL, like `https://github.com/settings/installations/ID`
 1. Create a secret as follows:
