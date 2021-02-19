@@ -14,7 +14,7 @@ require (
 	github.com/shurcooL/graphql v0.0.0-20200928012149-18c5c3165e3a // indirect
 	golang.org/x/oauth2 v0.0.0-20210218202405-ba52d332ba99
 	k8s.io/apimachinery v0.20.4
-	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
+	k8s.io/client-go/v12 v12.0.0
 	sigs.k8s.io/controller-runtime v0.6.4
 )
 
