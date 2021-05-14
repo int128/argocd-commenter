@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.3.0 // indirect
 	github.com/int128/oauth2-github-app v0.1.0
-	github.com/onsi/ginkgo v1.16.1
+	github.com/onsi/ginkgo v1.16.2
 	github.com/onsi/gomega v1.11.0
 	github.com/shurcooL/githubv4 v0.0.0-20201206200315-234843c633fa
 	github.com/shurcooL/graphql v0.0.0-20200928012149-18c5c3165e3a // indirect
