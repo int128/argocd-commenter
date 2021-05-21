@@ -6,11 +6,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: echoserver
+      app: echoserver-test2
   template:
     metadata:
       labels:
-        app: echoserver
+        app: echoserver-test2
     spec:
       containers:
         - image: gcr.io/google_containers/echoserver:1.8
