@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.13.0
 	github.com/shurcooL/githubv4 v0.0.0-20201206200315-234843c633fa
 	github.com/shurcooL/graphql v0.0.0-20200928012149-18c5c3165e3a // indirect
-	golang.org/x/oauth2 v0.0.0-20210622215436-a8dc77f794b6
+	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
 	sigs.k8s.io/controller-runtime v0.6.4
