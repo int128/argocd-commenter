@@ -13,28 +13,8 @@ test:
 	# wait for sync
 	./wait-for-sync-status.sh test1-fixture $(FIXTURE_BRANCH)-test1-main Synced Succeeded
 	./wait-for-sync-status.sh test2-fixture $(FIXTURE_BRANCH)-test2-main Synced Succeeded
-	# test1
-	git checkout $(FIXTURE_BRANCH)-test1-main
-	git checkout -b $(FIXTURE_BRANCH)-test1-topic
-	sed -i -e 's/name: echoserver/name: echoserver-test1/g' test1-fixture/deployment/echoserver.yaml
-	git commit -a -m $(FIXTURE_BRANCH)-test1-topic
-	git push origin $(FIXTURE_BRANCH)-test1-topic
-	gh pr create --base $(FIXTURE_BRANCH)-test1-main --title "Fixture 1: sync success" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)" --label e2e-test
-	gh pr merge --squash
-	git checkout $(FIXTURE_BRANCH)-test1-main
-	git pull origin --ff-only $(FIXTURE_BRANCH)-test1-main
-	git branch -D $(FIXTURE_BRANCH)-test1-topic
-	# test2
-	git checkout $(FIXTURE_BRANCH)-test2-main
-	git checkout -b $(FIXTURE_BRANCH)-test2-topic
-	sed -i -e 's/app: echoserver/app: echoserver-test2/g' test2-fixture/deployment/echoserver.yaml
-	git commit -a -m $(FIXTURE_BRANCH)-test2-topic
-	git push origin $(FIXTURE_BRANCH)-test2-topic
-	gh pr create --base $(FIXTURE_BRANCH)-test2-main --title "Fixture 2: sync failure" --body "This is created by e2e-test of #$(GITHUB_PR_NUMBER)" --label e2e-test
-	gh pr merge --squash
-	git checkout $(FIXTURE_BRANCH)-test2-main
-	git pull origin --ff-only $(FIXTURE_BRANCH)-test2-main
-	git branch -D $(FIXTURE_BRANCH)-test2-topic
+	# test
+	FIXTURE_BRANCH=$(FIXTURE_BRANCH) ./test-suite.sh
 	# wait for sync
 	./wait-for-sync-status.sh test1-fixture $(FIXTURE_BRANCH)-test1-main Synced Succeeded
 	./wait-for-sync-status.sh test2-fixture $(FIXTURE_BRANCH)-test2-main OutOfSync Failed
