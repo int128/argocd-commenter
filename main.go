@@ -17,10 +17,13 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/int128/argocd-commenter/pkg/github"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -79,16 +82,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx := context.Background()
+	githubClient, err := github.NewClient(ctx)
+	if err != nil {
+		setupLog.Error(err, "unable to set up GitHub client")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.ApplicationPhaseReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GitHubClient: githubClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
 		os.Exit(1)
 	}
 	if err = (&controllers.ApplicationSyncStatusReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GitHubClient: githubClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationSyncStatus")
 		os.Exit(1)
