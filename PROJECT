@@ -1,3 +1,17 @@
 domain: int128.github.io
+layout:
+- go.kubebuilder.io/v3
+projectName: argocd-commenter
 repo: github.com/int128/argocd-commenter
-version: "2"
+resources:
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationPhase
+  version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationSyncStatus
+  version: v1
+version: "3"
