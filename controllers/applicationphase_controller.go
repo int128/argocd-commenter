@@ -38,9 +38,7 @@ type ApplicationPhaseReconciler struct {
 	GitHubClient github.Client
 }
 
-//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationphases,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationphases/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationphases/finalizers,verbs=update
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
