@@ -50,16 +50,16 @@ type ApplicationPhaseReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
-		log.Error(err, "unable to get the Application")
+		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
 	if err != nil {
-		log.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
+		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
 		return ctrl.Result{}, nil
 	}
 	comment := github.Comment{
@@ -67,9 +67,9 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		CommitSHA:  application.Status.Sync.Revision,
 		Body:       phaseCommentFor(application),
 	}
-	log.Info("adding a comment", "phase", application.Status.OperationState.Phase, "comment", comment)
+	logger.Info("adding a comment", "phase", application.Status.OperationState.Phase, "comment", comment)
 	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
-		log.Error(err, "unable to add a comment", "comment", comment)
+		logger.Error(err, "unable to add a comment", "comment", comment)
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
