@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,30 +21,38 @@ import (
 	"fmt"
 	"strings"
 
-	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
-	"github.com/go-logr/logr"
+	"github.com/int128/argocd-commenter/pkg/github"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-
-	"github.com/int128/argocd-commenter/pkg/github"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseReconciler reconciles an Application object
+// ApplicationPhaseReconciler reconciles a ApplicationPhase object
 type ApplicationPhaseReconciler struct {
 	client.Client
-	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	GitHubClient github.Client
 }
 
-// +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationphases,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationphases/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationphases/finalizers,verbs=update
 
-func (r *ApplicationPhaseReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("application", req.NamespacedName)
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the ApplicationPhase object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
+func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
 		log.Error(err, "unable to get the Application")
@@ -89,6 +97,7 @@ func phaseCommentFor(a argocdv1alpha1.Application) string {
 	)
 }
 
+// SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
