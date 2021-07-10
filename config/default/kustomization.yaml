@@ -13,7 +13,7 @@ namePrefix: argocd-commenter-
 #  someName: someValue
 
 bases:
-- ../crd
+#- ../crd
 - ../rbac
 - ../manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
@@ -25,6 +25,8 @@ bases:
 #- ../prometheus
 
 patchesStrategicMerge:
+- manager_env_patch.yaml
+
 # Protect the /metrics endpoint by putting it behind auth.
 # If you want your controller-manager to expose the /metrics
 # endpoint w/o any authn/z, please comment the following line.
