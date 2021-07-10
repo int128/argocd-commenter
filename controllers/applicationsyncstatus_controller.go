@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,38 +20,45 @@ import (
 	"context"
 	"fmt"
 
-	argocdv1alpha1 "github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
-	"github.com/go-logr/logr"
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/pkg/github"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationSyncStatusReconciler reconciles an Application object
+// ApplicationSyncStatusReconciler reconciles a ApplicationSyncStatus object
 type ApplicationSyncStatusReconciler struct {
 	client.Client
-	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	GitHubClient github.Client
 }
 
-// +kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 
-func (r *ApplicationSyncStatusReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("application", req.NamespacedName)
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the ApplicationSyncStatus object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
+func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
-		log.Error(err, "unable to get the Application")
+		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
 	if err != nil {
-		log.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
+		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
 		return ctrl.Result{}, nil
 	}
 	comment := github.Comment{
@@ -59,9 +66,9 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 		CommitSHA:  application.Status.Sync.Revision,
 		Body:       syncStatusCommentFor(application),
 	}
-	log.Info("adding a comment", "sync.status", application.Status.Sync.Status, "comment", comment)
+	logger.Info("adding a comment", "sync.status", application.Status.Sync.Status, "comment", comment)
 	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
-		log.Error(err, "unable to add a comment", "comment", comment)
+		logger.Error(err, "unable to add a comment", "comment", comment)
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
@@ -80,6 +87,7 @@ func syncStatusCommentFor(a argocdv1alpha1.Application) string {
 		a.Status.Sync.Revision)
 }
 
+// SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationSyncStatusReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
