@@ -23,7 +23,9 @@ func (c *client) AddComment(ctx context.Context, comment Comment) error {
 							ID     githubv4.ID
 							Number int
 						}
-					} `graphql:"associatedPullRequests(first: 1)"`
+					} `graphql:"associatedPullRequests(first: 3)"`
+					MessageHeadlineHTML string `graphql:"messageHeadlineHTML"`
+					MessageBodyHTML     string `graphql:"messageBodyHTML"`
 				} `graphql:"... on Commit"`
 			} `graphql:"object(oid: $commitSHA)"`
 		} `graphql:"repository(owner: $owner, name: $name)"`
@@ -34,13 +36,56 @@ func (c *client) AddComment(ctx context.Context, comment Comment) error {
 		"commitSHA": githubv4.GitObjectID(comment.CommitSHA),
 	}
 	if err := c.graphql.Query(ctx, &q, v); err != nil {
-		return fmt.Errorf("query error from GitHub API: %w", err)
+		return fmt.Errorf("could not get commit %s: %w", comment.CommitSHA, err)
 	}
-	if len(q.Repository.Object.Commit.AssociatedPullRequests.Nodes) == 0 {
-		return fmt.Errorf("could not find a pull request associated to commit %s", comment.CommitSHA)
-	}
-	associatedPullRequest := q.Repository.Object.Commit.AssociatedPullRequests.Nodes[0]
 
+	pullRequests := make(map[PullRequest]githubv4.ID)
+	for _, n := range q.Repository.Object.Commit.AssociatedPullRequests.Nodes {
+		pullRequests[PullRequest{Repository: comment.Repository, Number: n.Number}] = n.ID
+	}
+	messageHTML := q.Repository.Object.Commit.MessageHeadlineHTML + "\n" + q.Repository.Object.Commit.MessageBodyHTML
+	for _, pullRequest := range FindPullRequestURLs(messageHTML) {
+		if _, ok := pullRequests[pullRequest]; ok {
+			continue // dedupe pull requests
+		}
+
+		q, err := c.getPullRequest(ctx, pullRequest)
+		if err != nil {
+			return fmt.Errorf("could not get pull request %+v: %w", pullRequest, err)
+		}
+		pullRequests[pullRequest] = q.Repository.PullRequest.ID
+	}
+
+	for pullRequest, pullRequestID := range pullRequests {
+		if err := c.addComment(ctx, pullRequestID, comment.Body); err != nil {
+			return fmt.Errorf("could not comment to pull request #%d: %w", pullRequest.Number, err)
+		}
+	}
+	return nil
+}
+
+type queryPullRequest struct {
+	Repository struct {
+		PullRequest struct {
+			ID githubv4.ID
+		} `graphql:"pullRequest(number: $number)"`
+	} `graphql:"repository(owner: $owner, name: $name)"`
+}
+
+func (c *client) getPullRequest(ctx context.Context, pullRequest PullRequest) (*queryPullRequest, error) {
+	var q queryPullRequest
+	v := map[string]interface{}{
+		"owner":  githubv4.String(pullRequest.Owner),
+		"name":   githubv4.String(pullRequest.Name),
+		"number": githubv4.Int(pullRequest.Number),
+	}
+	if err := c.graphql.Query(ctx, &q, v); err != nil {
+		return nil, fmt.Errorf("query error from GitHub API: %w", err)
+	}
+	return &q, nil
+}
+
+func (c *client) addComment(ctx context.Context, id githubv4.ID, body string) error {
 	var m struct {
 		AddComment struct {
 			Subject struct {
@@ -49,11 +94,11 @@ func (c *client) AddComment(ctx context.Context, comment Comment) error {
 		} `graphql:"addComment(input: $input)"`
 	}
 	input := githubv4.AddCommentInput{
-		SubjectID: associatedPullRequest.ID,
-		Body:      githubv4.String(comment.Body),
+		SubjectID: id,
+		Body:      githubv4.String(body),
 	}
 	if err := c.graphql.Mutate(ctx, &m, input, nil); err != nil {
-		return fmt.Errorf("could not add a comment to pull request #%d: %w", associatedPullRequest.Number, err)
+		return fmt.Errorf("mutation error from GitHub API: %w", err)
 	}
 	return nil
 }
