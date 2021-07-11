@@ -61,4 +61,4 @@ cleanup:
 	-git push origin --delete $(FIXTURE_BRANCH)-test1-topic
 	-git push origin --delete $(FIXTURE_BRANCH)-test2-main
 	-git push origin --delete $(FIXTURE_BRANCH)-test2-topic
-	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers
+	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
