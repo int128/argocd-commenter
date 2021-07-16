@@ -20,3 +20,5 @@ jobs:
 
       - run: gh release upload "${GITHUB_REF##*/}" /tmp/argocd-commenter.yaml --clobber
         if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
