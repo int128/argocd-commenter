@@ -1,0 +1,22 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - run: kustomize edit set image controller="ghcr.io/int128/argocd-commenter:${GITHUB_REF##*/}"
+        working-directory: config/manager
+      - run: kustomize build config/default > /tmp/argocd-commenter.yaml
+      - run: cat /tmp/argocd-commenter.yaml
+
+      - run: gh release upload "${GITHUB_REF##*/}" /tmp/argocd-commenter.yaml --clobber
+        if: github.event_name == 'push'
