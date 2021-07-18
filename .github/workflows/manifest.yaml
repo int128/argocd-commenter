@@ -1,0 +1,23 @@
+name: manifest
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - config/**
+      - .github/workflows/manifest.yaml
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+          path: master
+      - run: kustomize build master/config/default > /tmp/base.yaml
+      - run: kustomize build config/default > /tmp/head.yaml
+      - run: diff -u /tmp/head.yaml /tmp/base.yaml
+        continue-on-error: true
