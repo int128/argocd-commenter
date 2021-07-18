@@ -48,9 +48,9 @@ spec:
         resources:
           limits:
             # no cpu limit
-            memory: 48Mi
+            memory: 64Mi
           requests:
             cpu: 10m
-            memory: 48Mi
+            memory: 64Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
