@@ -17,7 +17,15 @@ jobs:
         with:
           ref: master
           path: master
-      - run: kustomize build master/config/default > /tmp/base.yaml
-      - run: kustomize build config/default > /tmp/head.yaml
-      - run: diff -u /tmp/head.yaml /tmp/base.yaml
-        continue-on-error: true
+      - uses: int128/kustomize-action@v1
+        id: kustomize-head
+        with:
+          kustomization: config/default/kustomization.yaml
+          write-individual-files: true
+      - uses: int128/kustomize-action@v1
+        id: kustomize-base
+        with:
+          base-directory: master
+          kustomization: config/default/kustomization.yaml
+          write-individual-files: true
+      - run: git diff --no-index ${{ steps.kustomize-base.outputs.directory }} ${{ steps.kustomize-head.outputs.directory }}
