@@ -1,0 +1,34 @@
+name: manifest
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - config/**
+      - .github/workflows/manifest.yaml
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+          path: master
+      - uses: int128/kustomize-action@v1
+        id: kustomize-head
+        with:
+          kustomization: config/default/kustomization.yaml
+          write-individual-files: true
+      - uses: int128/kustomize-action@v1
+        id: kustomize-base
+        with:
+          base-directory: master
+          kustomization: config/default/kustomization.yaml
+          write-individual-files: true
+      - uses: int128/diff-action@v1
+        with:
+          base: ${{ steps.kustomize-base.outputs.directory }}
+          head: ${{ steps.kustomize-head.outputs.directory }}
