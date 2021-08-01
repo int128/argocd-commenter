@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: int128/hide-comment-action@v1
+        with:
+          starts-with: |
+            <!-- kustomize-action -->
+            <!-- diff-action -->
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
