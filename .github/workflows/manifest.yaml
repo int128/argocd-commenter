@@ -28,4 +28,7 @@ jobs:
           base-directory: master
           kustomization: config/default/kustomization.yaml
           write-individual-files: true
-      - run: git diff --no-index ${{ steps.kustomize-base.outputs.directory }} ${{ steps.kustomize-head.outputs.directory }}
+      - uses: int128/diff-action@v1
+        with:
+          base: ${{ steps.kustomize-base.outputs.directory }}
+          head: ${{ steps.kustomize-head.outputs.directory }}
