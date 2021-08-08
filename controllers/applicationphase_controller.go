@@ -24,11 +24,16 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/pkg/github"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	lastRevisionPhase = "argocd-commenter.int128.github.io/last-revision-phase"
 )
 
 // ApplicationPhaseReconciler reconciles a ApplicationPhase object
@@ -51,10 +56,21 @@ type ApplicationPhaseReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	lastRevision, err := r.getOrPatchLastRevisionAnnotation(ctx, application)
+	if err != nil {
+		logger.Error(err, "unable to patch annotations to the Application")
+		return ctrl.Result{}, err
+	}
+	if lastRevision == application.Status.Sync.Revision {
+		logger.Info("already added a comment", "revision", lastRevision)
+		return ctrl.Result{}, nil
 	}
 
 	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
@@ -73,6 +89,24 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ApplicationPhaseReconciler) getOrPatchLastRevisionAnnotation(ctx context.Context, application argocdv1alpha1.Application) (string, error) {
+	lastRevision, ok := application.Annotations[lastRevisionPhase]
+	if ok {
+		return lastRevision, nil
+	}
+	var patch unstructured.Unstructured
+	patch.SetGroupVersionKind(application.GroupVersionKind())
+	patch.SetNamespace(application.Namespace)
+	patch.SetName(application.Name)
+	annotations := application.DeepCopy().Annotations
+	annotations[lastRevisionPhase] = application.Status.Sync.Revision
+	patch.SetAnnotations(annotations)
+	if err := r.Patch(ctx, &patch, client.Apply, &client.PatchOptions{FieldManager: "argocd-commenter"}); err != nil {
+		return "", err
+	}
+	return "", nil
 }
 
 func phaseCommentFor(a argocdv1alpha1.Application) string {
