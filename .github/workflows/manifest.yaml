@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: int128/hide-comment-action@v1
         with:
-          starts-with: |
+          ends-with: |
             <!-- kustomize-action -->
             <!-- diff-action -->
       - uses: actions/checkout@v2
