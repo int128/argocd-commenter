@@ -22,11 +22,16 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/pkg/github"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	lastRevisionOfSyncStatusNotificationAnnotation = "argocd-commenter.int128.github.io/last-revision-of-sync-status-notification"
 )
 
 // ApplicationSyncStatusReconciler reconciles a ApplicationSyncStatus object
@@ -54,6 +59,24 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	lastRevisionOfSyncStatusNotification, ok := application.Annotations[lastRevisionOfSyncStatusNotificationAnnotation]
+	if !ok {
+		annotations := application.DeepCopy().Annotations
+		annotations[lastRevisionOfSyncStatusNotification] = application.Status.Sync.Revision
+		var p unstructured.Unstructured
+		p.SetNamespace(application.Namespace)
+		p.SetName(application.Name)
+		p.SetAnnotations(annotations)
+		if err := r.Patch(ctx, &p, client.Apply); err != nil {
+			logger.Error(err, "unable to patch the Application")
+			return ctrl.Result{}, err
+		}
+	}
+	if lastRevisionOfSyncStatusNotification == application.Status.Sync.Revision {
+		logger.Info("already sent a notification", "revision", lastRevisionOfSyncStatusNotification)
+		return ctrl.Result{}, nil
 	}
 
 	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
