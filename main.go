@@ -22,6 +22,7 @@ import (
 	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/clock"
 
 	"github.com/int128/argocd-commenter/pkg/github"
 
@@ -101,16 +102,17 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.ApplicationSyncStatusReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		GitHubClient: githubClient,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationSyncStatus")
 		os.Exit(1)
 	}
 	if err = (&controllers.GitHubCommentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GitHubClient: githubClient,
+		Clock:        clock.RealClock{},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GitHubComment")
 		os.Exit(1)

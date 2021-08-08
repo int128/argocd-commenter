@@ -28,8 +28,14 @@ type GitHubCommentSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of GitHubComment. Edit githubcomment_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	RepositoryOwner string               `json:"repository_owner,omitempty"`
+	RepositoryName  string               `json:"repository_name,omitempty"`
+	Revision        string               `json:"revision,omitempty"`
+	Events          []GitHubCommentEvent `json:"event,omitempty"`
+}
+
+type GitHubCommentEvent struct {
+	Message string `json:"message,omitempty"`
 }
 
 // GitHubCommentStatus defines the observed state of GitHubComment
