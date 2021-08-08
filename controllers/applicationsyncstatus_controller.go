@@ -22,11 +22,16 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/pkg/github"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	lastRevisionOfSyncStatusCommentAnnotation = "argocd-commenter.int128.github.io/last-revision-of-sync-status-comment"
 )
 
 // ApplicationSyncStatusReconciler reconciles a ApplicationSyncStatus object
@@ -36,7 +41,7 @@ type ApplicationSyncStatusReconciler struct {
 	GitHubClient github.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -56,6 +61,16 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	lastRevision, err := r.getOrPatchLastRevisionAnnotation(ctx, application)
+	if err != nil {
+		logger.Error(err, "unable to patch annotations to the Application")
+		return ctrl.Result{}, err
+	}
+	if lastRevision == application.Status.Sync.Revision {
+		logger.Info("already added a comment", "revision", lastRevision)
+		return ctrl.Result{}, nil
+	}
+
 	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
 	if err != nil {
 		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
@@ -72,6 +87,24 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ApplicationSyncStatusReconciler) getOrPatchLastRevisionAnnotation(ctx context.Context, application argocdv1alpha1.Application) (string, error) {
+	lastRevision, ok := application.Annotations[lastRevisionOfSyncStatusCommentAnnotation]
+	if ok {
+		return lastRevision, nil
+	}
+	var patch unstructured.Unstructured
+	patch.SetGroupVersionKind(application.GroupVersionKind())
+	patch.SetNamespace(application.Namespace)
+	patch.SetName(application.Name)
+	annotations := application.DeepCopy().Annotations
+	annotations[lastRevisionOfSyncStatusCommentAnnotation] = application.Status.Sync.Revision
+	patch.SetAnnotations(annotations)
+	if err := r.Patch(ctx, &patch, client.Apply, &client.PatchOptions{FieldManager: "argocd-commenter"}); err != nil {
+		return "", err
+	}
+	return "", nil
 }
 
 func syncStatusCommentFor(a argocdv1alpha1.Application) string {
