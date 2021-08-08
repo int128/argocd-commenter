@@ -18,8 +18,11 @@ package controllers
 
 import (
 	"context"
+	"time"
 
+	"github.com/int128/argocd-commenter/pkg/github"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -30,7 +33,9 @@ import (
 // GitHubCommentReconciler reconciles a GitHubComment object
 type GitHubCommentReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	GitHubClient github.Client
+	Clock        clock.Clock
 }
 
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=githubcomments,verbs=get;list;watch;create;update;patch;delete
@@ -47,10 +52,38 @@ type GitHubCommentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *GitHubCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// your logic here
+	var c argocdcommenterv1.GitHubComment
+	if err := r.Get(ctx, req.NamespacedName, &c); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
+	if r.Clock.Since(c.CreationTimestamp.Time) < 5*time.Second {
+		after := 5*time.Second - r.Clock.Since(c.CreationTimestamp.Time)
+		logger.Info("requeue for notification", "after", after)
+		return ctrl.Result{Requeue: true, RequeueAfter: after}, nil
+	}
+
+	ghc := github.Comment{
+		Repository: github.Repository{
+			Owner: c.Spec.RepositoryOwner,
+			Name:  c.Spec.RepositoryName,
+		},
+		CommitSHA: c.Spec.Revision,
+	}
+	for _, e := range c.Spec.Events {
+		ghc.Body += e.Message + "\n"
+	}
+
+	if err := r.GitHubClient.AddComment(ctx, ghc); err != nil {
+		logger.Error(err, "unable to add a comment to the revision", "comment", ghc)
+		return ctrl.Result{}, nil
+	}
+	if err := r.Delete(ctx, &c); err != nil {
+		logger.Error(err, "unable to delete the comment")
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
