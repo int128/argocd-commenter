@@ -22,6 +22,8 @@ import (
 	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/clock"
+
 	"github.com/int128/argocd-commenter/pkg/github"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -35,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -49,6 +52,7 @@ func init() {
 
 	utilruntime.Must(argocdv1alpha1.AddToScheme(scheme))
 
+	utilruntime.Must(argocdcommenterv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -89,6 +93,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.GitHubCommentReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GitHubClient: githubClient,
+		Clock:        clock.RealClock{},
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GitHubComment")
+		os.Exit(1)
+	}
 	if err = (&controllers.ApplicationPhaseReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -98,9 +111,8 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.ApplicationSyncStatusReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		GitHubClient: githubClient,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationSyncStatus")
 		os.Exit(1)

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	v1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/pkg/github"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,8 +39,7 @@ const (
 // ApplicationSyncStatusReconciler reconciles a ApplicationSyncStatus object
 type ApplicationSyncStatusReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	GitHubClient github.Client
+	Scheme *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
@@ -77,16 +77,24 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
 		return ctrl.Result{}, nil
 	}
-	comment := github.Comment{
-		Repository: *repository,
-		CommitSHA:  application.Status.Sync.Revision,
-		Body:       syncStatusCommentFor(application),
+
+	var c v1.GitHubComment
+	c.SetNamespace(req.Namespace)
+	c.SetName(fmt.Sprintf("%s-%s-%s", repository.Owner, repository.Name, application.Status.Sync.Revision))
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &c, func() error {
+		c.Spec.RepositoryOwner = repository.Owner
+		c.Spec.RepositoryName = repository.Name
+		c.Spec.Revision = application.Status.Sync.Revision
+		c.Spec.Events = append(c.Spec.Events, v1.GitHubCommentEvent{
+			Message: syncStatusCommentFor(application),
+		})
+		return nil
+	})
+	if err != nil {
+		logger.Error(err, "unable to create or update a Comment")
+		return ctrl.Result{}, err
 	}
-	logger.Info("adding a comment", "sync.status", application.Status.Sync.Status, "comment", comment)
-	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
-		logger.Error(err, "unable to add a comment", "comment", comment)
-		return ctrl.Result{}, nil
-	}
+	logger.Info("created or updated a comment", "op", op, "comment", c)
 	return ctrl.Result{}, nil
 }
 
