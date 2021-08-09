@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	lastRevisionSync      = "argocd-commenter.int128.github.io/last-revision-sync"
+	lastRevisionSynced    = "argocd-commenter.int128.github.io/last-revision-synced"
 	lastRevisionOutOfSync = "argocd-commenter.int128.github.io/last-revision-out-of-sync"
 )
 
@@ -93,7 +93,7 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 func (r *ApplicationSyncStatusReconciler) getOrPatchLastRevisionAnnotation(ctx context.Context, application argocdv1alpha1.Application) (string, error) {
 	var annotationName string
 	if application.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeSynced {
-		annotationName = lastRevisionSync
+		annotationName = lastRevisionSynced
 	}
 	if application.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeOutOfSync {
 		annotationName = lastRevisionOutOfSync
