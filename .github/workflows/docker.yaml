@@ -12,6 +12,7 @@ on:
       - api/**
       - controller/**
       - pkg/**
+      - e2e_test/**
     tags:
       - v*
   pull_request:
@@ -25,22 +26,66 @@ on:
       - api/**
       - controller/**
       - pkg/**
+      - e2e_test/**
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
-      - uses: docker/setup-buildx-action@v1
-      - uses: actions/cache@v2
-        with:
-          path: /tmp/buildx
-          key: buildx-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            buildx-${{ runner.os }}-
+      - run: .github/docker-build-config.sh
+        id: docker-build-config
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: int128/buildx-push-action@v1
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/build-push-action@v2
+        with:
+          push: ${{ steps.docker-build-config.outputs.push }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.docker-build-config.outputs.tag }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildkit-cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildkit-cache,mode=max
+
+  test:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: git config user.name ci
+      - run: git config user.email ci@example.com
+      - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
+      - run: make -C e2e_test setup
+
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/build-push-action@v2
+        with:
+          load: true
+          tags: controller:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildkit-cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildkit-cache,mode=max
+
+      - run: make -C e2e_test -j4 deploy
+        env:
+          GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
+          GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
+      - run: make -C e2e_test -j4 test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      - run: make -C e2e_test cleanup
+        if: always()
+      - run: make -C e2e_test logs-controller
+        if: always()
