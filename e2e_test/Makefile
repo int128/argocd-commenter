@@ -35,14 +35,11 @@ deploy-argocd: cluster
 	kustomize build applications | sed -e "s/FIXTURE_BRANCH/$(FIXTURE_BRANCH)/g" | kubectl apply -f -
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 
-deploy-controller: cluster build-controller
+deploy-controller: cluster
 	kind load docker-image controller:latest --name $(CLUSTER_NAME)
 	kustomize build controller | kubectl apply -f -
 	./create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
-
-build-controller:
-	DOCKER_BUILDKIT=1 docker build .. --tag controller:latest --cache-from ghcr.io/int128/argocd-commenter:latest --build-arg BUILDKIT_INLINE_CACHE=1
 
 undeploy:
 	kubectl delete namespace/argocd namespace/argocd-commenter-system
@@ -61,4 +58,6 @@ cleanup:
 	-git push origin --delete $(FIXTURE_BRANCH)-test1-topic
 	-git push origin --delete $(FIXTURE_BRANCH)-test2-main
 	-git push origin --delete $(FIXTURE_BRANCH)-test2-topic
+
+logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
