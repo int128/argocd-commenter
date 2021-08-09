@@ -6,7 +6,7 @@ set -eux
 if [[ $GITHUB_EVENT_NAME == pull_request ]]; then
   # e.g. refs/pulls/1/merge -> refs-pulls-1-merge
   echo "::set-output name=tag::${GITHUB_REF//\//-}"
-  echo "::set-output name=push::true"
+  echo "::set-output name=push::false"
   exit 0
 fi
 
