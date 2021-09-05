@@ -6,7 +6,7 @@ require (
 	github.com/argoproj/argo-cd/v2 v2.0.5
 	github.com/argoproj/gitops-engine v0.3.3
 	github.com/go-logr/zapr v0.3.0 // indirect
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/int128/oauth2-github-app v0.1.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
