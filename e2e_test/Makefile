@@ -36,7 +36,6 @@ deploy-argocd: cluster
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 
 deploy-controller: cluster
-	kind load docker-image controller:latest --name $(CLUSTER_NAME)
 	kustomize build controller | kubectl apply -f -
 	./create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
