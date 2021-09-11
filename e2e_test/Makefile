@@ -2,8 +2,8 @@ CLUSTER_NAME := argocd-commenter-e2e
 KUBECONFIG := output/kubeconfig.yaml
 export KUBECONFIG
 
-GITHUB_RUN_ID ?= 0
-FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_ID)
+GITHUB_RUN_NUMBER ?= 0
+FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_NUMBER)
 
 GITHUB_PR_NUMBER ?= 0
 
@@ -36,7 +36,6 @@ deploy-argocd: cluster
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 
 deploy-controller: cluster
-	kind load docker-image controller:latest --name $(CLUSTER_NAME)
 	kustomize build controller | kubectl apply -f -
 	./create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
