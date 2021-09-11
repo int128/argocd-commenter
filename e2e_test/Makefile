@@ -2,8 +2,8 @@ CLUSTER_NAME := argocd-commenter-e2e
 KUBECONFIG := output/kubeconfig.yaml
 export KUBECONFIG
 
-GITHUB_RUN_ID ?= 0
-FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_ID)
+GITHUB_RUN_NUMBER ?= 0
+FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_NUMBER)
 
 GITHUB_PR_NUMBER ?= 0
 
