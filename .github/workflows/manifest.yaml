@@ -20,19 +20,23 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
-          ref: master
-          path: master
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: base
       - uses: int128/kustomize-action@v1
         id: kustomize-head
         with:
-          kustomization: config/default/kustomization.yaml
           write-individual-files: true
+          kustomization: |
+            config/default/kustomization.yaml
+            e2e_test/**/kustomization.yaml
       - uses: int128/kustomize-action@v1
         id: kustomize-base
         with:
-          base-directory: master
-          kustomization: config/default/kustomization.yaml
+          base-directory: base
           write-individual-files: true
+          kustomization: |
+            config/default/kustomization.yaml
+            e2e_test/**/kustomization.yaml
       - uses: int128/diff-action@v1
         with:
           base: ${{ steps.kustomize-base.outputs.directory }}
