@@ -62,26 +62,25 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: make -C e2e_test -j4 cluster
+      - run: git config user.name ci
+      - run: git config user.email ci@example.com
+      - run: make -C e2e_test setup-fixture
 
-      - run: kustomize edit set image controller="${{ needs.build.outputs.image }}"
-        working-directory: e2e_test/controller
-      - run: git diff
       - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
+      - run: make -C e2e_test cluster
       - run: make -C e2e_test -j4 deploy
         env:
+          CONTROLLER_IMAGE: ${{ needs.build.outputs.image }}
           GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
 
-      - run: git config user.name ci
-      - run: git config user.email ci@example.com
-      - run: make -C e2e_test setup
-      - run: make -C e2e_test -j4 test
+      - run: make -C e2e_test test
         env:
+          GIT_COMMIT_MESSAGE: "e2e-test #${{ github.event.pull_request.number }}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-      - run: make -C e2e_test cleanup
+
+      - run: make -C e2e_test cleanup-fixture
         if: always()
       - run: make -C e2e_test logs-controller
         if: always()

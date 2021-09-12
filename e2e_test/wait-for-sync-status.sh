@@ -16,7 +16,7 @@ for (( i = 0; i < 10; i++ )); do
   if [[ $got == $want ]]; then
     exit 0
   fi
-  echo "[wait-for-sync-status] retry after ${i}s"
-  sleep "$i"
+  echo "[wait-for-sync-status] retry #$i"
+  sleep 3
 done
 exit 1

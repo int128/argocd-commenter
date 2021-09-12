@@ -4,22 +4,12 @@ export KUBECONFIG
 
 GITHUB_RUN_NUMBER ?= 0
 FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_NUMBER)
-
-GITHUB_PR_NUMBER ?= 0
+export FIXTURE_BRANCH
+export GIT_COMMIT_MESSAGE
 
 all:
 
-test:
-	# wait for sync
-	./wait-for-sync-status.sh test1-fixture $(FIXTURE_BRANCH)-test1-main Synced Succeeded
-	./wait-for-sync-status.sh test2-fixture $(FIXTURE_BRANCH)-test2-main Synced Succeeded
-	# test
-	FIXTURE_BRANCH=$(FIXTURE_BRANCH) ./test-suite.sh
-	# wait for sync
-	./wait-for-sync-status.sh test1-fixture $(FIXTURE_BRANCH)-test1-main Synced Succeeded
-	./wait-for-sync-status.sh test2-fixture $(FIXTURE_BRANCH)-test2-main OutOfSync Failed
-
-# environment
+# cluster
 cluster: $(KUBECONFIG)
 $(KUBECONFIG):
 	kind create cluster --name $(CLUSTER_NAME)
@@ -32,31 +22,32 @@ deploy: deploy-argocd deploy-controller
 
 deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
-	kustomize build applications | sed -e "s/FIXTURE_BRANCH/$(FIXTURE_BRANCH)/g" | kubectl apply -f -
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
+	kustomize build applications | sed -e "s/FIXTURE_BRANCH/$(FIXTURE_BRANCH)/g" | kubectl apply -f -
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded
 
 deploy-controller: cluster
+	cd controller && kustomize edit set image controller="$(CONTROLLER_IMAGE)"
 	kustomize build controller | kubectl apply -f -
-	./create-controller-manager-secret.sh
+	bash controller/create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
 undeploy:
 	kubectl delete namespace/argocd namespace/argocd-commenter-system
 
-setup:
-	git branch -f $(FIXTURE_BRANCH)-test1-main
-	git branch -f $(FIXTURE_BRANCH)-test2-main
-	git push origin -f $(FIXTURE_BRANCH)-test1-main $(FIXTURE_BRANCH)-test2-main
+# fixture
+setup-fixture:
+	$(MAKE) -C fixture setup
 
-cleanup:
-	-git branch -D $(FIXTURE_BRANCH)-test1-main
-	-git branch -D $(FIXTURE_BRANCH)-test1-topic
-	-git branch -D $(FIXTURE_BRANCH)-test2-main
-	-git branch -D $(FIXTURE_BRANCH)-test2-topic
-	-git push origin --delete $(FIXTURE_BRANCH)-test1-main
-	-git push origin --delete $(FIXTURE_BRANCH)-test1-topic
-	-git push origin --delete $(FIXTURE_BRANCH)-test2-main
-	-git push origin --delete $(FIXTURE_BRANCH)-test2-topic
+test:
+	$(MAKE) -C fixture test1
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded
+	$(MAKE) -C fixture test2
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed
+
+cleanup-fixture:
+	$(MAKE) -C fixture cleanup
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
