@@ -1,2 +1,8 @@
 resources:
 - ../../config/default
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- digest: sha256:c9b1895d60a11d936659134567c8aa0229f8b42299df46ba323216d7b75ea4ca
+  name: controller
+  newName: ghcr.io/int128/argocd-commenter
