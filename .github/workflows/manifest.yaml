@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - config/**
+      - e2e_test/**
       - .github/workflows/manifest.yaml
 
 jobs:
