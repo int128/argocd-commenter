@@ -10,7 +10,7 @@ on:
       - go.*
       - main.go
       - api/**
-      - controller/**
+      - controllers/**
       - pkg/**
       - e2e_test/**
     tags:
@@ -24,7 +24,7 @@ on:
       - go.*
       - main.go
       - api/**
-      - controller/**
+      - controllers/**
       - pkg/**
       - e2e_test/**
 
