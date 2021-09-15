@@ -22,6 +22,7 @@ import (
 	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/int128/argocd-commenter/pkg/notification"
 
 	"github.com/int128/argocd-commenter/pkg/github"
 
@@ -84,16 +85,17 @@ func main() {
 	}
 
 	ctx := context.Background()
-	githubClient, err := github.NewClient(ctx)
+	ghc, err := github.NewClient(ctx)
 	if err != nil {
 		setupLog.Error(err, "unable to set up GitHub client")
 		os.Exit(1)
 	}
+	notificationClient := notification.NewClient(ghc)
 
 	if err = (&controllers.ApplicationPhaseReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
-		GitHubClient: githubClient,
+		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
 		os.Exit(1)
@@ -101,7 +103,7 @@ func main() {
 	if err = (&controllers.ApplicationSyncStatusReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
-		GitHubClient: githubClient,
+		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationSyncStatus")
 		os.Exit(1)
@@ -109,7 +111,7 @@ func main() {
 	if err = (&controllers.ApplicationHealthStatusReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
-		GitHubClient: githubClient,
+		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthStatus")
 		os.Exit(1)

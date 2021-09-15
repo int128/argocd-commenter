@@ -18,11 +18,10 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
-	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +37,7 @@ const (
 type ApplicationHealthStatusReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	GitHubClient github.Client
+	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
@@ -67,33 +66,10 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, err
 	}
 
-	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
-	if err != nil {
-		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
-		return ctrl.Result{}, nil
-	}
-	comment := github.Comment{
-		Repository: *repository,
-		CommitSHA:  application.Status.Sync.Revision,
-		Body:       healthStatusCommentFor(application),
-	}
-	logger.Info("adding a comment", "health", application.Status.Health.Status, "comment", comment)
-	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
-		logger.Error(err, "unable to add a comment", "comment", comment)
-		return ctrl.Result{}, nil
+	if err := r.Notification.NotifyHealth(ctx, application); err != nil {
+		logger.Error(err, "unable to notify the health status")
 	}
 	return ctrl.Result{}, nil
-}
-
-func healthStatusCommentFor(a argocdv1alpha1.Application) string {
-	if a.Status.Health.Status == health.HealthStatusHealthy {
-		return fmt.Sprintf(":white_check_mark: %s: %s",
-			a.Status.Health.Status,
-			a.Name)
-	}
-	return fmt.Sprintf(":warning: %s: %s",
-		a.Status.Sync.Status,
-		a.Name)
 }
 
 // SetupWithManager sets up the controller with the Manager.
