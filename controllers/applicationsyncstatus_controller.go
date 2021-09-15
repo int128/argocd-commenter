@@ -18,10 +18,9 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +37,7 @@ const (
 type ApplicationSyncStatusReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	GitHubClient github.Client
+	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
@@ -83,35 +82,10 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
-	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
-	if err != nil {
-		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
-		return ctrl.Result{}, nil
-	}
-	comment := github.Comment{
-		Repository: *repository,
-		CommitSHA:  application.Status.Sync.Revision,
-		Body:       syncStatusCommentFor(application),
-	}
-	logger.Info("adding a comment", "sync.status", application.Status.Sync.Status, "comment", comment)
-	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
-		logger.Error(err, "unable to add a comment", "comment", comment)
-		return ctrl.Result{}, nil
+	if err := r.Notification.NotifySync(ctx, application); err != nil {
+		logger.Error(err, "unable to notify the sync status")
 	}
 	return ctrl.Result{}, nil
-}
-
-func syncStatusCommentFor(a argocdv1alpha1.Application) string {
-	if a.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeSynced {
-		return fmt.Sprintf("## :white_check_mark: %s: %s\nSynced to %s",
-			a.Status.Sync.Status,
-			a.Name,
-			a.Status.Sync.Revision)
-	}
-	return fmt.Sprintf("## :warning: %s: %s\nSyncing to %s",
-		a.Status.Sync.Status,
-		a.Name,
-		a.Status.Sync.Revision)
 }
 
 // SetupWithManager sets up the controller with the Manager.

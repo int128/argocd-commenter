@@ -18,12 +18,10 @@ package controllers
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
-	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,7 +37,7 @@ const (
 type ApplicationPhaseReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	GitHubClient github.Client
+	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
@@ -77,42 +75,10 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	repository, err := github.ParseRepositoryURL(application.Spec.Source.RepoURL)
-	if err != nil {
-		logger.Error(err, "skip non-GitHub URL", "url", application.Spec.Source.RepoURL)
-		return ctrl.Result{}, nil
-	}
-	comment := github.Comment{
-		Repository: *repository,
-		CommitSHA:  application.Status.Sync.Revision,
-		Body:       phaseCommentFor(application),
-	}
-	logger.Info("adding a comment", "phase", application.Status.OperationState.Phase, "comment", comment)
-	if err := r.GitHubClient.AddComment(ctx, comment); err != nil {
-		logger.Error(err, "unable to add a comment", "comment", comment)
-		return ctrl.Result{}, nil
+	if err := r.Notification.NotifyPhase(ctx, application); err != nil {
+		logger.Error(err, "unable to notify the phase status")
 	}
 	return ctrl.Result{}, nil
-}
-
-func phaseCommentFor(a argocdv1alpha1.Application) string {
-	var resources strings.Builder
-	if a.Status.OperationState.SyncResult != nil {
-		for _, r := range a.Status.OperationState.SyncResult.Resources {
-			namespacedName := r.Namespace + "/" + r.Name
-			switch r.Status {
-			case common.ResultCodeSyncFailed, common.ResultCodePruneSkipped:
-				_, _ = fmt.Fprintf(&resources, "- %s `%s`: %s\n", r.Status, namespacedName, r.Message)
-			}
-		}
-	}
-
-	return fmt.Sprintf("## :x: Sync %s: %s\nError while syncing to %s\n%s",
-		a.Status.OperationState.Phase,
-		a.Name,
-		a.Status.Sync.Revision,
-		resources.String(),
-	)
 }
 
 // SetupWithManager sets up the controller with the Manager.
