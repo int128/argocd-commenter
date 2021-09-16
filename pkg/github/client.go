@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/go-github/v39/github"
 	"github.com/int128/oauth2-github-app/app"
-	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
@@ -15,7 +15,7 @@ type Client interface {
 }
 
 type client struct {
-	graphql *githubv4.Client
+	rest *github.Client
 }
 
 func NewClient(ctx context.Context) (*client, error) {
@@ -31,8 +31,8 @@ func NewClient(ctx context.Context) (*client, error) {
 }
 
 func newClientWithPersonalAccessToken(ctx context.Context, token string) *client {
-	c := githubv4.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
-	return &client{graphql: c}
+	c := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
+	return &client{rest: c}
 }
 
 func newClientForGitHubApp(ctx context.Context, appID, installationID, privateKey string) (*client, error) {
@@ -45,6 +45,6 @@ func newClientForGitHubApp(ctx context.Context, appID, installationID, privateKe
 		AppID:          appID,
 		InstallationID: installationID,
 	}
-	c := githubv4.NewClient(oauth2.NewClient(ctx, cfg.TokenSource(ctx)))
-	return &client{graphql: c}, nil
+	c := github.NewClient(oauth2.NewClient(ctx, cfg.TokenSource(ctx)))
+	return &client{rest: c}, nil
 }

@@ -6,12 +6,10 @@ require (
 	github.com/argoproj/argo-cd/v2 v2.0.5
 	github.com/argoproj/gitops-engine v0.3.3
 	github.com/go-logr/zapr v0.3.0 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/google/go-github/v39 v39.0.0
 	github.com/int128/oauth2-github-app v0.1.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/shurcooL/githubv4 v0.0.0-20210725200734-83ba7b4c9228
-	github.com/shurcooL/graphql v0.0.0-20200928012149-18c5c3165e3a // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
