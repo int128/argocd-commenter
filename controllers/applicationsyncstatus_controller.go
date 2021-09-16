@@ -28,11 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	lastRevisionSynced    = "argocd-commenter.int128.github.io/last-revision-synced"
-	lastRevisionOutOfSync = "argocd-commenter.int128.github.io/last-revision-out-of-sync"
-)
-
 // ApplicationSyncStatusReconciler reconciles a ApplicationSyncStatus object
 type ApplicationSyncStatusReconciler struct {
 	client.Client
@@ -60,21 +55,8 @@ func (r *ApplicationSyncStatusReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	var annotationName string
-	switch application.Status.Sync.Status {
-	case argocdv1alpha1.SyncStatusCodeSynced:
-		annotationName = lastRevisionSynced
-	case argocdv1alpha1.SyncStatusCodeOutOfSync:
-		annotationName = lastRevisionOutOfSync
-	}
-	lastRevision, ok := application.Annotations[annotationName]
-	if ok {
-		if lastRevision == application.Status.Sync.Revision {
-			logger.Info("already added a comment", "revision", lastRevision)
-			return ctrl.Result{}, nil
-		}
-	}
 	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
+		annotationName := syncStatusLastRevisionAnnotationName(application.Status.Sync.Status)
 		annotations[annotationName] = application.Status.Sync.Revision
 	})
 	if err != nil {
@@ -122,11 +104,26 @@ func (p applicationSyncStatusChangePredicate) Update(e event.UpdateEvent) bool {
 	// notify only the following statuses
 	switch applicationNew.Status.Sync.Status {
 	case argocdv1alpha1.SyncStatusCodeSynced, argocdv1alpha1.SyncStatusCodeOutOfSync:
-		return true
+		annotationName := syncStatusLastRevisionAnnotationName(applicationNew.Status.Sync.Status)
+		revision, ok := applicationNew.Annotations[annotationName]
+		// first time or new revision
+		if !ok || revision != applicationNew.Status.Sync.Revision {
+			return true
+		}
 	}
 	return false
 }
 
 func (p applicationSyncStatusChangePredicate) Generic(event.GenericEvent) bool {
 	return false
+}
+
+func syncStatusLastRevisionAnnotationName(status argocdv1alpha1.SyncStatusCode) string {
+	switch status {
+	case argocdv1alpha1.SyncStatusCodeSynced:
+		return "argocd-commenter.int128.github.io/last-revision-synced"
+	case argocdv1alpha1.SyncStatusCodeOutOfSync:
+		return "argocd-commenter.int128.github.io/last-revision-out-of-sync"
+	}
+	return ""
 }

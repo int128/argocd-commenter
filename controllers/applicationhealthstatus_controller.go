@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	lastRevisionHealthy = "argocd-commenter.int128.github.io/last-revision-healthy"
+	healthStatusLastRevisionAnnotationName = "argocd-commenter.int128.github.io/last-revision-healthy"
 )
 
 // ApplicationHealthStatusReconciler reconciles a ApplicationHealthStatus object
@@ -51,15 +51,8 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	lastRevision, ok := application.Annotations[lastRevisionHealthy]
-	if ok {
-		if lastRevision == application.Status.Sync.Revision {
-			logger.Info("already added a comment", "revision", lastRevision)
-			return ctrl.Result{}, nil
-		}
-	}
 	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
-		annotations[lastRevisionHealthy] = application.Status.Sync.Revision
+		annotations[healthStatusLastRevisionAnnotationName] = application.Status.Sync.Revision
 	})
 	if err != nil {
 		logger.Error(err, "unable to patch annotations to the Application")
@@ -106,7 +99,11 @@ func (p applicationHealthStatusChangePredicate) Update(e event.UpdateEvent) bool
 	// notify only the following statuses
 	switch applicationNew.Status.Health.Status {
 	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		return true
+		revision, ok := applicationNew.Annotations[healthStatusLastRevisionAnnotationName]
+		// first time or new revision
+		if !ok || revision != applicationNew.Status.Sync.Revision {
+			return true
+		}
 	}
 	return false
 }
