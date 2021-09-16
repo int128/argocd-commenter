@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	lastRevisionPhase = "argocd-commenter.int128.github.io/last-revision-phase"
+	phaseStatusLastRevisionAnnotationName = "argocd-commenter.int128.github.io/last-revision-phase"
 )
 
 // ApplicationPhaseReconciler reconciles a ApplicationPhase object
@@ -60,15 +60,8 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	lastRevision, ok := application.Annotations[lastRevisionPhase]
-	if ok {
-		if lastRevision == application.Status.Sync.Revision {
-			logger.Info("already added a comment", "revision", lastRevision)
-			return ctrl.Result{}, nil
-		}
-	}
 	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
-		annotations[lastRevisionPhase] = application.Status.Sync.Revision
+		annotations[phaseStatusLastRevisionAnnotationName] = application.Status.Sync.Revision
 	})
 	if err != nil {
 		logger.Error(err, "unable to patch annotations to the Application")
@@ -111,10 +104,14 @@ func (p applicationPhaseChangePredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 
-	// notify only failed or error
+	// notify only the following phases
 	switch applicationNew.Status.OperationState.Phase {
 	case common.OperationFailed, common.OperationError:
-		return true
+		revision, ok := applicationNew.Annotations[phaseStatusLastRevisionAnnotationName]
+		// first time or new revision
+		if !ok || revision != applicationNew.Status.Sync.Revision {
+			return true
+		}
 	}
 	return false
 }
