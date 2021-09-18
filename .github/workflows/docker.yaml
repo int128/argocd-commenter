@@ -52,8 +52,8 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildkit-cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildkit-cache,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache,mode=max
 
   test:
     needs: [build]
