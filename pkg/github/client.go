@@ -10,10 +10,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Client interface {
-	AddComment(ctx context.Context, comment Comment) error
-}
-
 type client struct {
 	rest *github.Client
 }

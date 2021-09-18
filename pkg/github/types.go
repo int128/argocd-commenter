@@ -1,10 +1,16 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
 )
+
+type Client interface {
+	AddComment(ctx context.Context, comment Comment) error
+	CreateDeploymentStatus(ctx context.Context, ds DeploymentStatus) error
+}
 
 type Repository struct {
 	Owner string

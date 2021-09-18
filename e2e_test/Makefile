@@ -39,9 +39,13 @@ undeploy:
 setup-fixture:
 	$(MAKE) -C fixture setup
 
-test:
+test1:
+	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C fixture test1
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded
+
+test2:
+	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C fixture test2
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed
 

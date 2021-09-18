@@ -75,9 +75,24 @@ jobs:
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
 
-      - run: make -C e2e_test test
+      - uses: ./.github/actions/create-deployment
+        id: create-deployment-app1
+        with:
+          app-name: app1
+      - run: make -C e2e_test test1
         env:
           PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          DEPLOYMENT_URL: ${{ steps.create-deployment-app1.outputs.url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/create-deployment
+        id: create-deployment-app2
+        with:
+          app-name: app2
+      - run: make -C e2e_test test2
+        env:
+          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          DEPLOYMENT_URL: ${{ steps.create-deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - run: make -C e2e_test cleanup-fixture
