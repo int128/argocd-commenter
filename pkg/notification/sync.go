@@ -13,6 +13,7 @@ func (c client) NotifySync(ctx context.Context, a argocdv1alpha1.Application) er
 	if err != nil {
 		return nil
 	}
+
 	comment := github.Comment{
 		Repository: *repository,
 		CommitSHA:  a.Status.Sync.Revision,
@@ -20,6 +21,26 @@ func (c client) NotifySync(ctx context.Context, a argocdv1alpha1.Application) er
 	}
 	if err := c.ghc.AddComment(ctx, comment); err != nil {
 		return fmt.Errorf("unable to add a comment: %w", err)
+	}
+
+	deploymentURL := a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
+	deployment := github.ParseDeploymentURL(deploymentURL)
+	if deployment == nil {
+		return nil
+	}
+	deploymentStatus := github.DeploymentStatus{
+		Deployment: *deployment,
+	}
+	if a.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeOutOfSync {
+		deploymentStatus.State = "pending"
+		deploymentStatus.Description = "Out of sync"
+	}
+	if a.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeSynced {
+		deploymentStatus.State = "in_progress"
+		deploymentStatus.Description = "Synced"
+	}
+	if err := c.ghc.CreateDeploymentStatus(ctx, deploymentStatus); err != nil {
+		return fmt.Errorf("unable to create a deployment status: %w", err)
 	}
 	return nil
 }
