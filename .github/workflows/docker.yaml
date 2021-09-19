@@ -77,7 +77,7 @@ jobs:
 
       - run: make -C e2e_test test
         env:
-          GIT_COMMIT_MESSAGE: "e2e-test #${{ github.event.pull_request.number }}"
+          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - run: make -C e2e_test cleanup-fixture
