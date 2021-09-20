@@ -1,0 +1,24 @@
+name: create-deployment
+description: create a Deployment
+
+inputs:
+  app-name:
+    required: true
+    description: application name
+
+outputs:
+  url:
+    description: deploymeny URL
+    value: ${{ steps.run.outputs.url }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@v4
+      id: run
+      env:
+        appName: ${{ inputs.app-name }}
+      with:
+        script: |
+          const script = require('${{ github.action_path }}/run.js')
+          await script({ github, context, core }, process.env.appName)
