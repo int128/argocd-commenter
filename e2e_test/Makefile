@@ -23,8 +23,8 @@ deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 	kustomize build applications | sed -e "s/FIXTURE_BRANCH/$(FIXTURE_BRANCH)/g" | kubectl apply -f -
-	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded
-	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 deploy-controller: cluster
 	cd controller && kustomize edit set image controller="$(CONTROLLER_IMAGE)"
@@ -42,12 +42,12 @@ setup-fixture:
 test1:
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C fixture test1
-	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 test2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C fixture test2
-	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed Healthy
 
 cleanup-fixture:
 	$(MAKE) -C fixture cleanup
