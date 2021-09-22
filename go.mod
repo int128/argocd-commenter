@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.0.5
-	github.com/argoproj/gitops-engine v0.3.3
+	github.com/argoproj/gitops-engine v0.4.1
 	github.com/go-logr/zapr v0.3.0 // indirect
 	github.com/google/go-github/v39 v39.0.0
 	github.com/int128/oauth2-github-app v0.1.0
