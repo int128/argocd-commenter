@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: echoserver
+  name: echoserver-test1
 spec:
   replicas: 1
   selector:
@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - image: gcr.io/google_containers/echoserver:1.8
-          name: echoserver
+          name: echoserver-test1
           ports:
             - containerPort: 8080
