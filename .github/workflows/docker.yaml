@@ -97,5 +97,7 @@ jobs:
 
       - run: make -C e2e_test cleanup-fixture
         if: always()
+      - run: make -C e2e_test logs-argocd
+        if: always()
       - run: make -C e2e_test logs-controller
         if: always()

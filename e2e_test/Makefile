@@ -54,4 +54,5 @@ cleanup-fixture:
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
+logs-argocd:
 	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-application-controller --all-containers --tail=-1
