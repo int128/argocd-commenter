@@ -10,11 +10,7 @@ import (
 )
 
 func (c client) NotifySync(ctx context.Context, a argocdv1alpha1.Application) error {
-	logger := log.FromContext(ctx,
-		"application", a.Name,
-		"sync", a.Status.Sync.Status,
-		"revision", a.Status.Sync.Revision,
-	)
+	logger := log.FromContext(ctx)
 
 	repository, err := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
 	if err != nil {
