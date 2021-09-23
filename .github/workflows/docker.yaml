@@ -1,0 +1,114 @@
+name: docker
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/docker.yaml
+      - Dockerfile
+      - go.*
+      - main.go
+      - api/**
+      - controllers/**
+      - pkg/**
+      - e2e_test/**
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/docker.yaml
+      - Dockerfile
+      - go.*
+      - main.go
+      - api/**
+      - controllers/**
+      - pkg/**
+      - e2e_test/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker/metadata-action@v3
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/build-push-action@v2
+        id: build
+        with:
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache,mode=max
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+
+      # deploy Argo CD
+      - run: git config user.name ci
+      - run: git config user.email ci@example.com
+      - run: make -C e2e_test setup-fixture
+      - run: make -C e2e_test cluster
+      - run: make -C e2e_test deploy-argocd
+
+      # deploy controller
+      - uses: docker/metadata-action@v3
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - run: bash e2e_test/wait-for-image-available.sh
+        env:
+          CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
+
+      - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
+      - run: make -C e2e_test deploy-controller
+        env:
+          CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
+          GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
+          GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
+
+      - run: make -C e2e_test post-deploy
+
+      # test
+      - uses: int128/deployment-action@v1
+        id: deployment-app1
+        with:
+          environment-suffix: /app1
+      - uses: int128/deployment-action@v1
+        id: deployment-app2
+        with:
+          environment-suffix: /app2
+
+      - run: make -C e2e_test test1
+        env:
+          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: make -C e2e_test test2
+        env:
+          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: make -C e2e_test cleanup-fixture
+        if: always()
+      - run: make -C e2e_test logs-argocd
+        if: always()
+      - run: make -C e2e_test logs-controller
+        if: always()
