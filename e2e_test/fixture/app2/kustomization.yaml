@@ -1,0 +1,4 @@
+namespace: app2
+resources:
+  - namespace/app2.yaml
+  - deployment/echoserver.yaml

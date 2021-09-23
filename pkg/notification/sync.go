@@ -1,0 +1,63 @@
+package notification
+
+import (
+	"context"
+	"fmt"
+
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/go-logr/logr"
+	"github.com/int128/argocd-commenter/pkg/github"
+)
+
+func (c client) NotifySync(ctx context.Context, a argocdv1alpha1.Application) error {
+	logger := logr.FromContextOrDiscard(ctx)
+
+	repository := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
+	if repository == nil {
+		return nil
+	}
+
+	logger.Info("creating a comment")
+	comment := github.Comment{
+		Repository: *repository,
+		CommitSHA:  a.Status.Sync.Revision,
+		Body:       syncStatusCommentFor(a),
+	}
+	if err := c.ghc.AddComment(ctx, comment); err != nil {
+		return fmt.Errorf("unable to add a comment: %w", err)
+	}
+
+	deploymentURL := a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
+	deployment := github.ParseDeploymentURL(deploymentURL)
+	if deployment == nil {
+		return nil
+	}
+	logger.Info("creating a deployment status", "deployment", deploymentURL)
+	deploymentStatus := github.DeploymentStatus{
+		Deployment:  *deployment,
+		Description: string(a.Status.Sync.Status),
+	}
+	if a.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeOutOfSync {
+		deploymentStatus.State = "queued"
+	}
+	if a.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeSynced {
+		deploymentStatus.State = "in_progress"
+	}
+	if err := c.ghc.CreateDeploymentStatus(ctx, deploymentStatus); err != nil {
+		return fmt.Errorf("unable to create a deployment status: %w", err)
+	}
+	return nil
+}
+
+func syncStatusCommentFor(a argocdv1alpha1.Application) string {
+	if a.Status.Sync.Status == argocdv1alpha1.SyncStatusCodeSynced {
+		return fmt.Sprintf("## :white_check_mark: %s: %s\nSynced to %s",
+			a.Status.Sync.Status,
+			a.Name,
+			a.Status.Sync.Revision)
+	}
+	return fmt.Sprintf("## :warning: %s: %s\nSyncing to %s",
+		a.Status.Sync.Status,
+		a.Name,
+		a.Status.Sync.Revision)
+}
