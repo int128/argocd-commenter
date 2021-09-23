@@ -43,13 +43,18 @@ type ApplicationHealthStatusReconciler struct {
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 
 func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
+		logger := log.FromContext(ctx)
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	logger := log.FromContext(ctx,
+		"health", application.Status.Health.Status,
+		"revision", application.Status.Sync.Revision,
+	)
+	ctx = log.IntoContext(ctx, logger)
 
 	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
 		annotations[healthStatusLastRevisionAnnotationName] = application.Status.Sync.Revision

@@ -12,11 +12,7 @@ import (
 )
 
 func (c client) NotifyPhase(ctx context.Context, a argocdv1alpha1.Application) error {
-	logger := log.FromContext(ctx,
-		"application", a.Name,
-		"phase", a.Status.OperationState.Phase,
-		"revision", a.Status.Sync.Revision,
-	)
+	logger := log.FromContext(ctx)
 
 	repository, err := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
 	if err != nil {
