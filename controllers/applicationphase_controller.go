@@ -20,17 +20,13 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/sync/common"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-const (
-	phaseStatusLastRevisionAnnotationName = "argocd-commenter.int128.github.io/last-revision-phase"
 )
 
 // ApplicationPhaseReconciler reconciles a ApplicationPhase object
@@ -55,14 +51,6 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		"revision", application.Status.Sync.Revision,
 	)
 	ctx = log.IntoContext(ctx, logger)
-
-	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
-		annotations[phaseStatusLastRevisionAnnotationName] = application.Status.Sync.Revision
-	})
-	if err != nil {
-		logger.Error(err, "unable to patch annotations to the Application")
-		return ctrl.Result{}, err
-	}
 
 	if err := r.Notification.NotifyPhase(ctx, application); err != nil {
 		logger.Error(err, "unable to notify the phase status")
@@ -90,24 +78,19 @@ func (p applicationPhaseChangePredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 
-	if applicationOld.Status.OperationState == nil {
-		return false
-	}
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}
-	if applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
-		return false
+	if applicationOld.Status.OperationState != nil {
+		if applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
+			return false
+		}
 	}
 
 	// notify only the following phases
 	switch applicationNew.Status.OperationState.Phase {
-	case common.OperationFailed, common.OperationError:
-		revision, ok := applicationNew.Annotations[phaseStatusLastRevisionAnnotationName]
-		// first time or new revision
-		if !ok || revision != applicationNew.Status.Sync.Revision {
-			return true
-		}
+	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
+		return true
 	}
 	return false
 }

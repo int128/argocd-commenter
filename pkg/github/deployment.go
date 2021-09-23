@@ -34,14 +34,13 @@ func ParseDeploymentURL(s string) *Deployment {
 }
 
 type DeploymentStatus struct {
-	Deployment  Deployment
 	State       string
 	Description string
 }
 
-func (c *client) CreateDeploymentStatus(ctx context.Context, ds DeploymentStatus) error {
+func (c *client) CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error {
 	_, _, err := c.rest.Repositories.CreateDeploymentStatus(ctx,
-		ds.Deployment.Repository.Owner, ds.Deployment.Repository.Name, ds.Deployment.Id,
+		d.Repository.Owner, d.Repository.Name, d.Id,
 		&github.DeploymentStatusRequest{
 			State:       github.String(ds.State),
 			Description: github.String(ds.Description),

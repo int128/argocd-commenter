@@ -6,8 +6,8 @@ import (
 )
 
 type Client interface {
-	AddComment(ctx context.Context, comment Comment) error
-	CreateDeploymentStatus(ctx context.Context, ds DeploymentStatus) error
+	CreateComment(ctx context.Context, r Repository, revision, body string) error
+	CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error
 }
 
 type Repository struct {

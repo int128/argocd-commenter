@@ -14,18 +14,16 @@ type Comment struct {
 	Body       string
 }
 
-func (c *client) AddComment(ctx context.Context, comment Comment) error {
-	pulls, _, err := c.rest.PullRequests.ListPullRequestsWithCommit(ctx,
-		comment.Repository.Owner, comment.Repository.Name, comment.CommitSHA, nil)
+func (c *client) CreateComment(ctx context.Context, r Repository, revision, body string) error {
+	pulls, _, err := c.rest.PullRequests.ListPullRequestsWithCommit(ctx, r.Owner, r.Name, revision, nil)
 	if err != nil {
 		return fmt.Errorf("could not list pull requests with commit: %w", err)
 	}
 
 	var errs []string
 	for _, pull := range pulls {
-		_, _, err := c.rest.Issues.CreateComment(ctx,
-			comment.Repository.Owner, comment.Repository.Name, pull.GetNumber(),
-			&github.IssueComment{Body: github.String(comment.Body)})
+		_, _, err := c.rest.Issues.CreateComment(ctx, r.Owner, r.Name, pull.GetNumber(),
+			&github.IssueComment{Body: github.String(body)})
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("pull request #%d: %s", pull.GetNumber(), err))
 		}
