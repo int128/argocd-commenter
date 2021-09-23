@@ -7,15 +7,15 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/go-logr/logr"
 	"github.com/int128/argocd-commenter/pkg/github"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (c client) NotifyPhase(ctx context.Context, a argocdv1alpha1.Application) error {
-	logger := log.FromContext(ctx)
+	logger := logr.FromContextOrDiscard(ctx)
 
-	repository, err := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
-	if err != nil {
+	repository := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
+	if repository == nil {
 		return nil
 	}
 
