@@ -14,8 +14,8 @@ import (
 func (c client) NotifyPhase(ctx context.Context, a argocdv1alpha1.Application) error {
 	logger := log.FromContext(ctx)
 
-	repository, err := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
-	if err != nil {
+	repository := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
+	if repository == nil {
 		return nil
 	}
 

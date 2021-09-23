@@ -2,9 +2,7 @@ package github
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"strings"
+	"regexp"
 )
 
 type Client interface {
@@ -17,17 +15,12 @@ type Repository struct {
 	Name  string
 }
 
-func ParseRepositoryURL(urlstr string) (*Repository, error) {
-	u, err := url.Parse(urlstr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid url: %w", err)
+var patternRepositoryURL = regexp.MustCompile(`^https://github\.com/([^/]+?)/([^/]+?)(\.git)?$`)
+
+func ParseRepositoryURL(s string) *Repository {
+	m := patternRepositoryURL.FindStringSubmatch(s)
+	if len(m) < 3 {
+		return nil
 	}
-	path := u.Path
-	path = strings.TrimSuffix(path, ".git")
-	path = strings.TrimPrefix(path, "/")
-	c := strings.SplitN(path, "/", 2)
-	if len(c) != 2 {
-		return nil, fmt.Errorf("invalid path %s", u.Path)
-	}
-	return &Repository{Owner: c[0], Name: c[1]}, nil
+	return &Repository{Owner: m[1], Name: m[2]}
 }
