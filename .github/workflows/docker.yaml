@@ -32,8 +32,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      image: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v2
       - uses: docker/metadata-action@v3
@@ -56,25 +54,38 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/cache,mode=max
 
   test:
-    needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
 
+      # deploy Argo CD
       - run: git config user.name ci
       - run: git config user.email ci@example.com
       - run: make -C e2e_test setup-fixture
+      - run: make -C e2e_test cluster
+      - run: make -C e2e_test deploy-argocd
+
+      # deploy controller
+      - uses: docker/metadata-action@v3
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - run: bash e2e_test/wait-for-image-available.sh
+        env:
+          CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
 
       - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
-      - run: make -C e2e_test cluster
-      - run: make -C e2e_test -j4 deploy
+      - run: make -C e2e_test deploy-controller
         env:
-          CONTROLLER_IMAGE: ${{ needs.build.outputs.image }}
+          CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
           GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
 
+      - run: make -C e2e_test post-deploy
+
+      # test
       - uses: int128/deployment-action@v1
         id: deployment-app1
         with:
