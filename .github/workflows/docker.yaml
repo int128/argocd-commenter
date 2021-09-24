@@ -90,16 +90,16 @@ jobs:
         id: deployment-app1
         with:
           environment-suffix: /app1
+      - uses: int128/deployment-action@v1
+        id: deployment-app2
+        with:
+          environment-suffix: /app2
+
       - run: make -C e2e_test test1
         env:
           PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: int128/deployment-action@v1
-        id: deployment-app2
-        with:
-          environment-suffix: /app2
       - run: make -C e2e_test test2
         env:
           PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"

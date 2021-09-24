@@ -100,14 +100,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
 		os.Exit(1)
 	}
-	if err = (&controllers.ApplicationSyncStatusReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Notification: notificationClient,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationSyncStatus")
-		os.Exit(1)
-	}
 	if err = (&controllers.ApplicationHealthStatusReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),

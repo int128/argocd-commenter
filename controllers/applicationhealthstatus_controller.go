@@ -40,7 +40,7 @@ type ApplicationHealthStatusReconciler struct {
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
 
 func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var application argocdv1alpha1.Application

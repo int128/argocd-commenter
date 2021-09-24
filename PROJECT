@@ -12,11 +12,6 @@ resources:
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationSyncStatus
-  version: v1
-- controller: true
-  domain: int128.github.io
-  group: argocdcommenter
   kind: ApplicationHealthStatus
   version: v1
 version: "3"
