@@ -59,10 +59,20 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # deploy Argo CD
-      - run: git config user.name ci
-      - run: git config user.email ci@example.com
+      # set up fixture
+      - uses: cybozu/octoken-action@v1
+        id: octoken
+        with:
+          github_app_id: ${{ secrets.E2E_SETUP_GITHUB_APP_ID }}
+          github_app_private_key: ${{ secrets.E2E_SETUP_GITHUB_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v2
+        with:
+          repository: int128/argocd-commenter-e2e-test
+          path: e2e_test/argocd-commenter-e2e-test
+          token: ${{ steps.octoken.outputs.token }}
       - run: make -C e2e_test setup-fixture
+
+      # deploy Argo CD
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
@@ -99,15 +109,13 @@ jobs:
         env:
           PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
       - run: make -C e2e_test test2
         env:
           PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
-      - run: make -C e2e_test cleanup-fixture
-        if: always()
       - run: make -C e2e_test logs-argocd
         if: always()
       - run: make -C e2e_test logs-controller
