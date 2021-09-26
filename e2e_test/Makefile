@@ -3,7 +3,7 @@ KUBECONFIG := output/kubeconfig.yaml
 export KUBECONFIG
 
 GITHUB_RUN_NUMBER ?= 0
-FIXTURE_BRANCH := e2e-test-$(GITHUB_RUN_NUMBER)
+FIXTURE_BRANCH := e2e-test/$(GITHUB_RUN_NUMBER)
 export FIXTURE_BRANCH
 
 all:
@@ -21,7 +21,7 @@ deploy: deploy-argocd deploy-controller
 
 deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
-	kustomize build applications | sed -e "s/FIXTURE_BRANCH/$(FIXTURE_BRANCH)/g" | kubectl apply -f -
+	kustomize build applications | sed -e "s|FIXTURE_BRANCH|$(FIXTURE_BRANCH)|g" | kubectl apply -f -
 
 deploy-controller: cluster
 	cd controller && kustomize edit set image controller="$(CONTROLLER_IMAGE)"
@@ -39,20 +39,19 @@ undeploy:
 
 # fixture
 setup-fixture:
-	$(MAKE) -C fixture setup
+	test -d argocd-commenter-e2e-test
+	rsync -av fixture/ argocd-commenter-e2e-test/
+	$(MAKE) -C argocd-commenter-e2e-test setup
 
 test1:
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C fixture test1
+	$(MAKE) -C argocd-commenter-e2e-test test1
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 test2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C fixture test2
+	$(MAKE) -C argocd-commenter-e2e-test test2
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed Healthy
-
-cleanup-fixture:
-	$(MAKE) -C fixture cleanup
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
