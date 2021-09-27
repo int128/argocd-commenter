@@ -7,13 +7,15 @@ spec:
   project: default
   source:
     repoURL: https://github.com/int128/argocd-commenter-e2e-test
-    targetRevision: FIXTURE_BRANCH/main
-    path: app2
+    targetRevision: FIXTURE_BRANCH/test2/main
+    path: app
   destination:
     server: https://kubernetes.default.svc
-    namespace: test2-fixture
+    namespace: test2
   syncPolicy:
     automated:
       prune: true
+    syncOptions:
+      - CreateNamespace=true
     retry:
       limit: 1  # reduce test time

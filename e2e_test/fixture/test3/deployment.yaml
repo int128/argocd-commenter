@@ -17,3 +17,10 @@ spec:
           name: echoserver
           ports:
             - containerPort: 8080
+          # this may cause crash loop
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 3
+            periodSeconds: 3

@@ -104,17 +104,28 @@ jobs:
         id: deployment-app2
         with:
           environment-suffix: /app2
+      - uses: int128/deployment-action@v1
+        id: deployment-app3
+        with:
+          environment-suffix: /app3
 
       - run: make -C e2e_test test1
         env:
-          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          PULL_REQUEST_BODY: "e2e/test1 #${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
       - run: make -C e2e_test test2
         env:
-          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          PULL_REQUEST_BODY: "e2e/test2 #${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+      - run: make -C e2e_test test3
+        env:
+          PULL_REQUEST_BODY: "e2e/test3 #${{ github.event.pull_request.number }}"
+          DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
+          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+
+      - run: make -C e2e_test post-test
 
       - run: make -C e2e_test logs-argocd
         if: always()

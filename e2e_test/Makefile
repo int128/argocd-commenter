@@ -30,8 +30,9 @@ deploy-controller: cluster
 
 post-deploy:
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
-	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
-	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/test1/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/test2/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/test3/main Synced Succeeded Healthy
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
 undeploy:
@@ -46,12 +47,19 @@ setup-fixture:
 test1:
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C argocd-commenter-e2e-test test1
-	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 test2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C argocd-commenter-e2e-test test2
-	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed Healthy
+
+test3:
+	kubectl -n argocd annotate application app3 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
+	$(MAKE) -C argocd-commenter-e2e-test test3
+
+post-test:
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/test1/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/test2/main OutOfSync Failed Healthy
+	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/test3/main Synced Succeeded Degraded
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
