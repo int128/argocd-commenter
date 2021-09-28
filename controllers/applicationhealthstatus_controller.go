@@ -41,6 +41,7 @@ type ApplicationHealthStatusReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var application argocdv1alpha1.Application
@@ -64,7 +65,9 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, err
 	}
 
-	if err := r.Notification.NotifyHealth(ctx, application); err != nil {
+	argoCDURL := findArgoCDURL(ctx, r.Client, req.Namespace)
+
+	if err := r.Notification.NotifyHealth(ctx, application, argoCDURL); err != nil {
 		logger.Error(err, "unable to notify the health status")
 	}
 	return ctrl.Result{}, nil

@@ -8,8 +8,8 @@ import (
 )
 
 type Client interface {
-	NotifyHealth(ctx context.Context, a argocdv1alpha1.Application) error
-	NotifyPhase(ctx context.Context, a argocdv1alpha1.Application) error
+	NotifyHealth(ctx context.Context, a argocdv1alpha1.Application, argoCDURL string) error
+	NotifyPhase(ctx context.Context, a argocdv1alpha1.Application, argoCDURL string) error
 }
 
 func NewClient(ghc github.Client) Client {

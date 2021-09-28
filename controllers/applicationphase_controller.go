@@ -37,6 +37,7 @@ type ApplicationPhaseReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var application argocdv1alpha1.Application
@@ -52,7 +53,9 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	)
 	ctx = log.IntoContext(ctx, logger)
 
-	if err := r.Notification.NotifyPhase(ctx, application); err != nil {
+	argoCDURL := findArgoCDURL(ctx, r.Client, req.Namespace)
+
+	if err := r.Notification.NotifyPhase(ctx, application, argoCDURL); err != nil {
 		logger.Error(err, "unable to notify the phase status")
 	}
 	return ctrl.Result{}, nil

@@ -11,12 +11,12 @@ import (
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
-func (c client) NotifyPhase(ctx context.Context, a argocdv1alpha1.Application) error {
+func (c client) NotifyPhase(ctx context.Context, a argocdv1alpha1.Application, argoCDURL string) error {
 	logger := logr.FromContextOrDiscard(ctx)
 	if err := c.notifyPhaseComment(ctx, logger, a); err != nil {
 		logger.Error(err, "unable to notify a phase comment")
 	}
-	if err := c.notifyPhaseDeployment(ctx, logger, a); err != nil {
+	if err := c.notifyPhaseDeployment(ctx, logger, a, argoCDURL); err != nil {
 		logger.Error(err, "unable to notify a phase deployment")
 	}
 	return nil
@@ -67,7 +67,7 @@ func phaseCommentFor(a argocdv1alpha1.Application) string {
 	return b.String()
 }
 
-func (c client) notifyPhaseDeployment(ctx context.Context, logger logr.Logger, a argocdv1alpha1.Application) error {
+func (c client) notifyPhaseDeployment(ctx context.Context, logger logr.Logger, a argocdv1alpha1.Application, argoCDURL string) error {
 	deploymentURL := a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
@@ -75,19 +75,30 @@ func (c client) notifyPhaseDeployment(ctx context.Context, logger logr.Logger, a
 	}
 
 	logger.Info("creating a deployment status", "deployment", deploymentURL)
-	deploymentStatus := phaseDeploymentStatusFor(a)
+	deploymentStatus := phaseDeploymentStatusFor(a, argoCDURL)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, deploymentStatus); err != nil {
 		return fmt.Errorf("unable to create a deployment status: %w", err)
 	}
 	return nil
 }
 
-func phaseDeploymentStatusFor(a argocdv1alpha1.Application) github.DeploymentStatus {
+func phaseDeploymentStatusFor(a argocdv1alpha1.Application, argoCDURL string) github.DeploymentStatus {
+	ds := github.DeploymentStatus{
+		Description: string(a.Status.OperationState.Phase),
+		LogURL:      fmt.Sprintf("%s/applications/%s", argoCDURL, a.Name),
+	}
+
+	if len(a.Status.Summary.ExternalURLs) > 0 {
+		ds.EnvironmentURL = a.Status.Summary.ExternalURLs[0]
+	}
+
 	switch a.Status.OperationState.Phase {
 	case synccommon.OperationRunning:
-		return github.DeploymentStatus{State: "queued", Description: string(a.Status.OperationState.Phase)}
+		ds.State = "queued"
 	case synccommon.OperationSucceeded:
-		return github.DeploymentStatus{State: "in_progress", Description: string(a.Status.OperationState.Phase)}
+		ds.State = "in_progress"
+	default:
+		ds.State = "failure"
 	}
-	return github.DeploymentStatus{State: "failure", Description: string(a.Status.OperationState.Phase)}
+	return ds
 }
