@@ -107,12 +107,12 @@ jobs:
 
       - run: make -C e2e_test test1
         env:
-          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
       - run: make -C e2e_test test2
         env:
-          PULL_REQUEST_BODY: "e2e-test #${{ github.event.pull_request.number }}"
+          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
