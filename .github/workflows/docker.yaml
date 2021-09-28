@@ -81,7 +81,8 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-      - run: bash e2e_test/wait-for-image-available.sh
+      - if: github.event_name == 'pull_request'
+        run: bash e2e_test/wait-for-image-available.sh
         env:
           CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
 
