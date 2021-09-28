@@ -6,3 +6,6 @@ data:
   # https://argoproj.github.io/argo-cd/operator-manual/high_availability/
   # https://argoproj.github.io/argo-cd/operator-manual/upgrading/2.0-2.1/#replacing-app-resync-flag-with-timeoutreconciliation-setting
   timeout.reconciliation: 10s
+
+  # add a link to Deployment
+  url: https://argocd.example.com

@@ -34,17 +34,24 @@ func ParseDeploymentURL(s string) *Deployment {
 }
 
 type DeploymentStatus struct {
-	State       string
-	Description string
+	State          string
+	Description    string
+	LogURL         string
+	EnvironmentURL string
 }
 
 func (c *client) CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error {
-	_, _, err := c.rest.Repositories.CreateDeploymentStatus(ctx,
-		d.Repository.Owner, d.Repository.Name, d.Id,
-		&github.DeploymentStatusRequest{
-			State:       github.String(ds.State),
-			Description: github.String(ds.Description),
-		})
+	r := github.DeploymentStatusRequest{
+		State:       github.String(ds.State),
+		Description: github.String(ds.Description),
+	}
+	if ds.LogURL != "" {
+		r.LogURL = github.String(ds.LogURL)
+	}
+	if ds.EnvironmentURL != "" {
+		r.EnvironmentURL = github.String(ds.EnvironmentURL)
+	}
+	_, _, err := c.rest.Repositories.CreateDeploymentStatus(ctx, d.Repository.Owner, d.Repository.Name, d.Id, &r)
 	if err != nil {
 		return fmt.Errorf("GitHub API error: %w", err)
 	}
