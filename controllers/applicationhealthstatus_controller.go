@@ -21,11 +21,11 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
+	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -78,34 +78,18 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 func (r *ApplicationHealthStatusReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(&applicationHealthStatusChangePredicate{}).
+		WithEventFilter(predicates.ApplicationUpdate(applicationHealthComparer{})).
 		Complete(r)
 }
 
-type applicationHealthStatusChangePredicate struct{}
+type applicationHealthComparer struct{}
 
-func (p applicationHealthStatusChangePredicate) Create(event.CreateEvent) bool {
-	return false
-}
-
-func (p applicationHealthStatusChangePredicate) Delete(event.DeleteEvent) bool {
-	return false
-}
-
-func (p applicationHealthStatusChangePredicate) Update(e event.UpdateEvent) bool {
-	applicationOld, ok := e.ObjectOld.(*argocdv1alpha1.Application)
-	if !ok {
-		return false
-	}
-	applicationNew, ok := e.ObjectNew.(*argocdv1alpha1.Application)
-	if !ok {
-		return false
-	}
+func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
 		return false
 	}
 
-	lastDeployedRevision := getLastDeployedRevision(*applicationNew)
+	lastDeployedRevision := getLastDeployedRevision(applicationNew)
 	if lastDeployedRevision == "" {
 		return false
 	}
@@ -119,9 +103,5 @@ func (p applicationHealthStatusChangePredicate) Update(e event.UpdateEvent) bool
 			return true
 		}
 	}
-	return false
-}
-
-func (p applicationHealthStatusChangePredicate) Generic(event.GenericEvent) bool {
 	return false
 }
