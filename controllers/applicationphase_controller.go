@@ -21,11 +21,11 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -65,22 +65,13 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *ApplicationPhaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(&applicationPhaseChangePredicate{}).
+		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseComparer{})).
 		Complete(r)
 }
 
-type applicationPhaseChangePredicate struct{}
+type applicationPhaseComparer struct{}
 
-func (p applicationPhaseChangePredicate) Update(e event.UpdateEvent) bool {
-	applicationOld, ok := e.ObjectOld.(*argocdv1alpha1.Application)
-	if !ok {
-		return false
-	}
-	applicationNew, ok := e.ObjectNew.(*argocdv1alpha1.Application)
-	if !ok {
-		return false
-	}
-
+func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}
@@ -95,17 +86,5 @@ func (p applicationPhaseChangePredicate) Update(e event.UpdateEvent) bool {
 	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
 		return true
 	}
-	return false
-}
-
-func (p applicationPhaseChangePredicate) Create(event.CreateEvent) bool {
-	return false
-}
-
-func (p applicationPhaseChangePredicate) Delete(event.DeleteEvent) bool {
-	return false
-}
-
-func (p applicationPhaseChangePredicate) Generic(event.GenericEvent) bool {
 	return false
 }
