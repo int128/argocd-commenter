@@ -13,16 +13,17 @@ import (
 
 func (c client) NotifyPhase(ctx context.Context, a argocdv1alpha1.Application, argoCDURL string) error {
 	logger := logr.FromContextOrDiscard(ctx)
-	if err := c.notifyPhaseComment(ctx, logger, a); err != nil {
+	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argoCDURL, a.Name)
+	if err := c.notifyPhaseComment(ctx, logger, a, argocdApplicationURL); err != nil {
 		logger.Error(err, "unable to notify a phase comment")
 	}
-	if err := c.notifyPhaseDeployment(ctx, logger, a, argoCDURL); err != nil {
+	if err := c.notifyPhaseDeployment(ctx, logger, a, argocdApplicationURL); err != nil {
 		logger.Error(err, "unable to notify a phase deployment")
 	}
 	return nil
 }
 
-func (c client) notifyPhaseComment(ctx context.Context, logger logr.Logger, a argocdv1alpha1.Application) error {
+func (c client) notifyPhaseComment(ctx context.Context, logger logr.Logger, a argocdv1alpha1.Application, argocdApplicationURL string) error {
 	repository := github.ParseRepositoryURL(a.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
@@ -32,27 +33,29 @@ func (c client) notifyPhaseComment(ctx context.Context, logger logr.Logger, a ar
 	}
 	revision := a.Status.OperationState.Operation.Sync.Revision
 
+	body := phaseCommentFor(a, argocdApplicationURL)
+
 	logger.Info("creating a comment", "repository", repository, "revision", revision)
-	body := phaseCommentFor(a)
 	if err := c.ghc.CreateComment(ctx, *repository, revision, body); err != nil {
 		return fmt.Errorf("unable to create a comment: %w", err)
 	}
 	return nil
 }
 
-func phaseCommentFor(a argocdv1alpha1.Application) string {
+func phaseCommentFor(a argocdv1alpha1.Application, argocdApplicationURL string) string {
 	revision := a.Status.OperationState.Operation.Sync.Revision
 	if a.Status.OperationState.Phase == synccommon.OperationRunning {
-		return fmt.Sprintf(":warning: %s: Syncing to %s", a.Name, revision)
+		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", a.Name, argocdApplicationURL, revision)
 	}
 	if a.Status.OperationState.Phase == synccommon.OperationSucceeded {
-		return fmt.Sprintf(":white_check_mark: %s: Synced to %s", a.Name, revision)
+		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", a.Name, argocdApplicationURL, revision)
 	}
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("## :x: %s: Sync %s\nError while syncing to %s\n",
-		a.Name,
+	b.WriteString(fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n",
 		a.Status.OperationState.Phase,
+		a.Name,
+		argocdApplicationURL,
 		revision,
 	))
 	if a.Status.OperationState.SyncResult != nil {
@@ -67,38 +70,32 @@ func phaseCommentFor(a argocdv1alpha1.Application) string {
 	return b.String()
 }
 
-func (c client) notifyPhaseDeployment(ctx context.Context, logger logr.Logger, a argocdv1alpha1.Application, argoCDURL string) error {
+func (c client) notifyPhaseDeployment(ctx context.Context, logger logr.Logger, a argocdv1alpha1.Application, argocdApplicationURL string) error {
 	deploymentURL := a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
 
+	deploymentStatus := github.DeploymentStatus{
+		Description: fmt.Sprintf("Argo CD operation was %s", a.Status.OperationState.Phase),
+		LogURL:      argocdApplicationURL,
+	}
+	if len(a.Status.Summary.ExternalURLs) > 0 {
+		deploymentStatus.EnvironmentURL = a.Status.Summary.ExternalURLs[0]
+	}
+	switch a.Status.OperationState.Phase {
+	case synccommon.OperationRunning:
+		deploymentStatus.State = "queued"
+	case synccommon.OperationSucceeded:
+		deploymentStatus.State = "in_progress"
+	default:
+		deploymentStatus.State = "failure"
+	}
+
 	logger.Info("creating a deployment status", "deployment", deploymentURL)
-	deploymentStatus := phaseDeploymentStatusFor(a, argoCDURL)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, deploymentStatus); err != nil {
 		return fmt.Errorf("unable to create a deployment status: %w", err)
 	}
 	return nil
-}
-
-func phaseDeploymentStatusFor(a argocdv1alpha1.Application, argoCDURL string) github.DeploymentStatus {
-	ds := github.DeploymentStatus{
-		Description: string(a.Status.OperationState.Phase),
-		LogURL:      fmt.Sprintf("%s/applications/%s", argoCDURL, a.Name),
-	}
-
-	if len(a.Status.Summary.ExternalURLs) > 0 {
-		ds.EnvironmentURL = a.Status.Summary.ExternalURLs[0]
-	}
-
-	switch a.Status.OperationState.Phase {
-	case synccommon.OperationRunning:
-		ds.State = "queued"
-	case synccommon.OperationSucceeded:
-		ds.State = "in_progress"
-	default:
-		ds.State = "failure"
-	}
-	return ds
 }
