@@ -106,6 +106,9 @@ func (p applicationHealthStatusChangePredicate) Update(e event.UpdateEvent) bool
 	}
 
 	lastDeployedRevision := getLastDeployedRevision(*applicationNew)
+	if lastDeployedRevision == "" {
+		return false
+	}
 
 	// notify only the following statuses
 	switch applicationNew.Status.Health.Status {
