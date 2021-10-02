@@ -38,8 +38,8 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-      - uses: int128/docker-cache-params-action@v1
-        id: cache-params
+      - uses: int128/docker-build-cache-config-action@v1
+        id: cache
         with:
           image: ghcr.io/${{ github.repository }}/cache
       - uses: docker/login-action@v1
@@ -54,8 +54,8 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: ${{ steps.cache-params.outputs.cache-from }}
-          cache-to: ${{ steps.cache-params.outputs.cache-to }}
+          cache-from: ${{ steps.cache.outputs.cache-from }}
+          cache-to: ${{ steps.cache.outputs.cache-to }}
 
   test:
     runs-on: ubuntu-latest
