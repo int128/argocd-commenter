@@ -40,14 +40,19 @@ type ApplicationPhaseReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
-		logger := log.FromContext(ctx)
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if application.Status.OperationState == nil {
+		logger.Info("skip notification due to application.status.operationState == nil")
+		return ctrl.Result{}, nil
+	}
 
-	logger := log.FromContext(ctx,
+	logger = log.FromContext(ctx,
 		"phase", application.Status.OperationState.Phase,
 		"revision", application.Status.Sync.Revision,
 	)
