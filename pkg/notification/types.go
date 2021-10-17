@@ -7,9 +7,16 @@ import (
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
+type Event struct {
+	PhaseIsChanged  bool
+	HealthIsChanged bool
+	Application     argocdv1alpha1.Application
+	ArgoCDURL       string
+}
+
 type Client interface {
-	NotifyHealth(ctx context.Context, a argocdv1alpha1.Application, argoCDURL string) error
-	NotifyPhase(ctx context.Context, a argocdv1alpha1.Application, argoCDURL string) error
+	Comment(context.Context, Event) error
+	Deployment(context.Context, Event) error
 }
 
 func NewClient(ghc github.Client) Client {

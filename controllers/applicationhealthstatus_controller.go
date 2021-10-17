@@ -44,20 +44,15 @@ type ApplicationHealthStatusReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
-		logger := log.FromContext(ctx)
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	lastDeployedRevision := getLastDeployedRevision(application)
-	logger := log.FromContext(ctx,
-		"health", application.Status.Health.Status,
-		"lastDeployedRevision", lastDeployedRevision,
-	)
-	ctx = log.IntoContext(ctx, logger)
-
 	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
 		annotations[annotationNameOfLastRevisionOfHealthStatus] = lastDeployedRevision
 	})
@@ -66,10 +61,21 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, err
 	}
 
-	argoCDURL := findArgoCDURL(ctx, r.Client, req.Namespace)
+	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
+	if err != nil {
+		logger.Error(err, "unable to determine Argo CD URL")
+	}
 
-	if err := r.Notification.NotifyHealth(ctx, application, argoCDURL); err != nil {
-		logger.Error(err, "unable to notify the health status")
+	e := notification.Event{
+		HealthIsChanged: true,
+		Application:     application,
+		ArgoCDURL:       argoCDURL,
+	}
+	if err := r.Notification.Comment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a comment")
+	}
+	if err := r.Notification.Deployment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a deployment status")
 	}
 	return ctrl.Result{}, nil
 }
