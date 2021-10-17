@@ -52,16 +52,21 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	logger = log.FromContext(ctx,
-		"phase", application.Status.OperationState.Phase,
-		"revision", application.Status.Sync.Revision,
-	)
-	ctx = log.IntoContext(ctx, logger)
+	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
+	if err != nil {
+		logger.Error(err, "unable to determine Argo CD URL")
+	}
 
-	argoCDURL := findArgoCDURL(ctx, r.Client, req.Namespace)
-
-	if err := r.Notification.NotifyPhase(ctx, application, argoCDURL); err != nil {
-		logger.Error(err, "unable to notify the phase status")
+	e := notification.Event{
+		PhaseIsChanged: true,
+		Application:    application,
+		ArgoCDURL:      argoCDURL,
+	}
+	if err := r.Notification.Comment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a comment")
+	}
+	if err := r.Notification.Deployment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a deployment status")
 	}
 	return ctrl.Result{}, nil
 }
