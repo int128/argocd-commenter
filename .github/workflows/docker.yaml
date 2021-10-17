@@ -80,16 +80,19 @@ jobs:
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
-      # deploy controller
+      # wait for controller image
       - uses: docker/metadata-action@v3
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
+          # set outputs.tags to single tag
+          flavor: latest=false
       - if: github.event_name == 'pull_request'
         run: bash e2e_test/wait-for-image-available.sh
         env:
           CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
 
+      # deploy controller
       - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
       - run: make -C e2e_test deploy-controller
         env:
