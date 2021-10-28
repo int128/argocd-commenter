@@ -11,7 +11,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
-	k8s.io/api v0.22.2
+	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
 	sigs.k8s.io/controller-runtime v0.10.1
