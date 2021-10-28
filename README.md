@@ -3,7 +3,7 @@
 This is a Kubernetes Controller to notify a change of Argo CD Application status.
 
 
-## Example: Pull Request
+## Example: Pull Request notification
 
 In the [GitOps](https://www.weave.works/technologies/gitops/) way, you merge a pull request to deploy a change to Kubernetes cluster.
 argocd-commenter allows you to receive a notification after merge.
@@ -20,10 +20,10 @@ When the sync was failed, argocd-commenter creates a comment.
 See the examples in [e2e test fixtures](https://github.com/int128/argocd-commenter-e2e-test/pulls?q=is%3Apr+is%3Aclosed).
 
 
-## Example: Deployment
+## Example: GitHub Deployment notification
 
 In a complex deployment flow, you can receive a notification using GitHub [Deployments](https://docs.github.com/en/rest/reference/repos#deployments) API.
-For example, you can deploy a preview environment for a pull request.
+For example, if you deploy a preview environment for a pull request, you can receive notifications via GitHub Deployment.
 
 You need to create a Deployment to receive notifications.
 If an Application contains the following annotation,
