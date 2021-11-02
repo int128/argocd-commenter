@@ -1,4 +1,4 @@
-# end-to-end test
+# End-to-end Test
 
 To run locally:
 
