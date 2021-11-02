@@ -1,0 +1,14 @@
+name: deployment-status
+
+on:
+  deployment_status:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/github-script@v5
+        with:
+          script: |
+            core.info(JSON.stringify(context, undefined, 2))
