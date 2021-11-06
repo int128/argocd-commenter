@@ -5,6 +5,7 @@ on:
 
 jobs:
   notify:
+    name: notify / ${{ github.event.deployment.environment }} / ${{ github.event.deployment_status.state }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -14,12 +15,11 @@ jobs:
             core.info(JSON.stringify(context, undefined, 2))
 
       - if: github.event.deployment_status.state == 'failure'
-        uses: actions/github-script@v5
+        uses: int128/issues-action@v2
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `:x: Failed to deploy ${context.payload.deployment_status.environment}`
-            })
+          context: true
+          add-labels: deploy/${{ github.event.deployment.environment }}/${{ github.event.deployment_status.state }}
+          post-comment: |
+            ## :x: Failed to deploy ${{ github.event.deployment.environment }}
+            ${{ github.event.deployment_status.description }}
+            ${{ github.event.deployment_status.log_url }}
