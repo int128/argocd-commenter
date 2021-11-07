@@ -9,7 +9,7 @@ require (
 	github.com/google/go-github/v39 v39.2.0
 	github.com/int128/oauth2-github-app v0.1.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.16.0
+	github.com/onsi/gomega v1.17.0
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
