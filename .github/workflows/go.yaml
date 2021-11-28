@@ -1,0 +1,44 @@
+name: go
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/go.yaml
+      - '**.go'
+      - go.*
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/go.yaml
+      - '**.go'
+      - go.*
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: int128/go-actions/setup@v1
+        with:
+          go-version: 1.17
+      - uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.41.1
+          skip-go-installation: true
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: --timeout=3m
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: int128/go-actions/setup@v1
+        with:
+          go-version: 1.17
+      #TODO: fix the integration test
+      #- run: go test -v ./...
+      - run: go test -v ./pkg/...
