@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.17.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.22.4
+	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
 	sigs.k8s.io/controller-runtime v0.10.1
 )
