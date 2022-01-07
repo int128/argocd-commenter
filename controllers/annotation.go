@@ -17,6 +17,9 @@ func patchAnnotation(ctx context.Context, c client.Client, a argocdv1alpha1.Appl
 	patch.SetNamespace(a.Namespace)
 	patch.SetName(a.Name)
 	annotations := a.DeepCopy().Annotations
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 	f(annotations)
 	patch.SetAnnotations(annotations)
 
