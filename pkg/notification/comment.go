@@ -33,11 +33,36 @@ func (c client) Comment(ctx context.Context, e Event) error {
 	}
 
 	revision := e.Application.Status.OperationState.Operation.Sync.Revision
-	logger.Info("creating a comment", "repository", repository, "revision", revision)
-	if err := c.ghc.CreateComment(ctx, *repository, revision, body); err != nil {
+	pulls, err := c.ghc.ListPullRequests(ctx, *repository, revision)
+	if err != nil {
+		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
+	}
+
+	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e)
+	logger.Info("creating a comment", "repository", repository, "pulls", relatedPullNumbers)
+	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
 		return fmt.Errorf("unable to create a comment: %w", err)
 	}
 	return nil
+}
+
+func filterPullRequestsRelatedToEvent(pulls []github.PullRequest, e Event) []int {
+	var numbers []int
+	for _, pull := range pulls {
+		if isPullRequestRelatedToEvent(pull, e) {
+			numbers = append(numbers, pull.Number)
+		}
+	}
+	return numbers
+}
+
+func isPullRequestRelatedToEvent(pull github.PullRequest, e Event) bool {
+	for _, file := range pull.Files {
+		if strings.HasPrefix(file, e.Application.Spec.Source.Path) {
+			return true
+		}
+	}
+	return false
 }
 
 func generateComment(e Event) string {

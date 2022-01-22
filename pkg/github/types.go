@@ -6,7 +6,8 @@ import (
 )
 
 type Client interface {
-	CreateComment(ctx context.Context, r Repository, revision, body string) error
+	ListPullRequests(ctx context.Context, r Repository, revision string) ([]PullRequest, error)
+	CreateComment(ctx context.Context, r Repository, pulls []int, body string) error
 	CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error
 }
 
@@ -23,4 +24,9 @@ func ParseRepositoryURL(s string) *Repository {
 		return nil
 	}
 	return &Repository{Owner: m[1], Name: m[2]}
+}
+
+type PullRequest struct {
+	Number int
+	Files  []string
 }
