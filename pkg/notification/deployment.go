@@ -48,12 +48,17 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 		switch e.Application.Status.OperationState.Phase {
 		case synccommon.OperationRunning:
 			ds.State = "queued"
+			return &ds
 		case synccommon.OperationSucceeded:
 			ds.State = "in_progress"
-		default:
+			return &ds
+		case synccommon.OperationFailed:
 			ds.State = "failure"
+			return &ds
+		case synccommon.OperationError:
+			ds.State = "failure"
+			return &ds
 		}
-		return &ds
 	}
 
 	if e.HealthIsChanged {
@@ -61,10 +66,11 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 		switch e.Application.Status.Health.Status {
 		case health.HealthStatusHealthy:
 			ds.State = "success"
-		default:
+			return &ds
+		case health.HealthStatusDegraded:
 			ds.State = "failure"
+			return &ds
 		}
-		return &ds
 	}
 
 	return nil

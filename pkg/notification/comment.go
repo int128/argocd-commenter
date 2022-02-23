@@ -70,10 +70,10 @@ func generateComment(e Event) string {
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
 
 	if e.PhaseIsChanged {
-		if e.Application.Status.OperationState.Phase == synccommon.OperationRunning {
+		switch e.Application.Status.OperationState.Phase {
+		case synccommon.OperationRunning:
 			return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
-		}
-		if e.Application.Status.OperationState.Phase == synccommon.OperationSucceeded {
+		case synccommon.OperationSucceeded:
 			return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
 		}
 
@@ -97,17 +97,24 @@ func generateComment(e Event) string {
 	}
 
 	if e.HealthIsChanged {
-		bodyIcon := ":x:"
-		if e.Application.Status.Health.Status == health.HealthStatusHealthy {
-			bodyIcon = ":white_check_mark:"
+		switch e.Application.Status.Health.Status {
+		case health.HealthStatusHealthy:
+			return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
+				":white_check_mark:",
+				e.Application.Status.Health.Status,
+				e.Application.Name,
+				argocdApplicationURL,
+				revision,
+			)
+		case health.HealthStatusDegraded:
+			return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
+				":x:",
+				e.Application.Status.Health.Status,
+				e.Application.Name,
+				argocdApplicationURL,
+				revision,
+			)
 		}
-		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
-			bodyIcon,
-			e.Application.Status.Health.Status,
-			e.Application.Name,
-			argocdApplicationURL,
-			revision,
-		)
 	}
 
 	return ""
