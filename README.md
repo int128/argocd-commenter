@@ -22,7 +22,7 @@ See the examples in [e2e test fixtures](https://github.com/int128/argocd-comment
 
 ## Example: GitHub Deployment notification
 
-In a complex deployment flow, you can receive a notification using GitHub [Deployments](https://docs.github.com/en/rest/reference/repos#deployments) API.
+In a complex deployment flow, you can receive a notification using GitHub [Deployments](https://docs.github.com/en/rest/reference/deployments) API.
 For example, if you deploy a preview environment for a pull request, you can receive notifications via GitHub Deployment.
 
 You need to create a Deployment to receive notifications.
