@@ -44,10 +44,10 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 		if e.Application.Status.OperationState == nil {
 			return nil
 		}
-		ds.Description = fmt.Sprintf("Application is %s,\n%s",
+		ds.Description = trimDescription(fmt.Sprintf("%s:\n%s",
 			e.Application.Status.OperationState.Phase,
 			e.Application.Status.OperationState.Message,
-		)
+		))
 		switch e.Application.Status.OperationState.Phase {
 		case synccommon.OperationRunning:
 			ds.State = "queued"
@@ -65,10 +65,10 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 	}
 
 	if e.HealthIsChanged {
-		ds.Description = fmt.Sprintf("Application is %s,\n%s",
+		ds.Description = trimDescription(fmt.Sprintf("%s:\n%s",
 			e.Application.Status.Health.Status,
 			e.Application.Status.Health.Message,
-		)
+		))
 		switch e.Application.Status.Health.Status {
 		case health.HealthStatusHealthy:
 			ds.State = "success"
@@ -80,4 +80,13 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 	}
 
 	return nil
+}
+
+func trimDescription(s string) string {
+	// The maximum description length is 140 characters.
+	// https://docs.github.com/en/rest/reference/deployments#create-a-deployment-status
+	if len(s) < 140 {
+		return s
+	}
+	return s[0:139]
 }
