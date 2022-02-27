@@ -78,6 +78,9 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	if err := r.Notification.Comment(ctx, e); err != nil {
 		logger.Error(err, "unable to send a comment")
 	}
+	if err := r.Notification.CheckRun(ctx, e); err != nil {
+		logger.Error(err, "unable to send a check run notification")
+	}
 	return ctrl.Result{}, nil
 }
 

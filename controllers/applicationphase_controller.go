@@ -68,6 +68,9 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err := r.Notification.Deployment(ctx, e); err != nil {
 		logger.Error(err, "unable to send a deployment status")
 	}
+	if err := r.Notification.CheckRun(ctx, e); err != nil {
+		logger.Error(err, "unable to send a check run notification")
+	}
 	return ctrl.Result{}, nil
 }
 

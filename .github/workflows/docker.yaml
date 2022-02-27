@@ -114,6 +114,7 @@ jobs:
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
+          COMMIT_URL: ${{ github.api_url }}/repos/${{ github.repository }}/commits/${{ steps.commit.outputs.sha }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
       - run: make -C e2e_test restart-app1
@@ -126,6 +127,7 @@ jobs:
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
+          COMMIT_URL: ${{ github.api_url }}/repos/${{ github.repository }}/commits/${{ steps.commit.outputs.sha }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
       # show logs
