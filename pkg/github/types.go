@@ -16,10 +16,31 @@ type Repository struct {
 	Name  string
 }
 
-var patternRepositoryURL = regexp.MustCompile(`^https://github\.com/([^/]+?)/([^/]+?)(\.git)?$`)
+var (
+	patternRepositoryHTTPS = regexp.MustCompile(`^https://github\.com/([^/]+?)/([^/]+?)(\.git)?$`)
+	patternRepositorySSH   = regexp.MustCompile(`^git@github\.com:([^/]+?)/([^/]+?)(\.git)?$`)
+)
 
 func ParseRepositoryURL(s string) *Repository {
-	m := patternRepositoryURL.FindStringSubmatch(s)
+	if r := parseRepositoryHTTPS(s); r != nil {
+		return r
+	}
+	if r := parseRepositorySSH(s); r != nil {
+		return r
+	}
+	return nil
+}
+
+func parseRepositoryHTTPS(s string) *Repository {
+	m := patternRepositoryHTTPS.FindStringSubmatch(s)
+	if len(m) < 3 {
+		return nil
+	}
+	return &Repository{Owner: m[1], Name: m[2]}
+}
+
+func parseRepositorySSH(s string) *Repository {
+	m := patternRepositorySSH.FindStringSubmatch(s)
 	if len(m) < 3 {
 		return nil
 	}
