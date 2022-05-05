@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - uses: docker/metadata-action@v3
+      - uses: docker/metadata-action@v4
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
@@ -81,7 +81,7 @@ jobs:
       - run: make -C e2e_test deploy-argocd
 
       # wait for controller image
-      - uses: docker/metadata-action@v3
+      - uses: docker/metadata-action@v4
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
