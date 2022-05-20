@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -57,9 +58,29 @@ func filterPullRequestsRelatedToEvent(pulls []github.PullRequest, e Event) []int
 }
 
 func isPullRequestRelatedToEvent(pull github.PullRequest, e Event) bool {
+	// support manifest path annotation
+	// see https://argo-cd.readthedocs.io/en/stable/operator-manual/high_availability/#webhook-and-manifest-paths-annotation
+	manifestPaths := []string{e.Application.Spec.Source.Path}
+	annotatedPaths := strings.Split(e.Application.Annotations["argocd.argoproj.io/manifest-generate-paths"], ";")
+	for _, path := range annotatedPaths {
+		// convert to absolute path
+		absolutePath := path
+		if !filepath.IsAbs(path) {
+			absolutePath = filepath.Join(e.Application.Spec.Source.Path, path)
+		}
+		// remove leading slash
+		if absolutePath[0:1] == "/" {
+			absolutePath = absolutePath[1:]
+		}
+		// add to list of manifest paths
+		manifestPaths = append(manifestPaths, absolutePath)
+	}
+
 	for _, file := range pull.Files {
-		if strings.HasPrefix(file, e.Application.Spec.Source.Path) {
-			return true
+		for _, path := range manifestPaths {
+			if strings.HasPrefix(file, path) {
+				return true
+			}
 		}
 	}
 	return false
