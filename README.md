@@ -82,7 +82,7 @@ Argo CD is running in your Kubernetes cluster.
 To deploy the manifest:
 
 ```shell
-kubectl apply -f https://github.com/int128/argocd-commenter/releases/download/v0.3.0/argocd-commenter.yaml
+kubectl apply -f https://github.com/int128/argocd-commenter/releases/download/v1.8.0/argocd-commenter.yaml
 ```
 
 You need to create either Personal Access Token or GitHub App.
