@@ -6,7 +6,7 @@ require (
 	github.com/argoproj/argo-cd/v2 v2.3.3
 	github.com/argoproj/gitops-engine v0.6.2
 	github.com/go-logr/logr v1.2.3
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.8
 	github.com/google/go-github/v39 v39.2.0
 	github.com/int128/oauth2-github-app v0.1.0
 	github.com/onsi/ginkgo v1.16.5
