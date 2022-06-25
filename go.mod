@@ -19,15 +19,13 @@ require (
 )
 
 replace (
-	// https://github.com/argoproj/argo-cd/blob/v2.3.3/go.mod
+	// https://github.com/argoproj/argo-cd/blob/v2.4.2/go.mod
 	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
 
 	github.com/golang/protobuf => github.com/golang/protobuf v1.4.2
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/improbable-eng/grpc-web => github.com/improbable-eng/grpc-web v0.0.0-20181111100011-16092bd1d58a
-
-	google.golang.org/grpc => google.golang.org/grpc v1.15.0
 
 	k8s.io/api => k8s.io/api v0.23.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.1
@@ -53,5 +51,4 @@ replace (
 	k8s.io/metrics => k8s.io/metrics v0.23.1
 	k8s.io/mount-utils => k8s.io/mount-utils v0.23.1
 	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.23.1
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.23.1
-)
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.23.1)
