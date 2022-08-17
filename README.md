@@ -19,6 +19,35 @@ When the sync was failed, argocd-commenter creates a comment.
 
 See the examples in [e2e test fixtures](https://github.com/int128/argocd-commenter-e2e-test/pulls?q=is%3Apr+is%3Aclosed).
 
+### Sequence diagram
+
+You will receive a comment when an Argo CD Application is changed.
+
+```mermaid
+sequenceDiagram
+  actor User
+
+  User ->>+ GitHub Repository: git push
+  GitHub Repository -->>- User: pushed
+
+  loop Argo CD reconciler
+    Argo CD Application ->>+ GitHub Repository: git checkout
+    GitHub Repository -->>- Argo CD Application: manifest
+    note over Argo CD Application: Out of Sync
+    Argo CD Application ->>+ Kubernetes Deployment: kubectl apply
+    note over Argo CD Application: Syncing
+    Kubernetes Deployment -->>- Argo CD Application: applied
+    note over Argo CD Application: Synced
+  end
+
+  loop Kubernetes reconciler
+    Kubernetes Deployment ->>+ Kubernetes Pod: create
+    note over Argo CD Application: Progressing
+    Kubernetes Pod -->>- Kubernetes Deployment: ready
+    note over Argo CD Application: Healthy
+  end
+```
+
 
 ## Example: GitHub Deployment notification
 
@@ -68,6 +97,46 @@ jobs:
 ```
 
 See the [e2e test](https://github.com/int128/argocd-commenter/blob/master/.github/workflows/docker.yaml) for details.
+
+### Sequence diagram
+
+You will receive a deployment status when an Argo CD Application is changed.
+
+```mermaid
+sequenceDiagram
+  actor User
+
+  User ->>+ Application Repository: git push
+  Application Repository -->>- User: pushed
+
+  Application Repository ->>+ GitHub Actions: start
+  GitHub Actions ->>+ GitHub Deployment: create
+  GitHub Deployment -->>- GitHub Actions: created
+  note over GitHub Deployment: Pending
+  GitHub Actions ->>+ Manifest Repository: git push
+  Manifest Repository -->>- GitHub Actions: pushed
+  GitHub Actions -->>- Application Repository: success
+
+  loop Argo CD reconciler
+    Argo CD Application ->>+ Manifest Repository: git checkout
+    Manifest Repository -->>- Argo CD Application: manifest
+    note over Argo CD Application: Out of Sync
+    note over GitHub Deployment: Queued
+    Argo CD Application ->>+ Kubernetes Deployment: kubectl apply
+    note over Argo CD Application: Syncing
+    Kubernetes Deployment -->>- Argo CD Application: applied
+    note over Argo CD Application: Synced
+    note over GitHub Deployment: In progress
+  end
+
+  loop Kubernetes reconciler
+    Kubernetes Deployment ->>+ Kubernetes Pod: create
+    note over Argo CD Application: Progressing
+    Kubernetes Pod -->>- Kubernetes Deployment: ready
+    note over Argo CD Application: Healthy
+    note over GitHub Deployment: Active
+  end
+```
 
 
 ## Getting Started
