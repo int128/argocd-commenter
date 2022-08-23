@@ -24,5 +24,9 @@ func patchAnnotation(ctx context.Context, c client.Client, a argocdv1alpha1.Appl
 	patch.SetAnnotations(annotations)
 
 	logger.Info("apply a patch", "annotations", annotations)
-	return c.Patch(ctx, &patch, client.Apply, &client.PatchOptions{FieldManager: "argocd-commenter"})
+
+	// force applying to resolve conflicts that happen when argocd-notifications also updates the Application
+	force := true
+	patchOptions := &client.PatchOptions{FieldManager: "argocd-commenter", Force: &force}
+	return c.Patch(ctx, &patch, client.Apply, patchOptions)
 }
