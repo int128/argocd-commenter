@@ -13,16 +13,8 @@ spec:
         app: echoserver
     spec:
       containers:
-        - image: gcr.io/google_containers/echoserver:1.8
+        # this may cause crash loop
+        - image: gcr.io/google_containers/echoserver:dummy
           name: echoserver
           ports:
             - containerPort: 8080
-          # this may cause crash loop
-          # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 9999
-            periodSeconds: 1
-            timeoutSeconds: 1
-            failureThreshold: 1
