@@ -17,5 +17,10 @@ spec:
       prune: true
     syncOptions:
       - CreateNamespace=true
+    # reduce time of test
     retry:
-      limit: 1  # reduce test time
+      limit: 1
+      backoff:
+        duration: 1s
+        factor: 1
+        maxDuration: 1s
