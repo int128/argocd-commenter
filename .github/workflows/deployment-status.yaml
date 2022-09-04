@@ -1,0 +1,15 @@
+name: deployment-status
+
+on:
+  deployment_status:
+
+jobs:
+  notify:
+    name: notify / ${{ github.event.deployment.environment }} / ${{ github.event.deployment_status.state }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            core.info(JSON.stringify(context, undefined, 2))

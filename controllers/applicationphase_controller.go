@@ -21,11 +21,11 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -37,23 +37,36 @@ type ApplicationPhaseReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
-		logger := log.FromContext(ctx)
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if application.Status.OperationState == nil {
+		logger.Info("skip notification due to application.status.operationState == nil")
+		return ctrl.Result{}, nil
+	}
 
-	logger := log.FromContext(ctx,
-		"phase", application.Status.OperationState.Phase,
-		"revision", application.Status.Sync.Revision,
-	)
-	ctx = log.IntoContext(ctx, logger)
+	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
+	if err != nil {
+		logger.Error(err, "unable to determine Argo CD URL")
+	}
 
-	if err := r.Notification.NotifyPhase(ctx, application); err != nil {
-		logger.Error(err, "unable to notify the phase status")
+	e := notification.Event{
+		PhaseIsChanged: true,
+		Application:    application,
+		ArgoCDURL:      argoCDURL,
+	}
+	if err := r.Notification.Comment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a comment")
+	}
+	if err := r.Notification.Deployment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a deployment status")
 	}
 	return ctrl.Result{}, nil
 }
@@ -62,22 +75,13 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *ApplicationPhaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(&applicationPhaseChangePredicate{}).
+		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseComparer{})).
 		Complete(r)
 }
 
-type applicationPhaseChangePredicate struct{}
+type applicationPhaseComparer struct{}
 
-func (p applicationPhaseChangePredicate) Update(e event.UpdateEvent) bool {
-	applicationOld, ok := e.ObjectOld.(*argocdv1alpha1.Application)
-	if !ok {
-		return false
-	}
-	applicationNew, ok := e.ObjectNew.(*argocdv1alpha1.Application)
-	if !ok {
-		return false
-	}
-
+func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}
@@ -92,17 +96,5 @@ func (p applicationPhaseChangePredicate) Update(e event.UpdateEvent) bool {
 	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
 		return true
 	}
-	return false
-}
-
-func (p applicationPhaseChangePredicate) Create(event.CreateEvent) bool {
-	return false
-}
-
-func (p applicationPhaseChangePredicate) Delete(event.DeleteEvent) bool {
-	return false
-}
-
-func (p applicationPhaseChangePredicate) Generic(event.GenericEvent) bool {
 	return false
 }
