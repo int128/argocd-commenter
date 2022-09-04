@@ -13,13 +13,3 @@ jobs:
         with:
           script: |
             core.info(JSON.stringify(context, undefined, 2))
-
-      - if: github.event.deployment_status.state == 'failure'
-        uses: int128/issues-action@v2
-        with:
-          context: true
-          add-labels: deploy/${{ github.event.deployment.environment }}/${{ github.event.deployment_status.state }}
-          post-comment: |
-            ## :x: Failed to deploy ${{ github.event.deployment.environment }}
-            ${{ github.event.deployment_status.description }}
-            ${{ github.event.deployment_status.log_url }}
