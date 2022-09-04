@@ -18,9 +18,11 @@ spec:
           ports:
             - containerPort: 8080
           # this may cause crash loop
+          # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
           readinessProbe:
             httpGet:
               path: /
               port: 9999
-            initialDelaySeconds: 3
-            periodSeconds: 3
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 1

@@ -17,7 +17,7 @@ spec:
       prune: true
     syncOptions:
       - CreateNamespace=true
-    # reduce time of test
+    # https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/application.yaml
     retry:
       limit: 1
       backoff:
