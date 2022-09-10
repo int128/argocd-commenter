@@ -53,7 +53,7 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 	}
 
 	lastDeployedRevision := getLastDeployedRevision(application)
-	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
+	err := patchAnnotation(ctx, r.Client, &application, func(annotations map[string]string) {
 		annotations[annotationNameOfLastRevisionOfHealthStatus] = lastDeployedRevision
 	})
 	if err != nil {
