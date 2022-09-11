@@ -8,6 +8,11 @@ export FIXTURE_BRANCH
 
 all:
 
+setup-fixture-branch:
+	test -d argocd-commenter-e2e-test-repository
+	rsync -av fixture/ argocd-commenter-e2e-test-repository/
+	$(MAKE) -C argocd-commenter-e2e-test-repository push-base-branch
+
 # cluster
 cluster: $(KUBECONFIG)
 $(KUBECONFIG):
@@ -16,8 +21,6 @@ $(KUBECONFIG):
 delete-cluster:
 	kind delete cluster --name $(CLUSTER_NAME)
 	-rm $(KUBECONFIG)
-
-deploy: deploy-argocd deploy-controller
 
 deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
@@ -28,7 +31,7 @@ deploy-controller: cluster
 	kustomize build controller | kubectl apply -f -
 	bash controller/create-controller-manager-secret.sh
 
-post-deploy:
+wait-for-ready:
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
@@ -38,19 +41,14 @@ undeploy:
 	kubectl delete namespace/argocd namespace/argocd-commenter-system
 
 # fixture
-setup-fixture:
-	test -d argocd-commenter-e2e-test
-	rsync -av fixture/ argocd-commenter-e2e-test/
-	$(MAKE) -C argocd-commenter-e2e-test setup
-
 test1:
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C argocd-commenter-e2e-test test1
+	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app1
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 test2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C argocd-commenter-e2e-test test2
+	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app2
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed Healthy
 
 logs-controller:

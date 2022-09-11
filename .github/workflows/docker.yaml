@@ -71,10 +71,10 @@ jobs:
           github_app_private_key: ${{ secrets.E2E_SETUP_GITHUB_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v3
         with:
-          repository: int128/argocd-commenter-e2e-test
-          path: e2e_test/argocd-commenter-e2e-test
           token: ${{ steps.octoken.outputs.token }}
-      - run: make -C e2e_test setup-fixture
+          repository: int128/argocd-commenter-e2e-test
+          path: e2e_test/argocd-commenter-e2e-test-repository
+      - run: make -C e2e_test setup-fixture-branch
 
       # deploy Argo CD
       - run: make -C e2e_test cluster
@@ -101,29 +101,30 @@ jobs:
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
 
-      - run: make -C e2e_test post-deploy
+      - run: make -C e2e_test wait-for-ready
 
       # test
       - uses: int128/deployment-action@v1
         id: deployment-app1
         with:
           environment-suffix: /app1
-      - uses: int128/deployment-action@v1
-        id: deployment-app2
-        with:
-          environment-suffix: /app2
-
       - run: make -C e2e_test test1
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+
+      - uses: int128/deployment-action@v1
+        id: deployment-app2
+        with:
+          environment-suffix: /app2
       - run: make -C e2e_test test2
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
+      # show logs
       - run: make -C e2e_test logs-argocd
         if: always()
       - run: make -C e2e_test logs-controller
