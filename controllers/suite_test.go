@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"go/build"
 	"path/filepath"
 	"testing"
 
@@ -58,10 +59,18 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	ctx, cancel = context.WithCancel(context.TODO())
 
+	By("find the CRD of Argo CD Application resource in Go module")
+	argocdCRDs, err := filepath.Glob(filepath.Join(
+		build.Default.GOPATH, "pkg", "mod",
+		"github.com", "argoproj", "argo-cd", "v2@*", "manifests", "crds", "application-crd.yaml",
+	))
+	Expect(err).NotTo(HaveOccurred())
+	Expect(argocdCRDs).NotTo(BeEmpty())
+
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: false,
+		CRDDirectoryPaths:     argocdCRDs,
+		ErrorIfCRDPathMissing: true,
 	}
 
 	cfg, err := testEnv.Start()
