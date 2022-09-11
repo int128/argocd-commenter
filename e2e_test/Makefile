@@ -41,12 +41,12 @@ undeploy:
 	kubectl delete namespace/argocd namespace/argocd-commenter-system
 
 # fixture
-test1:
+deploy-app1:
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app1
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
-test2:
+deploy-app2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app2
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed Healthy

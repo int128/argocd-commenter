@@ -108,7 +108,7 @@ jobs:
         id: deployment-app1
         with:
           environment-suffix: /app1
-      - run: make -C e2e_test test1
+      - run: make -C e2e_test deploy-app1
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
@@ -118,7 +118,7 @@ jobs:
         id: deployment-app2
         with:
           environment-suffix: /app2
-      - run: make -C e2e_test test2
+      - run: make -C e2e_test deploy-app2
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
