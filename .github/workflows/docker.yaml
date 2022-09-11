@@ -114,6 +114,8 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
+      - run: make -C e2e_test restart-app1
+
       - uses: int128/deployment-action@v1
         id: deployment-app2
         with:
