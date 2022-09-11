@@ -46,6 +46,11 @@ deploy-app1:
 	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app1
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
+restart-app1:
+	kubectl -n app1 delete pod -l app=echoserver --force
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Progressing
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
+
 deploy-app2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app2

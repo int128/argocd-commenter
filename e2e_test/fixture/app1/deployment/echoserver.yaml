@@ -17,3 +17,8 @@ spec:
           name: echoserver
           ports:
             - containerPort: 8080
+          readinessProbe:
+            initialDelaySeconds: 3
+            httpGet:
+              path: /
+              port: 8080
