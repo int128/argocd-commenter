@@ -4,7 +4,7 @@ set -eu
 
 application_name="$1"
 want_branch="$2"
-want_revision="$(git -C argocd-commenter-e2e-test rev-parse "$want_branch")"
+want_revision="$(git -C argocd-commenter-e2e-test-repository rev-parse "$want_branch")"
 want_sync_status="$3"
 want_phase="$4"
 want_health_status="$5"
