@@ -3,14 +3,15 @@ module github.com/int128/argocd-commenter
 go 1.16
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.3.3
-	github.com/argoproj/gitops-engine v0.6.2
-	github.com/go-logr/logr v1.2.2
+	github.com/argoproj/argo-cd/v2 v2.4.11
+	github.com/argoproj/gitops-engine v0.7.3
+	github.com/go-logr/logr v1.2.3
+	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v39 v39.2.0
 	github.com/int128/oauth2-github-app v0.1.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.1
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	github.com/onsi/gomega v1.20.2
+	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
@@ -21,10 +22,10 @@ replace (
 	// https://github.com/argoproj/argo-cd/blob/v2.3.3/go.mod
 	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
 
-	github.com/golang/protobuf => github.com/golang/protobuf v1.4.2
-	github.com/gorilla/websocket => github.com/gorilla/websocket v1.4.2
+	github.com/golang/protobuf => github.com/golang/protobuf v1.5.2
+	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.0
 	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/improbable-eng/grpc-web => github.com/improbable-eng/grpc-web v0.0.0-20181111100011-16092bd1d58a
+	github.com/improbable-eng/grpc-web => github.com/improbable-eng/grpc-web v0.15.0
 
 	google.golang.org/grpc => google.golang.org/grpc v1.15.0
 

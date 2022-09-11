@@ -57,9 +57,19 @@ func filterPullRequestsRelatedToEvent(pulls []github.PullRequest, e Event) []int
 }
 
 func isPullRequestRelatedToEvent(pull github.PullRequest, e Event) bool {
+	// support manifest path annotation
+	// see https://argo-cd.readthedocs.io/en/stable/operator-manual/high_availability/#webhook-and-manifest-paths-annotation
+	// https://github.com/int128/argocd-commenter/pull/656
+	manifestGeneratePaths := e.GetManifestGeneratePaths()
+
 	for _, file := range pull.Files {
 		if strings.HasPrefix(file, e.Application.Spec.Source.Path) {
 			return true
+		}
+		for _, path := range manifestGeneratePaths {
+			if strings.HasPrefix(file, path) {
+				return true
+			}
 		}
 	}
 	return false
