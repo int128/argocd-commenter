@@ -46,20 +46,22 @@ type ApplicationHealthStatusReconciler struct {
 func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	var application argocdv1alpha1.Application
-	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
+	var app argocdv1alpha1.Application
+	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	lastDeployedRevision := getLastDeployedRevision(application)
-	err := patchAnnotation(ctx, r.Client, application, func(annotations map[string]string) {
-		annotations[annotationNameOfLastRevisionOfHealthStatus] = lastDeployedRevision
-	})
-	if err != nil {
-		logger.Error(err, "unable to patch annotations to the Application")
+	appPatch := client.MergeFrom(app.DeepCopy())
+	if app.Annotations == nil {
+		app.Annotations = make(map[string]string)
+	}
+	app.Annotations[annotationNameOfLastRevisionOfHealthStatus] = getLastDeployedRevision(app)
+	if err := r.Client.Patch(ctx, &app, appPatch); err != nil {
+		logger.Error(err, "unable to patch the Application")
 		return ctrl.Result{}, err
 	}
+	logger.Info("patched the Application", "annotations", app.Annotations)
 
 	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -68,7 +70,7 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 
 	e := notification.Event{
 		HealthIsChanged: true,
-		Application:     application,
+		Application:     app,
 		ArgoCDURL:       argoCDURL,
 	}
 	if err := r.Notification.Comment(ctx, e); err != nil {
