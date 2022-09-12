@@ -13,6 +13,7 @@ on:
       - controllers/**
       - pkg/**
       - e2e_test/**
+      - '!**/*_test.go'
     tags:
       - v*
   pull_request:
@@ -27,6 +28,7 @@ on:
       - controllers/**
       - pkg/**
       - e2e_test/**
+      - '!**/*_test.go'
 
 jobs:
   build:
@@ -57,7 +59,7 @@ jobs:
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
 
-  test:
+  e2e-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
