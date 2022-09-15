@@ -22,6 +22,7 @@ import (
 	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+
 	"github.com/int128/argocd-commenter/pkg/notification"
 
 	"github.com/int128/argocd-commenter/pkg/github"
@@ -111,12 +112,20 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
 		os.Exit(1)
 	}
-	if err = (&controllers.ApplicationHealthStatusReconciler{
+	if err = (&controllers.ApplicationHealthDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthStatus")
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthDeployment")
+		os.Exit(1)
+	}
+	if err = (&controllers.ApplicationHealthCommentReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Notification: notificationClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthComment")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

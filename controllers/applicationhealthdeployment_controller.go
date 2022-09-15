@@ -18,11 +18,11 @@ package controllers
 
 import (
 	"context"
-
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,11 +30,11 @@ import (
 )
 
 const (
-	annotationNameOfLastRevisionOfHealthStatus = "argocd-commenter.int128.github.io/last-revision-healthy"
+	annotationNameOfLastDeploymentOfHealthy = "argocd-commenter.int128.github.io/last-deployment-healthy"
 )
 
-// ApplicationHealthStatusReconciler reconciles a ApplicationHealthStatus object
-type ApplicationHealthStatusReconciler struct {
+// ApplicationHealthDeploymentReconciler reconciles a ApplicationHealthDeployment object
+type ApplicationHealthDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
@@ -43,7 +43,7 @@ type ApplicationHealthStatusReconciler struct {
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
-func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
@@ -52,16 +52,18 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	appPatch := client.MergeFrom(app.DeepCopy())
-	if app.Annotations == nil {
-		app.Annotations = make(map[string]string)
+	if app.Status.Health.Status == health.HealthStatusHealthy {
+		patch := client.MergeFrom(app.DeepCopy())
+		if app.Annotations == nil {
+			app.Annotations = make(map[string]string)
+		}
+		app.Annotations[annotationNameOfLastDeploymentOfHealthy] = notification.GetDeploymentURL(app)
+		if err := r.Client.Patch(ctx, &app, patch); err != nil {
+			logger.Error(err, "unable to patch the Application")
+			return ctrl.Result{}, err
+		}
+		logger.Info("patched the Application", "annotations", app.Annotations)
 	}
-	app.Annotations[annotationNameOfLastRevisionOfHealthStatus] = getLastDeployedRevision(app)
-	if err := r.Client.Patch(ctx, &app, appPatch); err != nil {
-		logger.Error(err, "unable to patch the Application")
-		return ctrl.Result{}, err
-	}
-	logger.Info("patched the Application", "annotations", app.Annotations)
 
 	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -73,9 +75,6 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 		Application:     app,
 		ArgoCDURL:       argoCDURL,
 	}
-	if err := r.Notification.Comment(ctx, e); err != nil {
-		logger.Error(err, "unable to send a comment")
-	}
 	if err := r.Notification.Deployment(ctx, e); err != nil {
 		logger.Error(err, "unable to send a deployment status")
 	}
@@ -83,31 +82,30 @@ func (r *ApplicationHealthStatusReconciler) Reconcile(ctx context.Context, req c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationHealthStatusReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationHealthDeploymentComparer{})).
 		Complete(r)
 }
 
-type applicationHealthComparer struct{}
+type applicationHealthDeploymentComparer struct{}
 
-func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+func (applicationHealthDeploymentComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
 		return false
 	}
 
-	lastDeployedRevision := getLastDeployedRevision(applicationNew)
-	if lastDeployedRevision == "" {
+	deploymentURL := notification.GetDeploymentURL(applicationNew)
+	if deploymentURL == "" {
 		return false
 	}
 
 	// notify only the following statuses
 	switch applicationNew.Status.Health.Status {
 	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		revision, ok := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthStatus]
-		// first time or new revision
-		if !ok || revision != lastDeployedRevision {
+		lastDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
+		if deploymentURL != lastDeploymentURL {
 			return true
 		}
 	}
