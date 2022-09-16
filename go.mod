@@ -3,7 +3,7 @@ module github.com/int128/argocd-commenter
 go 1.16
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.4.11
+	github.com/argoproj/argo-cd/v2 v2.4.12
 	github.com/argoproj/gitops-engine v0.7.3
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
