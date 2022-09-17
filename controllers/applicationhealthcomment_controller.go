@@ -106,10 +106,7 @@ func (applicationHealthCommentComparer) Compare(applicationOld, applicationNew a
 	if currentDeployedRevision == "" {
 		return false
 	}
-	lastNotifiedRevision := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthy]
-	if currentDeployedRevision == lastNotifiedRevision {
-		return false
-	}
 
-	return true
+	lastNotifiedRevision := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthy]
+	return currentDeployedRevision != lastNotifiedRevision
 }

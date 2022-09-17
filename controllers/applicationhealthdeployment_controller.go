@@ -106,10 +106,7 @@ func (applicationHealthDeploymentComparer) Compare(applicationOld, applicationNe
 	if currentDeploymentURL == "" {
 		return false
 	}
-	lastNotifiedDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
-	if currentDeploymentURL == lastNotifiedDeploymentURL {
-		return false
-	}
 
-	return true
+	lastNotifiedDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
+	return currentDeploymentURL != lastNotifiedDeploymentURL
 }
