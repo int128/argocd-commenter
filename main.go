@@ -21,12 +21,6 @@ import (
 	"flag"
 	"os"
 
-	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-
-	"github.com/int128/argocd-commenter/pkg/notification"
-
-	"github.com/int128/argocd-commenter/pkg/github"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -38,7 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/controllers"
+	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/pkg/notification"
 	//+kubebuilder:scaffold:imports
 )
 
