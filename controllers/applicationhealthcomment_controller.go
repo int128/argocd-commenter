@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/controllers/predicates"
@@ -57,7 +58,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		if app.Annotations == nil {
 			app.Annotations = make(map[string]string)
 		}
-		app.Annotations[annotationNameOfLastRevisionOfHealthy] = getLastDeployedRevision(app)
+		app.Annotations[annotationNameOfLastRevisionOfHealthy] = getCurrentDeployedRevision(app)
 		if err := r.Client.Patch(ctx, &app, patch); err != nil {
 			logger.Error(err, "unable to patch the Application")
 			return ctrl.Result{}, err
@@ -96,18 +97,19 @@ func (applicationHealthCommentComparer) Compare(applicationOld, applicationNew a
 		return false
 	}
 
-	lastDeployedRevision := getLastDeployedRevision(applicationNew)
-	if lastDeployedRevision == "" {
+	currentStatus := applicationNew.Status.Health.Status
+	if currentStatus != health.HealthStatusHealthy && currentStatus != health.HealthStatusDegraded {
 		return false
 	}
 
-	// notify only the following statuses
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		lastHealthyRevision := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthy]
-		if lastHealthyRevision != lastDeployedRevision {
-			return true
-		}
+	currentDeployedRevision := getCurrentDeployedRevision(applicationNew)
+	if currentDeployedRevision == "" {
+		return false
 	}
-	return false
+	lastNotifiedRevision := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthy]
+	if currentDeployedRevision == lastNotifiedRevision {
+		return false
+	}
+
+	return true
 }

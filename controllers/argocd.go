@@ -20,7 +20,7 @@ func findArgoCDURL(ctx context.Context, c client.Client, namespace string) (stri
 	return cm.Data["url"], nil
 }
 
-func getLastDeployedRevision(a argocdv1alpha1.Application) string {
+func getCurrentDeployedRevision(a argocdv1alpha1.Application) string {
 	if a.Status.OperationState == nil {
 		return ""
 	}

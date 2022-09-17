@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/controllers/predicates"
@@ -96,18 +97,19 @@ func (applicationHealthDeploymentComparer) Compare(applicationOld, applicationNe
 		return false
 	}
 
-	deploymentURL := notification.GetDeploymentURL(applicationNew)
-	if deploymentURL == "" {
+	currentStatus := applicationNew.Status.Health.Status
+	if currentStatus != health.HealthStatusHealthy && currentStatus != health.HealthStatusDegraded {
 		return false
 	}
 
-	// notify only the following statuses
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		lastDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
-		if deploymentURL != lastDeploymentURL {
-			return true
-		}
+	currentDeploymentURL := notification.GetDeploymentURL(applicationNew)
+	if currentDeploymentURL == "" {
+		return false
 	}
-	return false
+	lastNotifiedDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
+	if currentDeploymentURL == lastNotifiedDeploymentURL {
+		return false
+	}
+
+	return true
 }
