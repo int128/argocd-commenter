@@ -4,16 +4,21 @@ import (
 	"context"
 	"fmt"
 
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
+func GetDeploymentURL(a argocdv1alpha1.Application) string {
+	return a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
+}
+
 func (c client) Deployment(ctx context.Context, e Event) error {
 	logger := logr.FromContextOrDiscard(ctx)
 
-	deploymentURL := e.Application.Annotations["argocd-commenter.int128.github.io/deployment-url"]
+	deploymentURL := GetDeploymentURL(e.Application)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
