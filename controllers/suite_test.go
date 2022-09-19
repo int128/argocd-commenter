@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/int128/argocd-commenter/pkg/notification"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -40,10 +39,11 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
-	cancel    context.CancelFunc
+	k8sClient        client.Client
+	testEnv          *envtest.Environment
+	ctx              context.Context
+	cancel           context.CancelFunc
+	notificationMock NotificationMock
 )
 
 func TestAPIs(t *testing.T) {
@@ -93,21 +93,21 @@ var _ = BeforeSuite(func() {
 	err = (&ApplicationPhaseReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
-		Notification: notificationMock{},
+		Notification: &notificationMock,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ApplicationHealthCommentReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
-		Notification: notificationMock{},
+		Notification: &notificationMock,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ApplicationHealthDeploymentReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
-		Notification: notificationMock{},
+		Notification: &notificationMock,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -124,13 +124,3 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
-
-type notificationMock struct{}
-
-func (m notificationMock) Comment(context.Context, notification.Event) error {
-	return nil
-}
-
-func (m notificationMock) Deployment(context.Context, notification.Event) error {
-	return nil
-}
