@@ -88,4 +88,43 @@ var _ = Describe("Application health comment controller", func() {
 			}, 100*time.Millisecond).Should(Equal(1))
 		})
 	})
+
+	Context("When an application is degraded and then healthy", func() {
+		It("Should notify a comment for degraded and healthy", func() {
+			By("By updating the health status to progressing")
+			patch := client.MergeFrom(app.DeepCopy())
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				Health: argocdv1alpha1.HealthStatus{
+					Status: health.HealthStatusProgressing,
+				},
+				OperationState: &argocdv1alpha1.OperationState{
+					StartedAt: metav1.Now(),
+					Operation: argocdv1alpha1.Operation{
+						Sync: &argocdv1alpha1.SyncOperation{
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+
+			By("By updating the health status to degraded")
+			patch = client.MergeFrom(app.DeepCopy())
+			app.Status.Health.Status = health.HealthStatusDegraded
+			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+
+			Eventually(func() int {
+				return notificationMock.Comments.CountBy(appKey)
+			}, timeout, interval).Should(Equal(1))
+
+			By("By updating the health status to healthy")
+			patch = client.MergeFrom(app.DeepCopy())
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+
+			Eventually(func() int {
+				return notificationMock.Comments.CountBy(appKey)
+			}, timeout, interval).Should(Equal(2))
+		})
+	})
 })
