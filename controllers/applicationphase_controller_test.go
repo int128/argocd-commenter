@@ -19,6 +19,7 @@ var _ = Describe("Application phase controller", func() {
 	var appKey types.NamespacedName
 
 	BeforeEach(func() {
+		By("By creating an application")
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
@@ -72,6 +73,44 @@ var _ = Describe("Application phase controller", func() {
 			By("By updating the operation state to succeeded")
 			patch = client.MergeFrom(app.DeepCopy())
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
+			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+
+			Eventually(func() int {
+				return notificationMock.Comments.CountBy(appKey)
+			}, timeout, interval).Should(Equal(2))
+			Eventually(func() int {
+				return notificationMock.DeploymentStatuses.CountBy(appKey)
+			}, timeout, interval).Should(Equal(2))
+		})
+	})
+
+	Context("When an application sync operation is failed", func() {
+		It("Should notify a comment and deployment status", func() {
+			By("By updating the operation state to running")
+			patch := client.MergeFrom(app.DeepCopy())
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				OperationState: &argocdv1alpha1.OperationState{
+					Phase:     synccommon.OperationRunning,
+					StartedAt: metav1.Now(),
+					Operation: argocdv1alpha1.Operation{
+						Sync: &argocdv1alpha1.SyncOperation{
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+
+			Eventually(func() int {
+				return notificationMock.Comments.CountBy(appKey)
+			}, timeout, interval).Should(Equal(1))
+			Eventually(func() int {
+				return notificationMock.DeploymentStatuses.CountBy(appKey)
+			}, timeout, interval).Should(Equal(1))
+
+			By("By updating the operation state to failed")
+			patch = client.MergeFrom(app.DeepCopy())
+			app.Status.OperationState.Phase = synccommon.OperationFailed
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
