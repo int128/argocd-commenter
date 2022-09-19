@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -13,16 +12,13 @@ import (
 )
 
 var _ = Describe("Application phase controller", func() {
-	const timeout = time.Second * 10
+	const timeout = time.Second * 3
 	const interval = time.Millisecond * 250
+	appKey := types.NamespacedName{Namespace: "default", Name: "app1"}
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment and deployment status", func() {
-			ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-
 			By("By creating an application")
-			appKey := types.NamespacedName{Namespace: "default", Name: "app1"}
 			Expect(k8sClient.Create(ctx, &argocdv1alpha1.Application{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "argoproj.io/v1alpha1",

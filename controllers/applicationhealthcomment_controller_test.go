@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -15,14 +14,11 @@ import (
 var _ = Describe("Application health comment controller", func() {
 	const timeout = time.Second * 3
 	const interval = time.Millisecond * 250
+	appKey := types.NamespacedName{Namespace: "default", Name: "app2"}
 
 	Context("When an application is healthy", func() {
 		It("Should notify a comment", func() {
-			ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-
 			By("By creating an application")
-			appKey := types.NamespacedName{Namespace: "default", Name: "app2"}
 			Expect(k8sClient.Create(ctx, &argocdv1alpha1.Application{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "argoproj.io/v1alpha1",
@@ -77,7 +73,9 @@ var _ = Describe("Application health comment controller", func() {
 			Eventually(func() int {
 				return notificationMock.Comments.CountBy(appKey)
 			}, timeout, interval).Should(Equal(1))
+		})
 
+		It("Should not notify a comment after healthy", func() {
 			By("By updating the health status to progressing")
 			Eventually(func(g Gomega) {
 				var app argocdv1alpha1.Application
@@ -94,7 +92,9 @@ var _ = Describe("Application health comment controller", func() {
 				g.Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			}, timeout, interval).Should(Succeed())
 
-			Expect(notificationMock.Comments.CountBy(appKey)).Should(Equal(1))
+			Consistently(func() int {
+				return notificationMock.Comments.CountBy(appKey)
+			}, 1*time.Second, interval).Should(Equal(1))
 		})
 	})
 })
