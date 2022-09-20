@@ -87,7 +87,7 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-      - uses: int128/wait-for-docker-image-action@v0
+      - uses: int128/wait-for-docker-image-action@v1
         with:
           tags: ${{ steps.metadata.outputs.tags }}
 
