@@ -35,6 +35,7 @@ wait-for-ready:
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
 undeploy:
@@ -55,6 +56,11 @@ deploy-app2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app2
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main OutOfSync Failed Healthy
+
+deploy-app3:
+	kubectl -n argocd annotate application app3 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
+	$(MAKE) -C argocd-commenter-e2e-test-repository update-manifest-app3
+	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
