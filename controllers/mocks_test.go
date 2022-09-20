@@ -35,6 +35,7 @@ func (r *EventRecorder) call(event notification.Event) int {
 type NotificationMock struct {
 	Comments           EventRecorder
 	DeploymentStatuses EventRecorder
+	CheckRuns          EventRecorder
 }
 
 func (n *NotificationMock) Comment(ctx context.Context, event notification.Event) error {
@@ -50,3 +51,12 @@ func (n *NotificationMock) Deployment(ctx context.Context, event notification.Ev
 	logger.Info("called Deployment", "nth", nth)
 	return nil
 }
+
+func (n *NotificationMock) CheckRun(ctx context.Context, event notification.Event) error {
+	logger := log.FromContext(ctx)
+	nth := n.CheckRuns.call(event)
+	logger.Info("called CheckRun", "nth", nth)
+	return nil
+}
+
+var _ notification.Client = &NotificationMock{}

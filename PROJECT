@@ -19,4 +19,9 @@ resources:
   group: argocdcommenter
   kind: ApplicationHealthComment
   version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationHealthCheckRun
+  version: v1
 version: "3"
