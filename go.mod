@@ -27,7 +27,7 @@ replace (
 	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/improbable-eng/grpc-web => github.com/improbable-eng/grpc-web v0.15.0
 
-	google.golang.org/grpc => google.golang.org/grpc v1.15.0
+	google.golang.org/grpc => google.golang.org/grpc v1.49.0
 
 	k8s.io/api => k8s.io/api v0.23.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.1
