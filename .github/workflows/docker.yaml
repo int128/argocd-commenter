@@ -87,12 +87,9 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-          # set outputs.tags to single tag
-          flavor: latest=false
-      - if: github.event_name == 'pull_request'
-        run: bash e2e_test/wait-for-image-available.sh
-        env:
-          CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
+      - uses: int128/wait-for-docker-image-action@v0
+        with:
+          tags: ${{ steps.metadata.outputs.tags }}
 
       # deploy controller
       - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
