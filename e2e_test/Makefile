@@ -25,17 +25,15 @@ delete-cluster:
 deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
 	kustomize build applications | sed -e "s|FIXTURE_BRANCH|$(FIXTURE_BRANCH)|g" | kubectl apply -f -
+	kubectl -n argocd rollout status statefulsets argocd-application-controller
+	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
+	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 
 deploy-controller: cluster
 	cd controller && kustomize edit set image controller="$(CONTROLLER_IMAGE)"
 	kustomize build controller | kubectl apply -f -
 	bash controller/create-controller-manager-secret.sh
-
-wait-for-ready:
-	kubectl -n argocd rollout status statefulsets argocd-application-controller
-	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
-	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
-	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
 undeploy:

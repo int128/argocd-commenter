@@ -65,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # set up fixture
+      # set up the test environment
       - uses: cybozu/octoken-action@v1
         id: octoken
         with:
@@ -78,11 +78,9 @@ jobs:
           path: e2e_test/argocd-commenter-e2e-test-repository
       - run: make -C e2e_test setup-fixture-branch
 
-      # deploy Argo CD
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
-      # wait for controller image
       - uses: docker/metadata-action@v4
         id: metadata
         with:
@@ -91,16 +89,12 @@ jobs:
         with:
           tags: ${{ steps.metadata.outputs.tags }}
 
-      # deploy controller
-      - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
       - run: make -C e2e_test deploy-controller
         env:
           CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
           GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
-          GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
-
-      - run: make -C e2e_test wait-for-ready
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}
 
       # test
       - uses: int128/deployment-action@v1
