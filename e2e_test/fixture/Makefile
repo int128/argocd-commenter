@@ -29,3 +29,14 @@ update-manifest-app2:
 	gh pr merge --squash
 	git checkout "$(FIXTURE_BRANCH)/main"
 	git pull origin "$(FIXTURE_BRANCH)/main" --ff-only
+
+update-manifest-app3:
+	git checkout "$(FIXTURE_BRANCH)/main"
+	git checkout -b "$(FIXTURE_BRANCH)/update-manifest-app3"
+	sed -i -e 's/app: echoserver/app: echoserver-test3/g' app3/cronjob/echoserver.yaml
+	git commit -a -m 'e2e-test: update-manifest-app3'
+	git push origin -f "$(FIXTURE_BRANCH)/update-manifest-app3"
+	gh pr create --base "$(FIXTURE_BRANCH)/main" --fill --body "$(PULL_REQUEST_BODY)" --label e2e-test
+	gh pr merge --squash
+	git checkout "$(FIXTURE_BRANCH)/main"
+	git pull origin "$(FIXTURE_BRANCH)/main" --ff-only
