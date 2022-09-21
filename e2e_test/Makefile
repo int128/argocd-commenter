@@ -25,7 +25,6 @@ delete-cluster:
 deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
 	kustomize build applications | sed -e "s|FIXTURE_BASE_BRANCH|$(FIXTURE_BASE_BRANCH)|g" | kubectl apply -f -
-	kubectl -n argocd rollout status statefulsets argocd-application-controller
 
 wait-for-sync:
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
