@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 type options struct {
@@ -41,10 +41,9 @@ func run(ctx context.Context, o options) error {
 	ctx, cancel := context.WithTimeout(ctx, o.timeout)
 	defer cancel()
 
-	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(), nil).ClientConfig()
+	cfg, err := config.GetConfig()
 	if err != nil {
-		return fmt.Errorf("could not load the config: %w", err)
+		return fmt.Errorf("could not get Kubernetes config: %w", err)
 	}
 	if err := argocdv1alpha1.AddToScheme(scheme.Scheme); err != nil {
 		return fmt.Errorf("could not add to scheme: %w", err)
