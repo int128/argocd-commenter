@@ -64,8 +64,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
+      - uses: int128/go-actions/setup@v1
+        with:
+          go-version: 1.19.1
 
-      # set up fixture
+      # set up the test environment
       - uses: cybozu/octoken-action@v1
         id: octoken
         with:
@@ -78,32 +81,25 @@ jobs:
           path: e2e_test/argocd-commenter-e2e-test-repository
       - run: make -C e2e_test setup-fixture-branch
 
-      # deploy Argo CD
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
-      # wait for controller image
       - uses: docker/metadata-action@v4
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-          # set outputs.tags to single tag
-          flavor: latest=false
-      - if: github.event_name == 'pull_request'
-        run: bash e2e_test/wait-for-image-available.sh
-        env:
-          CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
+      - uses: int128/wait-for-docker-image-action@v1
+        with:
+          tags: ${{ steps.metadata.outputs.tags }}
 
-      # deploy controller
-      - run: echo "${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}" > /tmp/E2E_GITHUB_APP_PRIVATE_KEY
       - run: make -C e2e_test deploy-controller
         env:
           CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
           GITHUB_APP_ID: ${{ secrets.E2E_GITHUB_APP_ID }}
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
-          GITHUB_APP_PRIVATE_KEY_PATH: /tmp/E2E_GITHUB_APP_PRIVATE_KEY
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}
 
-      - run: make -C e2e_test wait-for-ready
+      - run: make -C e2e_test wait-for-sync
 
       # test
       - uses: int128/deployment-action@v1
@@ -128,6 +124,16 @@ jobs:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           COMMIT_URL: ${{ github.api_url }}/repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+
+      - uses: int128/deployment-action@v1
+        id: deployment-app3
+        with:
+          environment-suffix: /app3
+      - run: make -C e2e_test deploy-app3
+        env:
+          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
+          DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
       # show logs

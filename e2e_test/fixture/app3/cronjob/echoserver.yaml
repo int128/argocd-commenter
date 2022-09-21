@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: echoserver
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: echoserver
+        spec:
+          restartPolicy: Never
+          containers:
+            # https://hub.docker.com/_/busybox/
+            - image: busybox:1.28
+              name: echoserver
+              command:
+                - /bin/sh
+                - -c
+                - date; echo Hello from the Kubernetes cluster

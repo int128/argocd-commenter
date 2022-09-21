@@ -1,17 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app1
+  name: app3
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/int128/argocd-commenter-e2e-test
     targetRevision: FIXTURE_BASE_BRANCH
-    path: app1
+    path: app3
   destination:
     server: https://kubernetes.default.svc
-    namespace: app1
+    namespace: test3-fixture
   syncPolicy:
     automated:
       prune: true
+    retry:
+      limit: 1  # reduce test time

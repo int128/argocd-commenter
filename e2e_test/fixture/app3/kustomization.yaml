@@ -1,0 +1,4 @@
+namespace: app3
+resources:
+  - namespace/app3.yaml
+  - cronjob/echoserver.yaml
