@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/int128/argocd-commenter-e2e-test
-    targetRevision: FIXTURE_BRANCH/main
+    targetRevision: FIXTURE_BASE_BRANCH
     path: app3
   destination:
     server: https://kubernetes.default.svc
