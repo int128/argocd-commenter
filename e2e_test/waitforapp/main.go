@@ -17,18 +17,17 @@ import (
 
 type options struct {
 	appNames []string
-	revision string
-	sync     string
-	health   string
 	timeout  time.Duration
+	expected ApplicationStatus
 }
 
 func main() {
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	var o options
-	flag.StringVar(&o.revision, "revision", "", "Expected revision")
-	flag.StringVar(&o.sync, "sync", "Synced", "Expected sync status")
-	flag.StringVar(&o.health, "health", "Healthy", "Expected health status")
+	flag.StringVar(&o.expected.Revision, "revision", "", "Expected revision")
+	flag.StringVar(&o.expected.Sync, "sync", "Synced", "Expected sync status")
+	flag.StringVar(&o.expected.Operation, "operation", "Succeeded", "Expected operation status")
+	flag.StringVar(&o.expected.Health, "health", "Healthy", "Expected health status")
 	flag.DurationVar(&o.timeout, "timeout", 1*time.Minute, "Timeout")
 	flag.Parse()
 	o.appNames = flag.Args()
@@ -56,11 +55,11 @@ func run(ctx context.Context, o options) error {
 	log.Printf("Connected to Kubernetes cluster at %s", cfg.Host)
 
 	for {
-		ready, err := checkIfAppsReady(ctx, k8sClient, o)
+		ok, err := checkApplicationStatus(ctx, k8sClient, o)
 		if err != nil {
 			return fmt.Errorf("check: %w", err)
 		}
-		if ready {
+		if ok {
 			return nil
 		}
 		log.Printf("Retry after 5s")
@@ -68,43 +67,43 @@ func run(ctx context.Context, o options) error {
 	}
 }
 
-func checkIfAppsReady(ctx context.Context, k8sClient client.Client, o options) (bool, error) {
-	expectedStatus := &ApplicationStatus{
-		Revision: o.revision,
-		Sync:     o.sync,
-		Health:   o.health,
-	}
-	ready := true
+func checkApplicationStatus(ctx context.Context, k8sClient client.Client, o options) (bool, error) {
+	ok := true
 	for _, appName := range o.appNames {
 		key := types.NamespacedName{Namespace: "argocd", Name: appName}
 		actualStatus, err := getApplicationStatus(ctx, k8sClient, key)
 		if err != nil {
 			return false, fmt.Errorf("could not get status of application %s: %w", key, err)
 		}
-		if diff := cmp.Diff(expectedStatus, actualStatus); diff != "" {
-			ready = false
-			log.Printf("Application %s is not ready:\n%s", key, diff)
+		if diff := cmp.Diff(o.expected, actualStatus); diff != "" {
+			ok = false
+			log.Printf("Application %s status is not expected:\n%s", key, diff)
 			continue
 		}
-		log.Printf("Application %s is ready", key)
+		log.Printf("Application %s status is expected", key)
 	}
-	return ready, nil
+	return ok, nil
 }
 
 type ApplicationStatus struct {
-	Revision string
-	Sync     string
-	Health   string
+	Revision  string
+	Sync      string
+	Operation string
+	Health    string
 }
 
-func getApplicationStatus(ctx context.Context, k8sClient client.Client, key types.NamespacedName) (*ApplicationStatus, error) {
+func getApplicationStatus(ctx context.Context, k8sClient client.Client, key types.NamespacedName) (ApplicationStatus, error) {
 	var app argocdv1alpha1.Application
 	if err := k8sClient.Get(ctx, key, &app); err != nil {
-		return nil, fmt.Errorf("get: %w", err)
+		return ApplicationStatus{}, fmt.Errorf("get: %w", err)
 	}
-	return &ApplicationStatus{
+	s := ApplicationStatus{
 		Revision: app.Status.Sync.Revision,
 		Sync:     string(app.Status.Sync.Status),
 		Health:   string(app.Status.Health.Status),
-	}, nil
+	}
+	if app.Status.OperationState != nil {
+		s.Operation = string(app.Status.OperationState.Phase)
+	}
+	return s, nil
 }
