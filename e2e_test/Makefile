@@ -26,17 +26,14 @@ deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
 	kustomize build applications | sed -e "s|FIXTURE_BASE_BRANCH|$(FIXTURE_BASE_BRANCH)|g" | kubectl apply -f -
 
-wait-for-sync:
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
-
 deploy-controller: cluster
 	cd controller && kustomize edit set image controller="$(CONTROLLER_IMAGE)"
 	kustomize build controller | kubectl apply -f -
 	bash controller/create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
-undeploy:
-	kubectl delete namespace/argocd namespace/argocd-commenter-system
+wait-for-sync:
+	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
 
 # fixture
 deploy-app1:
