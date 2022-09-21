@@ -13,7 +13,6 @@ setup-fixture-branch:
 	rsync -av fixture/ $(FIXTURE_DIR)/
 	$(MAKE) -C $(FIXTURE_DIR) push-base-branch
 
-# cluster
 cluster: $(KUBECONFIG)
 $(KUBECONFIG):
 	kind create cluster --name $(CLUSTER_NAME)
@@ -35,25 +34,8 @@ deploy-controller: cluster
 wait-for-sync:
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
 
-# fixture
-deploy-app1:
-	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app1
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
-
-restart-app1:
-	kubectl -n app1 delete pod -l app=echoserver --force
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
-
-deploy-app2:
-	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app2
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" -sync OutOfSync -operation Failed app2
-
-deploy-app3:
-	kubectl -n argocd annotate application app3 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
-	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app3
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
+test:
+	FIXTURE_DIR=$(FIXTURE_DIR) FIXTURE_BASE_BRANCH=$(FIXTURE_BASE_BRANCH) FIXTURE_BRANCH_PREFIX=$(FIXTURE_BRANCH_PREFIX) go test -v .
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1

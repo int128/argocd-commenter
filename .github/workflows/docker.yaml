@@ -106,32 +106,20 @@ jobs:
         id: deployment-app1
         with:
           environment-suffix: /app1
-      - run: make -C e2e_test deploy-app1
-        env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
-          DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
-
-      - run: make -C e2e_test restart-app1
-
       - uses: int128/deployment-action@v1
         id: deployment-app2
         with:
           environment-suffix: /app2
-      - run: make -C e2e_test deploy-app2
-        env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
-          DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
-
       - uses: int128/deployment-action@v1
         id: deployment-app3
         with:
           environment-suffix: /app3
-      - run: make -C e2e_test deploy-app3
+      - run: make -C e2e_test test
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
-          DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
+          DEPLOYMENT_URL_APP1: ${{ steps.deployment-app1.outputs.url }}
+          DEPLOYMENT_URL_APP2: ${{ steps.deployment-app2.outputs.url }}
+          DEPLOYMENT_URL_APP3: ${{ steps.deployment-app3.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
       # show logs
