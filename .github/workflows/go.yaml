@@ -4,15 +4,21 @@ on:
   pull_request:
     paths:
       - .github/workflows/go.yaml
-      - '**.go'
       - go.*
+      - main.go
+      - api/**.go
+      - controllers/**.go
+      - pkg/**.go
   push:
     branches:
       - master
     paths:
       - .github/workflows/go.yaml
-      - '**.go'
       - go.*
+      - main.go
+      - api/**.go
+      - controllers/**.go
+      - pkg/**.go
 
 jobs:
   lint:
