@@ -19,16 +19,16 @@ import (
 type options struct {
 	appNames []string
 	timeout  time.Duration
-	expected ApplicationStatus
+	want     ApplicationStatus
 }
 
 func main() {
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	var o options
-	flag.StringVar(&o.expected.Revision, "revision", "", "Expected revision")
-	flag.StringVar(&o.expected.Sync, "sync", "Synced", "Expected sync status")
-	flag.StringVar(&o.expected.Operation, "operation", "Succeeded", "Expected operation status")
-	flag.StringVar(&o.expected.Health, "health", "Healthy", "Expected health status")
+	flag.StringVar(&o.want.Revision, "revision", "", "Want revision")
+	flag.StringVar(&o.want.Sync, "sync", "Synced", "Want sync status")
+	flag.StringVar(&o.want.Operation, "operation", "Succeeded", "Want operation status")
+	flag.StringVar(&o.want.Health, "health", "Healthy", "Want health status")
 	flag.DurationVar(&o.timeout, "timeout", 1*time.Minute, "Timeout")
 	flag.Parse()
 	o.appNames = flag.Args()
@@ -55,9 +55,10 @@ func run(ctx context.Context, o options) error {
 	log.Printf("Connected to Kubernetes cluster at %s", cfg.Host)
 
 	var fns []func() error
-	for _, appName := range o.appNames {
+	for i := range o.appNames {
+		appName := o.appNames[i]
 		fns = append(fns, func() error {
-			if err := watchApplicationStatus(ctx, k8sClient, appName, o.expected); err != nil {
+			if err := watchApplicationStatus(ctx, k8sClient, appName, o.want); err != nil {
 				return fmt.Errorf("watchApplicationStatus: %w", err)
 			}
 			return nil
@@ -66,7 +67,7 @@ func run(ctx context.Context, o options) error {
 	return errors.AggregateGoroutines(fns...)
 }
 
-func watchApplicationStatus(ctx context.Context, c client.WithWatch, appName string, expected ApplicationStatus) error {
+func watchApplicationStatus(ctx context.Context, c client.WithWatch, appName string, want ApplicationStatus) error {
 	var apps argocdv1alpha1.ApplicationList
 	w, err := c.Watch(ctx, &apps, client.InNamespace("argocd"), client.MatchingFields{"metadata.name": appName})
 	if err != nil {
@@ -79,19 +80,19 @@ func watchApplicationStatus(ctx context.Context, c client.WithWatch, appName str
 		select {
 		case event := <-w.ResultChan():
 			if event.Type == watch.Error {
-				return fmt.Errorf("watch error: %+v", event.Object)
+				return fmt.Errorf("watch error: %#v", event.Object)
 			}
 			if event.Type == watch.Added || event.Type == watch.Modified {
 				app, ok := event.Object.(*argocdv1alpha1.Application)
 				if !ok {
 					return fmt.Errorf("got unknown object %#v", event.Object)
 				}
-				actualStatus := newApplicationStatus(app)
-				if diff := cmp.Diff(expected, actualStatus); diff != "" {
-					log.Printf("Application %s status is not expected:\n%s", appName, diff)
+				got := newApplicationStatus(app)
+				if diff := cmp.Diff(want, got); diff != "" {
+					log.Printf("Application %s status mismatch (-want +got):\n%s", appName, diff)
 					continue
 				}
-				log.Printf("Application %s status is expected", appName)
+				log.Printf("Application %s is expected status", appName)
 				return nil
 			}
 		case <-ctx.Done():
