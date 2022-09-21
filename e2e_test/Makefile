@@ -26,37 +26,38 @@ deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
 	kustomize build applications | sed -e "s|FIXTURE_BASE_BRANCH|$(FIXTURE_BASE_BRANCH)|g" | kubectl apply -f -
 
-wait-for-sync:
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
-
 deploy-controller: cluster
 	cd controller && kustomize edit set image controller="$(CONTROLLER_IMAGE)"
 	kustomize build controller | kubectl apply -f -
 	bash controller/create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
-undeploy:
-	kubectl delete namespace/argocd namespace/argocd-commenter-system
+WAITFORAPP := output/waitforapp
+$(WAITFORAPP): waitforapp
+	go build -o "$@" ./waitforapp
+
+wait-for-sync: $(WAITFORAPP)
+	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
 
 # fixture
-deploy-app1:
+deploy-app1: $(WAITFORAPP)
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app1
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
+	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
 
-restart-app1:
+restart-app1: $(WAITFORAPP)
 	kubectl -n app1 delete pod -l app=echoserver --force
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
+	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
 
-deploy-app2:
+deploy-app2: $(WAITFORAPP)
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app2
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" -sync OutOfSync -operation Failed app2
+	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" -sync OutOfSync -operation Failed app2
 
-deploy-app3:
+deploy-app3: $(WAITFORAPP)
 	kubectl -n argocd annotate application app3 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app3
-	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
+	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
