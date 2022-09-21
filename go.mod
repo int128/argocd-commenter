@@ -14,7 +14,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
-	k8s.io/client-go v0.23.3
+	k8s.io/client-go/v11 v11.0.0+incompatible
 	sigs.k8s.io/controller-runtime v0.11.0
 )
 
@@ -163,7 +163,7 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.23.1
 	k8s.io/apiserver => k8s.io/apiserver v0.23.1
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.23.1
-	k8s.io/client-go => k8s.io/client-go v0.23.1
+	k8s.io/client-go/v11 => k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.23.1
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.23.1
 	k8s.io/code-generator => k8s.io/code-generator v0.23.1
