@@ -9,7 +9,8 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,41 +49,56 @@ func run(ctx context.Context, o options) error {
 	if err := argocdv1alpha1.AddToScheme(scheme.Scheme); err != nil {
 		return fmt.Errorf("could not add to scheme: %w", err)
 	}
-	k8sClient, err := client.New(cfg, client.Options{})
+	k8sClient, err := client.NewWithWatch(cfg, client.Options{})
 	if err != nil {
 		return fmt.Errorf("could not create a Kubernetes client: %w", err)
 	}
 	log.Printf("Connected to Kubernetes cluster at %s", cfg.Host)
 
-	for {
-		ok, err := checkApplicationStatus(ctx, k8sClient, o)
-		if err != nil {
-			return fmt.Errorf("check: %w", err)
-		}
-		if ok {
+	var fns []func() error
+	for _, appName := range o.appNames {
+		fns = append(fns, func() error {
+			if err := watchApplicationStatus(ctx, k8sClient, appName, o.expected); err != nil {
+				return fmt.Errorf("watchApplicationStatus: %w", err)
+			}
 			return nil
-		}
-		log.Printf("Retry after 5s")
-		time.Sleep(5 * time.Second)
+		})
 	}
+	return errors.AggregateGoroutines(fns...)
 }
 
-func checkApplicationStatus(ctx context.Context, k8sClient client.Client, o options) (bool, error) {
-	ok := true
-	for _, appName := range o.appNames {
-		key := types.NamespacedName{Namespace: "argocd", Name: appName}
-		actualStatus, err := getApplicationStatus(ctx, k8sClient, key)
-		if err != nil {
-			return false, fmt.Errorf("could not get status of application %s: %w", key, err)
-		}
-		if diff := cmp.Diff(o.expected, actualStatus); diff != "" {
-			ok = false
-			log.Printf("Application %s status is not expected:\n%s", key, diff)
-			continue
-		}
-		log.Printf("Application %s status is expected", key)
+func watchApplicationStatus(ctx context.Context, c client.WithWatch, appName string, expected ApplicationStatus) error {
+	var apps argocdv1alpha1.ApplicationList
+	w, err := c.Watch(ctx, &apps, client.InNamespace("argocd"), client.MatchingFields{"metadata.name": appName})
+	if err != nil {
+		return fmt.Errorf("watch: %w", err)
 	}
-	return ok, nil
+	defer w.Stop()
+
+	log.Printf("Watching application %s", appName)
+	for {
+		select {
+		case event := <-w.ResultChan():
+			if event.Type == watch.Error {
+				return fmt.Errorf("watch error: %+v", event.Object)
+			}
+			if event.Type == watch.Added || event.Type == watch.Modified {
+				app, ok := event.Object.(*argocdv1alpha1.Application)
+				if !ok {
+					return fmt.Errorf("got unknown object %#v", event.Object)
+				}
+				actualStatus := newApplicationStatus(app)
+				if diff := cmp.Diff(expected, actualStatus); diff != "" {
+					log.Printf("Application %s status is not expected:\n%s", appName, diff)
+					continue
+				}
+				log.Printf("Application %s status is expected", appName)
+				return nil
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 type ApplicationStatus struct {
@@ -92,11 +108,7 @@ type ApplicationStatus struct {
 	Health    string
 }
 
-func getApplicationStatus(ctx context.Context, k8sClient client.Client, key types.NamespacedName) (ApplicationStatus, error) {
-	var app argocdv1alpha1.Application
-	if err := k8sClient.Get(ctx, key, &app); err != nil {
-		return ApplicationStatus{}, fmt.Errorf("get: %w", err)
-	}
+func newApplicationStatus(app *argocdv1alpha1.Application) ApplicationStatus {
 	s := ApplicationStatus{
 		Revision: app.Status.Sync.Revision,
 		Sync:     string(app.Status.Sync.Status),
@@ -105,5 +117,5 @@ func getApplicationStatus(ctx context.Context, k8sClient client.Client, key type
 	if app.Status.OperationState != nil {
 		s.Operation = string(app.Status.OperationState.Phase)
 	}
-	return s, nil
+	return s
 }
