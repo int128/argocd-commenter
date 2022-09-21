@@ -26,6 +26,8 @@ deploy-argocd: cluster
 	kustomize build argocd | kubectl apply -f -
 	kustomize build applications | sed -e "s|FIXTURE_BRANCH|$(FIXTURE_BRANCH)|g" | kubectl apply -f -
 	kubectl -n argocd rollout status statefulsets argocd-application-controller
+
+wait-for-sync:
 	./wait-for-sync-status.sh app1 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 	./wait-for-sync-status.sh app2 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy
 	./wait-for-sync-status.sh app3 $(FIXTURE_BRANCH)/main Synced Succeeded Healthy

@@ -96,6 +96,8 @@ jobs:
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY: ${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}
 
+      - run: make -C e2e_test wait-for-sync
+
       # test
       - uses: int128/deployment-action@v1
         id: deployment-app1
