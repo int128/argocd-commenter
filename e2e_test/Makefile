@@ -32,32 +32,28 @@ deploy-controller: cluster
 	bash controller/create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
-WAITFORAPP := output/waitforapp
-$(WAITFORAPP): waitforapp
-	go build -o "$@" ./waitforapp
-
-wait-for-sync: $(WAITFORAPP)
-	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
+wait-for-sync:
+	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
 
 # fixture
-deploy-app1: $(WAITFORAPP)
+deploy-app1:
 	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app1
-	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
+	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
 
-restart-app1: $(WAITFORAPP)
+restart-app1:
 	kubectl -n app1 delete pod -l app=echoserver --force
-	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
+	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
 
-deploy-app2: $(WAITFORAPP)
+deploy-app2:
 	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app2
-	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" -sync OutOfSync -operation Failed app2
+	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" -sync OutOfSync -operation Failed app2
 
-deploy-app3: $(WAITFORAPP)
+deploy-app3:
 	kubectl -n argocd annotate application app3 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app3
-	$(WAITFORAPP) -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
+	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
