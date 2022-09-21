@@ -158,15 +158,6 @@ require (
 
 replace (
 	// https://github.com/argoproj/argo-cd/blob/v2.4.12/go.mod
-	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
-
-	github.com/golang/protobuf => github.com/golang/protobuf v1.5.2
-	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.0
-	github.com/grpc-ecosystem/grpc-gateway => github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/improbable-eng/grpc-web => github.com/improbable-eng/grpc-web v0.15.0
-
-	google.golang.org/grpc => google.golang.org/grpc v1.15.0
-
 	k8s.io/api => k8s.io/api v0.23.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.1
 	k8s.io/apimachinery => k8s.io/apimachinery v0.23.1
