@@ -15,10 +15,13 @@ fi
 # for installation access token
 if [ "$GITHUB_APP_ID" ]; then
   echo 'using GITHUB_APP_ID'
+  github_app_private_key_file="$(mktemp)"
+  echo "$GITHUB_APP_PRIVATE_KEY" > "$github_app_private_key_file"
   kubectl -n argocd-commenter-system create secret generic controller-manager \
     --from-literal="GITHUB_APP_ID=$GITHUB_APP_ID" \
     --from-literal="GITHUB_APP_INSTALLATION_ID=$GITHUB_APP_INSTALLATION_ID" \
-    --from-file="GITHUB_APP_PRIVATE_KEY=$GITHUB_APP_PRIVATE_KEY_PATH"
+    --from-file="GITHUB_APP_PRIVATE_KEY=$github_app_private_key_file"
+  rm -v "$github_app_private_key_file"
   exit 0
 fi
 
