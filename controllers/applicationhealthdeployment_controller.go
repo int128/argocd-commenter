@@ -101,12 +101,9 @@ func (applicationHealthDeploymentComparer) Compare(applicationOld, applicationNe
 		return false
 	}
 
-	lastNotifiedDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
-
 	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy:
-		return currentDeploymentURL != lastNotifiedDeploymentURL
-	case health.HealthStatusDegraded:
+	case health.HealthStatusHealthy, health.HealthStatusDegraded:
+		lastNotifiedDeploymentURL := applicationNew.Annotations[annotationNameOfLastDeploymentOfHealthy]
 		return currentDeploymentURL != lastNotifiedDeploymentURL
 	case health.HealthStatusMissing:
 		return true
