@@ -14,6 +14,7 @@ on:
       - pkg/**
       - e2e_test/**
       - '!**/*_test.go'
+      - '!**/*.md'
     tags:
       - v*
   pull_request:
@@ -29,6 +30,7 @@ on:
       - pkg/**
       - e2e_test/**
       - '!**/*_test.go'
+      - '!**/*.md'
 
 jobs:
   build:
