@@ -96,16 +96,15 @@ func (applicationHealthCommentComparer) Compare(applicationOld, applicationNew a
 		return false
 	}
 
-	currentStatus := applicationNew.Status.Health.Status
-	if currentStatus != health.HealthStatusHealthy && currentStatus != health.HealthStatusDegraded {
-		return false
-	}
-
 	currentDeployedRevision := getCurrentDeployedRevision(applicationNew)
 	if currentDeployedRevision == "" {
 		return false
 	}
 
-	lastNotifiedRevision := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthy]
-	return currentDeployedRevision != lastNotifiedRevision
+	switch applicationNew.Status.Health.Status {
+	case health.HealthStatusHealthy, health.HealthStatusDegraded:
+		lastNotifiedRevision := applicationNew.Annotations[annotationNameOfLastRevisionOfHealthy]
+		return currentDeployedRevision != lastNotifiedRevision
+	}
+	return false
 }
