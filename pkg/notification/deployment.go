@@ -66,9 +66,6 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 		case synccommon.OperationError:
 			ds.State = "failure"
 			return &ds
-		case synccommon.OperationTerminating:
-			ds.State = "inactive"
-			return &ds
 		}
 	}
 
