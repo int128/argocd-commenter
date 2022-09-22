@@ -137,6 +137,8 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
+      - run: make -C e2e_test delete-apps
+
       # show logs
       - run: make -C e2e_test logs-argocd
         if: always()

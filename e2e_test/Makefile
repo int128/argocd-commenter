@@ -55,6 +55,9 @@ deploy-app3:
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app3
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
 
+delete-apps:
+	kubectl -n argocd delete applications -l int128.github.io/e2e-test=fixture
+
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
 logs-argocd:
