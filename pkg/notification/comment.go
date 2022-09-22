@@ -85,15 +85,7 @@ func generateComment(e Event) string {
 			return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
 		case synccommon.OperationSucceeded:
 			return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
-		case synccommon.OperationFailed:
-			return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
-				e.Application.Status.OperationState.Phase,
-				e.Application.Name,
-				argocdApplicationURL,
-				revision,
-				generateSyncResultComment(e),
-			)
-		case synccommon.OperationError:
+		case synccommon.OperationFailed, synccommon.OperationError:
 			return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
 				e.Application.Status.OperationState.Phase,
 				e.Application.Name,
