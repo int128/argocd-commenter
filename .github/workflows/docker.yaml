@@ -136,6 +136,7 @@ jobs:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+      - run: sleep 3 # wait for deployment status
 
       - run: make -C e2e_test delete-apps
 
