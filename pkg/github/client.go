@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v47/github"
 	"github.com/int128/oauth2-github-app/app"
 	"golang.org/x/oauth2"
 )
@@ -14,7 +14,7 @@ type client struct {
 	rest *github.Client
 }
 
-func NewClient(ctx context.Context) (*client, error) {
+func NewClient(ctx context.Context) (Client, error) {
 	token := os.Getenv("GITHUB_TOKEN")
 	if token != "" {
 		return newClientWithPersonalAccessToken(ctx, token), nil

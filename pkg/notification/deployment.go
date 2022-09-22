@@ -30,7 +30,7 @@ func (c client) Deployment(ctx context.Context, e Event) error {
 		return nil
 	}
 
-	logger.Info("creating a deployment status", "deployment", deploymentURL)
+	logger.Info("creating a deployment status", "state", ds.State, "deployment", deploymentURL)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
 		return fmt.Errorf("unable to create a deployment status: %w", err)
 	}
@@ -86,6 +86,9 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 			return &ds
 		case health.HealthStatusDegraded:
 			ds.State = "failure"
+			return &ds
+		case health.HealthStatusMissing:
+			ds.State = "inactive"
 			return &ds
 		}
 	}
