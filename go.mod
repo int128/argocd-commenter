@@ -7,7 +7,7 @@ require (
 	github.com/argoproj/gitops-engine v0.7.3
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-github/v39 v39.2.0
+	github.com/google/go-github/v47 v47.1.0
 	github.com/int128/oauth2-github-app v0.1.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.2
