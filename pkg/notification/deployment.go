@@ -84,6 +84,9 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 		case health.HealthStatusDegraded:
 			ds.State = "failure"
 			return &ds
+		case health.HealthStatusMissing:
+			ds.State = "inactive"
+			return &ds
 		}
 	}
 
