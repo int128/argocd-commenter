@@ -32,7 +32,7 @@ deploy-controller: cluster
 	bash controller/create-controller-manager-secret.sh
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
-wait-for-sync:
+wait-for-apps:
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1 app2 app3
 
 # fixture
