@@ -85,13 +85,11 @@ func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1a
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}
-	if applicationOld.Status.OperationState != nil {
-		if applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
-			return false
-		}
+	if applicationOld.Status.OperationState != nil &&
+		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
+		return false
 	}
 
-	// notify only the following phases
 	switch applicationNew.Status.OperationState.Phase {
 	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
 		return true
