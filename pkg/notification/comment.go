@@ -85,25 +85,23 @@ func generateComment(e Event) string {
 			return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
 		case synccommon.OperationSucceeded:
 			return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
+		case synccommon.OperationFailed:
+			return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
+				e.Application.Status.OperationState.Phase,
+				e.Application.Name,
+				argocdApplicationURL,
+				revision,
+				generateSyncResultComment(e),
+			)
+		case synccommon.OperationError:
+			return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
+				e.Application.Status.OperationState.Phase,
+				e.Application.Name,
+				argocdApplicationURL,
+				revision,
+				generateSyncResultComment(e),
+			)
 		}
-
-		var b strings.Builder
-		b.WriteString(fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n",
-			e.Application.Status.OperationState.Phase,
-			e.Application.Name,
-			argocdApplicationURL,
-			revision,
-		))
-		if e.Application.Status.OperationState.SyncResult != nil {
-			for _, r := range e.Application.Status.OperationState.SyncResult.Resources {
-				namespacedName := r.Namespace + "/" + r.Name
-				switch r.Status {
-				case synccommon.ResultCodeSyncFailed, synccommon.ResultCodePruneSkipped:
-					b.WriteString(fmt.Sprintf("- %s `%s`: %s\n", r.Status, namespacedName, r.Message))
-				}
-			}
-		}
-		return b.String()
 	}
 
 	if e.HealthIsChanged {
@@ -128,4 +126,19 @@ func generateComment(e Event) string {
 	}
 
 	return ""
+}
+
+func generateSyncResultComment(e Event) string {
+	if e.Application.Status.OperationState.SyncResult == nil {
+		return ""
+	}
+	var b strings.Builder
+	for _, r := range e.Application.Status.OperationState.SyncResult.Resources {
+		namespacedName := r.Namespace + "/" + r.Name
+		switch r.Status {
+		case synccommon.ResultCodeSyncFailed, synccommon.ResultCodePruneSkipped:
+			b.WriteString(fmt.Sprintf("- %s `%s`: %s\n", r.Status, namespacedName, r.Message))
+		}
+	}
+	return b.String()
 }
