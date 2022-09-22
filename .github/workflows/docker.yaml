@@ -90,6 +90,8 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
+          # set outputs.tags to single tag
+          flavor: latest=false
       - uses: int128/wait-for-docker-image-action@v1
         with:
           tags: ${{ steps.metadata.outputs.tags }}
