@@ -20,7 +20,6 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,11 +89,5 @@ func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1a
 			return false
 		}
 	}
-
-	// notify only the following phases
-	switch applicationNew.Status.OperationState.Phase {
-	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
-		return true
-	}
-	return false
+	return true
 }
