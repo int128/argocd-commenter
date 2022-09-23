@@ -30,7 +30,7 @@ func (c client) Deployment(ctx context.Context, e Event) error {
 		return nil
 	}
 
-	logger.Info("creating a deployment status", "deployment", deploymentURL)
+	logger.Info("creating a deployment status", "state", ds.State, "deployment", deploymentURL)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
 		return fmt.Errorf("unable to create a deployment status: %w", err)
 	}
@@ -58,6 +58,12 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 			ds.State = "queued"
 			return &ds
 		case synccommon.OperationSucceeded:
+			// Some resources (such as CronJob) do not trigger Progressing status.
+			// If healthy, complete the deployment as success.
+			if e.Application.Status.Health.Status == health.HealthStatusHealthy {
+				ds.State = "success"
+				return &ds
+			}
 			ds.State = "in_progress"
 			return &ds
 		case synccommon.OperationFailed:
@@ -80,6 +86,9 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 			return &ds
 		case health.HealthStatusDegraded:
 			ds.State = "failure"
+			return &ds
+		case health.HealthStatusMissing:
+			ds.State = "inactive"
 			return &ds
 		}
 	}

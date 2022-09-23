@@ -3,6 +3,10 @@ kind: Application
 metadata:
   name: app2
   namespace: argocd
+  labels:
+    int128.github.io/e2e-test: fixture
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:

@@ -14,6 +14,7 @@ on:
       - pkg/**
       - e2e_test/**
       - '!**/*_test.go'
+      - '!**/*.md'
     tags:
       - v*
   pull_request:
@@ -29,6 +30,7 @@ on:
       - pkg/**
       - e2e_test/**
       - '!**/*_test.go'
+      - '!**/*.md'
 
 jobs:
   build:
@@ -88,6 +90,8 @@ jobs:
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
+          # set outputs.tags to single tag
+          flavor: latest=false
       - uses: int128/wait-for-docker-image-action@v1
         with:
           tags: ${{ steps.metadata.outputs.tags }}
@@ -99,13 +103,22 @@ jobs:
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_GITHUB_APP_INSTALLATION_ID }}
           GITHUB_APP_PRIVATE_KEY: ${{ secrets.E2E_GITHUB_APP_PRIVATE_KEY }}
 
-      - run: make -C e2e_test wait-for-sync
+      - run: make -C e2e_test wait-for-apps
 
       # test
       - uses: int128/deployment-action@v1
         id: deployment-app1
         with:
           environment-suffix: /app1
+      - uses: int128/deployment-action@v1
+        id: deployment-app2
+        with:
+          environment-suffix: /app2
+      - uses: int128/deployment-action@v1
+        id: deployment-app3
+        with:
+          environment-suffix: /app3
+
       - run: make -C e2e_test deploy-app1
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
@@ -115,10 +128,6 @@ jobs:
 
       - run: make -C e2e_test restart-app1
 
-      - uses: int128/deployment-action@v1
-        id: deployment-app2
-        with:
-          environment-suffix: /app2
       - run: make -C e2e_test deploy-app2
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
@@ -126,15 +135,14 @@ jobs:
           COMMIT_URL: ${{ github.api_url }}/repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
 
-      - uses: int128/deployment-action@v1
-        id: deployment-app3
-        with:
-          environment-suffix: /app3
       - run: make -C e2e_test deploy-app3
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
-          DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
+          DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
           GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+      - run: sleep 3 # wait for deployment status
+
+      - run: make -C e2e_test delete-apps
 
       # show logs
       - run: make -C e2e_test logs-argocd
