@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+
 	"github.com/int128/argocd-commenter/controllers"
 	"github.com/int128/argocd-commenter/pkg/github"
 	"github.com/int128/argocd-commenter/pkg/notification"
@@ -123,6 +124,14 @@ func main() {
 		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthComment")
+		os.Exit(1)
+	}
+	if err = (&controllers.ApplicationHealthCheckRunReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Notification: notificationClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthCheckRun")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

@@ -20,7 +20,6 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,27 +28,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseReconciler reconciles a ApplicationPhase object
-type ApplicationPhaseReconciler struct {
+// ApplicationHealthCheckRunReconciler reconciles a ApplicationHealthCheckRun object
+type ApplicationHealthCheckRunReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
-func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationHealthCheckRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	var application argocdv1alpha1.Application
-	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
+	var app argocdv1alpha1.Application
+	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	if application.Status.OperationState == nil {
-		logger.Info("skip notification due to application.status.operationState == nil")
-		return ctrl.Result{}, nil
 	}
 
 	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
@@ -58,15 +53,9 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	e := notification.Event{
-		PhaseIsChanged: true,
-		Application:    application,
-		ArgoCDURL:      argoCDURL,
-	}
-	if err := r.Notification.Comment(ctx, e); err != nil {
-		logger.Error(err, "unable to send a comment")
-	}
-	if err := r.Notification.Deployment(ctx, e); err != nil {
-		logger.Error(err, "unable to send a deployment status")
+		HealthIsChanged: true,
+		Application:     app,
+		ArgoCDURL:       argoCDURL,
 	}
 	if err := r.Notification.CheckRun(ctx, e); err != nil {
 		logger.Error(err, "unable to send a check run notification")
@@ -75,27 +64,15 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationPhaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationHealthCheckRunReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationHealthCheckRunComparer{})).
 		Complete(r)
 }
 
-type applicationPhaseComparer struct{}
+type applicationHealthCheckRunComparer struct{}
 
-func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationNew.Status.OperationState == nil {
-		return false
-	}
-	if applicationOld.Status.OperationState != nil &&
-		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
-		return false
-	}
-
-	switch applicationNew.Status.OperationState.Phase {
-	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
-		return true
-	}
-	return false
+func (applicationHealthCheckRunComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+	return applicationOld.Status.Health.Status != applicationNew.Status.Health.Status
 }
