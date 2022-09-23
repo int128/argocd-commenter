@@ -3,8 +3,9 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v39/github"
 	"regexp"
+
+	"github.com/google/go-github/v47/github"
 )
 
 type Commit struct {
