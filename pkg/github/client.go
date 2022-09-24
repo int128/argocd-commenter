@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/google/go-github/v47/github"
-	"github.com/int128/oauth2-github-app/app"
+	"github.com/int128/oauth2-github-app"
 	"golang.org/x/oauth2"
 )
 
@@ -32,11 +32,11 @@ func newClientWithPersonalAccessToken(ctx context.Context, token string) *client
 }
 
 func newClientForGitHubApp(ctx context.Context, appID, installationID, privateKey string) (*client, error) {
-	k, err := app.ParsePrivateKey([]byte(privateKey))
+	k, err := oauth2githubapp.ParsePrivateKey([]byte(privateKey))
 	if err != nil {
 		return nil, fmt.Errorf("invalid GITHUB_APP_PRIVATE_KEY: %w", err)
 	}
-	cfg := app.Config{
+	cfg := oauth2githubapp.Config{
 		PrivateKey:     k,
 		AppID:          appID,
 		InstallationID: installationID,
