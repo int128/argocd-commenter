@@ -1,0 +1,13 @@
+name: cleanup-deployments
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/cleanup-deployments.yaml
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: int128/delete-deployments-action@v0
