@@ -1,0 +1,15 @@
+name: delete-outdated-deployments
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  pull_request:
+    paths:
+      - .github/workflows/delete-outdated-deployments.yaml
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: int128/delete-deployments-action@v0
