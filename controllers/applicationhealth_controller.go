@@ -62,6 +62,19 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			logger.Error(err, "unable to get the ApplicationHealth")
 			return ctrl.Result{}, err
 		}
+		appHealth.ObjectMeta = metav1.ObjectMeta{
+			Namespace: req.Namespace,
+			Name:      req.Name,
+		}
+		if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
+			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+		if err := r.Client.Create(ctx, &appHealth); err != nil {
+			logger.Error(err, "unable to create an ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+		logger.Info("created an ApplicationHealth")
 	}
 
 	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
@@ -82,22 +95,6 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if err := r.Notification.Deployment(ctx, e); err != nil {
 			logger.Error(err, "unable to send a deployment status")
 		}
-	}
-
-	if appHealth.CreationTimestamp.IsZero() {
-		appHealth.ObjectMeta = metav1.ObjectMeta{
-			Namespace: req.Namespace,
-			Name:      req.Name,
-		}
-		if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
-			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		if err := r.Client.Create(ctx, &appHealth); err != nil {
-			logger.Error(err, "unable to create an ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		logger.Info("created an ApplicationHealth")
 	}
 
 	appHealthPatch := client.MergeFrom(appHealth.DeepCopy())
