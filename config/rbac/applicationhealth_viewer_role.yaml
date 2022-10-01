@@ -1,0 +1,27 @@
+# permissions for end users to view applicationhealths.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: applicationhealth-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: argocd-commenter
+    app.kubernetes.io/part-of: argocd-commenter
+    app.kubernetes.io/managed-by: kustomize
+  name: applicationhealth-viewer-role
+rules:
+- apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - applicationhealths
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - applicationhealths/status
+  verbs:
+  - get

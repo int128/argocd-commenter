@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -57,16 +59,17 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("find the CRD of Argo CD Application resource in Go module")
-	argocdCRDs, err := filepath.Glob(filepath.Join(
+	crdPaths, err := filepath.Glob(filepath.Join(
 		build.Default.GOPATH, "pkg", "mod",
 		"github.com", "argoproj", "argo-cd", "v2@*", "manifests", "crds", "application-crd.yaml",
 	))
 	Expect(err).NotTo(HaveOccurred())
-	Expect(argocdCRDs).NotTo(BeEmpty())
+	Expect(crdPaths).NotTo(BeEmpty())
 
 	By("bootstrapping test environment")
+	crdPaths = append(crdPaths, filepath.Join("..", "config", "crd", "bases"))
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     argocdCRDs,
+		CRDDirectoryPaths:     crdPaths,
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -75,6 +78,9 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 
 	err = argocdv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = argocdcommenterv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -95,14 +101,7 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&ApplicationHealthCommentReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		Notification: &notificationMock,
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-
-	err = (&ApplicationHealthDeploymentReconciler{
+	err = (&ApplicationHealthReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
 		Notification: &notificationMock,
