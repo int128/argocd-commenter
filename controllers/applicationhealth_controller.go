@@ -91,7 +91,7 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			logger.Error(err, "unable to send a comment")
 		}
 	}
-	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL {
+	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL || app.Status.Health.Status == health.HealthStatusMissing {
 		if err := r.Notification.Deployment(ctx, e); err != nil {
 			logger.Error(err, "unable to send a deployment status")
 		}
