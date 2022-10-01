@@ -25,6 +25,10 @@ import (
 
 // ApplicationHealthSpec defines the desired state of ApplicationHealth
 type ApplicationHealthSpec struct {
+}
+
+// ApplicationHealthStatus defines the observed state of ApplicationHealth
+type ApplicationHealthStatus struct {
 	// Last revision when the application is healthy.
 	// +optional
 	LastHealthyRevision string `json:"lastHealthyRevision,omitempty"`
@@ -32,12 +36,6 @@ type ApplicationHealthSpec struct {
 	// Last deployment URL when the application is healthy.
 	// +optional
 	LastHealthyDeploymentURL string `json:"lastHealthyDeploymentURL,omitempty"`
-}
-
-// ApplicationHealthStatus defines the observed state of ApplicationHealth
-type ApplicationHealthStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 //+kubebuilder:object:root=true

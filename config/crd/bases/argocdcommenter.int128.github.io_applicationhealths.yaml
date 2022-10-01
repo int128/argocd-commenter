@@ -34,6 +34,9 @@ spec:
             type: object
           spec:
             description: ApplicationHealthSpec defines the desired state of ApplicationHealth
+            type: object
+          status:
+            description: ApplicationHealthStatus defines the observed state of ApplicationHealth
             properties:
               lastHealthyDeploymentURL:
                 description: Last deployment URL when the application is healthy.
@@ -41,9 +44,6 @@ spec:
               lastHealthyRevision:
                 description: Last revision when the application is healthy.
                 type: string
-            type: object
-          status:
-            description: ApplicationHealthStatus defines the observed state of ApplicationHealth
             type: object
         type: object
     served: true

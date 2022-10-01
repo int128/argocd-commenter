@@ -73,12 +73,12 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		Application:     app,
 		ArgoCDURL:       argoCDURL,
 	}
-	if deployedRevision != appHealth.Spec.LastHealthyRevision {
+	if deployedRevision != appHealth.Status.LastHealthyRevision {
 		if err := r.Notification.Comment(ctx, e); err != nil {
 			logger.Error(err, "unable to send a comment")
 		}
 	}
-	if deploymentURL != appHealth.Spec.LastHealthyDeploymentURL {
+	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL {
 		if err := r.Notification.Deployment(ctx, e); err != nil {
 			logger.Error(err, "unable to send a deployment status")
 		}
@@ -89,10 +89,6 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			Namespace: req.Namespace,
 			Name:      req.Name,
 		}
-		if app.Status.Health.Status == health.HealthStatusHealthy {
-			appHealth.Spec.LastHealthyRevision = deployedRevision
-			appHealth.Spec.LastHealthyDeploymentURL = deploymentURL
-		}
 		if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
 			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
 			return ctrl.Result{}, err
@@ -102,23 +98,18 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			return ctrl.Result{}, err
 		}
 		logger.Info("created an ApplicationHealth")
-		return ctrl.Result{}, nil
 	}
 
 	appHealthPatch := client.MergeFrom(appHealth.DeepCopy())
 	if app.Status.Health.Status == health.HealthStatusHealthy {
-		appHealth.Spec.LastHealthyRevision = deployedRevision
-		appHealth.Spec.LastHealthyDeploymentURL = deploymentURL
+		appHealth.Status.LastHealthyRevision = deployedRevision
+		appHealth.Status.LastHealthyDeploymentURL = deploymentURL
 	}
-	if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
-		logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
-		return ctrl.Result{}, err
-	}
-	if err := r.Client.Patch(ctx, &appHealth, appHealthPatch); err != nil {
-		logger.Error(err, "unable to patch the ApplicationHealth")
+	if err := r.Client.Status().Patch(ctx, &appHealth, appHealthPatch); err != nil {
+		logger.Error(err, "unable to patch the status of ApplicationHealth")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	logger.Info("patched the ApplicationHealth")
+	logger.Info("patched the status of ApplicationHealth")
 	return ctrl.Result{}, nil
 }
 
