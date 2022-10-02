@@ -9,14 +9,13 @@ resources:
   group: argocdcommenter
   kind: ApplicationPhase
   version: v1
-- controller: true
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationHealthDeployment
-  version: v1
-- controller: true
-  domain: int128.github.io
-  group: argocdcommenter
-  kind: ApplicationHealthComment
+  kind: ApplicationHealth
+  path: github.com/int128/argocd-commenter/api/v1
   version: v1
 version: "3"

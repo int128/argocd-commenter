@@ -54,7 +54,7 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
 	if err != nil {
-		logger.Error(err, "unable to determine Argo CD URL")
+		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
 
 	e := notification.Event{

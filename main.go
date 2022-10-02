@@ -33,6 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers"
 	"github.com/int128/argocd-commenter/pkg/github"
 	"github.com/int128/argocd-commenter/pkg/notification"
@@ -49,6 +51,7 @@ func init() {
 
 	utilruntime.Must(argocdv1alpha1.AddToScheme(scheme))
 
+	utilruntime.Must(argocdcommenterv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -109,20 +112,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
 		os.Exit(1)
 	}
-	if err = (&controllers.ApplicationHealthDeploymentReconciler{
+	if err = (&controllers.ApplicationHealthReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthDeployment")
-		os.Exit(1)
-	}
-	if err = (&controllers.ApplicationHealthCommentReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Notification: notificationClient,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthComment")
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealth")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
