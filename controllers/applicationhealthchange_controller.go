@@ -97,13 +97,14 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 	}
 
 	if app.Status.Health.Status == health.HealthStatusHealthy {
+		patch := client.MergeFrom(appHealth.DeepCopy())
 		appHealth.Status.LastHealthyRevision = deployedRevision
 		appHealth.Status.LastHealthyDeploymentURL = deploymentURL
-		if err := r.Client.Status().Update(ctx, &appHealth); err != nil {
-			logger.Error(err, "unable to update the status of ApplicationHealth")
+		if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
+			logger.Error(err, "unable to patch the status of ApplicationHealth")
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
-		logger.Info("updated the status of ApplicationHealth")
+		logger.Info("patched the status of ApplicationHealth")
 	}
 	return ctrl.Result{}, nil
 }
