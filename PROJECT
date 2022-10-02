@@ -18,4 +18,9 @@ resources:
   kind: ApplicationHealth
   path: github.com/int128/argocd-commenter/api/v1
   version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationDeletion
+  version: v1
 version: "3"

@@ -1,16 +1,18 @@
 package notification
 
 import (
-	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"path/filepath"
 	"strings"
+
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 )
 
 type Event struct {
-	PhaseIsChanged  bool
-	HealthIsChanged bool
-	Application     argocdv1alpha1.Application
-	ArgoCDURL       string
+	PhaseIsChanged        bool
+	HealthIsChanged       bool
+	ApplicationIsDeleting bool
+	Application           argocdv1alpha1.Application
+	ArgoCDURL             string
 }
 
 // GetManifestGeneratePaths returns canonical paths of "argocd.argoproj.io/manifest-generate-paths" annotation.

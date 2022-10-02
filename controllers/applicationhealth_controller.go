@@ -91,7 +91,7 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			logger.Error(err, "unable to send a comment")
 		}
 	}
-	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL || app.Status.Health.Status == health.HealthStatusMissing {
+	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL {
 		if err := r.Notification.Deployment(ctx, e); err != nil {
 			logger.Error(err, "unable to send a deployment status")
 		}
@@ -125,7 +125,7 @@ func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1
 	}
 
 	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
+	case health.HealthStatusHealthy, health.HealthStatusDegraded:
 		return true
 	}
 	return false
