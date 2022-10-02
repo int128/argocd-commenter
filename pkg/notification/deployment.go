@@ -8,6 +8,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
@@ -90,11 +91,25 @@ func generateDeploymentStatus(e Event) *github.DeploymentStatus {
 		}
 	}
 
-	if e.ApplicationIsDeleting {
-		ds.State = "inactive"
-		return &ds
+	return nil
+}
+
+func (c client) InactivateDeployment(ctx context.Context, appHealth argocdcommenterv1.ApplicationHealth) error {
+	logger := logr.FromContextOrDiscard(ctx)
+
+	deploymentURL := appHealth.Status.LastDeploymentURL
+	deployment := github.ParseDeploymentURL(deploymentURL)
+	if deployment == nil {
+		return nil
 	}
 
+	ds := github.DeploymentStatus{
+		State: "inactive",
+	}
+	logger.Info("creating a deployment status", "state", ds.State, "deployment", deploymentURL)
+	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, ds); err != nil {
+		return fmt.Errorf("unable to create a deployment status: %w", err)
+	}
 	return nil
 }
 

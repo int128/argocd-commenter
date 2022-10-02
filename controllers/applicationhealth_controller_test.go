@@ -8,7 +8,6 @@ import (
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,7 +53,7 @@ var _ = Describe("ApplicationHealth controller", func() {
 	})
 
 	Context("When an application is deleting", func() {
-		It("Should notify a deployment status once", func() {
+		It("Should inactivate the deployment status", func() {
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -88,15 +87,12 @@ var _ = Describe("ApplicationHealth controller", func() {
 			}, timeout, interval).Should(Succeed())
 			Expect(appHealth.Finalizers).Should(ContainElements(myFinalizerName))
 
-			By("By deleting the Application")
-			Expect(k8sClient.Delete(ctx, &app)).Should(Succeed())
+			By("By deleting the ApplicationHealth")
+			Expect(k8sClient.Delete(ctx, &appHealth)).Should(Succeed())
 
-			By("By verifying the Application does not exist")
-			Eventually(func() bool {
-				return errors.IsNotFound(k8sClient.Get(ctx, appKey, &app))
-			}, timeout, interval).Should(BeTrue())
-
-			Expect(notificationMock.DeploymentStatuses.CountBy(appKey)).Should(Equal(2))
+			Eventually(func() int {
+				return notificationMock.InactivateDeployments.CountBy(appKey)
+			}, timeout, interval).Should(Equal(1))
 		})
 	})
 })

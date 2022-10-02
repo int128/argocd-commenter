@@ -8,11 +8,10 @@ import (
 )
 
 type Event struct {
-	PhaseIsChanged        bool
-	HealthIsChanged       bool
-	ApplicationIsDeleting bool
-	Application           argocdv1alpha1.Application
-	ArgoCDURL             string
+	PhaseIsChanged  bool
+	HealthIsChanged bool
+	Application     argocdv1alpha1.Application
+	ArgoCDURL       string
 }
 
 // GetManifestGeneratePaths returns canonical paths of "argocd.argoproj.io/manifest-generate-paths" annotation.

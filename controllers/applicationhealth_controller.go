@@ -18,9 +18,7 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
-	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,7 +46,6 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Get(ctx, req.NamespacedName, &appHealth); err != nil {
-		logger.Error(err, "unable to get the ApplicationHealth")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -56,9 +53,9 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if !controllerutil.ContainsFinalizer(&appHealth, myFinalizerName) {
 			return ctrl.Result{}, nil
 		}
-		if err := r.notifyDeployment(ctx, req); err != nil {
-			// Don't retry to avoid locking the finalizer
-			logger.Error(err, "unable to notify a deployment status")
+		if err := r.Notification.InactivateDeployment(ctx, appHealth); err != nil {
+			// Don't retry to avoid blocking the deletion
+			logger.Error(err, "unable to send a deployment status")
 		}
 		controllerutil.RemoveFinalizer(&appHealth, myFinalizerName)
 		if err := r.Update(ctx, &appHealth); err != nil {
@@ -79,21 +76,6 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		logger.Info("patched the ApplicationHealth to add the finalizer")
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *ApplicationHealthReconciler) notifyDeployment(ctx context.Context, req ctrl.Request) error {
-	var app argocdv1alpha1.Application
-	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
-		return fmt.Errorf("unable to get the Application: %w", err)
-	}
-	e := notification.Event{
-		ApplicationIsDeleting: true,
-		Application:           app,
-	}
-	if err := r.Notification.Deployment(ctx, e); err != nil {
-		return fmt.Errorf("unable to send a deployment status: %w", err)
-	}
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

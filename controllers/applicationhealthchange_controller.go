@@ -90,22 +90,23 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 			logger.Error(err, "unable to send a comment")
 		}
 	}
-	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL || app.Status.Health.Status == health.HealthStatusMissing {
+	if deploymentURL != appHealth.Status.LastHealthyDeploymentURL {
 		if err := r.Notification.Deployment(ctx, e); err != nil {
 			logger.Error(err, "unable to send a deployment status")
 		}
 	}
 
+	patch := client.MergeFrom(appHealth.DeepCopy())
+	appHealth.Status.LastDeploymentURL = deploymentURL
 	if app.Status.Health.Status == health.HealthStatusHealthy {
-		patch := client.MergeFrom(appHealth.DeepCopy())
 		appHealth.Status.LastHealthyRevision = deployedRevision
 		appHealth.Status.LastHealthyDeploymentURL = deploymentURL
-		if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-			logger.Error(err, "unable to patch the status of ApplicationHealth")
-			return ctrl.Result{}, client.IgnoreNotFound(err)
-		}
-		logger.Info("patched the status of ApplicationHealth")
 	}
+	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
+		logger.Error(err, "unable to patch the status of ApplicationHealth")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	logger.Info("patched the status of ApplicationHealth")
 	return ctrl.Result{}, nil
 }
 
@@ -125,7 +126,7 @@ func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1
 	}
 
 	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
+	case health.HealthStatusHealthy, health.HealthStatusDegraded:
 		return true
 	}
 	return false
