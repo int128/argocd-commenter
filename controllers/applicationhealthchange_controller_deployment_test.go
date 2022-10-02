@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Application health controller", func() {
+var _ = Describe("Application health change controller with deployment", func() {
 	const timeout = time.Second * 3
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
@@ -27,6 +27,9 @@ var _ = Describe("Application health controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "fixture-",
 				Namespace:    "default",
+				Annotations: map[string]string{
+					"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/argocd-commenter/deployments/1234567890",
+				},
 			},
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
@@ -46,7 +49,7 @@ var _ = Describe("Application health controller", func() {
 	})
 
 	Context("When an application is healthy", func() {
-		It("Should notify a comment once", func() {
+		It("Should notify a deployment status once", func() {
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -70,7 +73,7 @@ var _ = Describe("Application health controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return notificationMock.DeploymentStatuses.CountBy(appKey)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the health status to progressing")
@@ -84,13 +87,13 @@ var _ = Describe("Application health controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Consistently(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return notificationMock.DeploymentStatuses.CountBy(appKey)
 			}, 100*time.Millisecond).Should(Equal(1))
 		})
 	})
 
 	Context("When an application is degraded and then healthy", func() {
-		It("Should notify a comment for degraded and healthy", func() {
+		It("Should notify a deployment status for degraded and healthy", func() {
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -114,7 +117,7 @@ var _ = Describe("Application health controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return notificationMock.DeploymentStatuses.CountBy(appKey)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the health status to healthy")
@@ -123,7 +126,7 @@ var _ = Describe("Application health controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return notificationMock.DeploymentStatuses.CountBy(appKey)
 			}, timeout, interval).Should(Equal(2))
 		})
 	})
