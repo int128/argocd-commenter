@@ -7,7 +7,7 @@ resources:
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationPhase
+  kind: ApplicationPhaseChange
   version: v1
 - controller: true
   domain: int128.github.io

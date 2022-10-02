@@ -94,7 +94,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&ApplicationPhaseReconciler{
+	err = (&ApplicationPhaseChangeReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
 		Notification: &notificationMock,

@@ -104,12 +104,12 @@ func main() {
 	}
 	notificationClient := notification.NewClient(ghc)
 
-	if err = (&controllers.ApplicationPhaseReconciler{
+	if err = (&controllers.ApplicationPhaseChangeReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseChange")
 		os.Exit(1)
 	}
 	if err = (&controllers.ApplicationHealthReconciler{

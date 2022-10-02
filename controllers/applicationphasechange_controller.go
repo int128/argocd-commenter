@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseReconciler reconciles a ApplicationPhase object
-type ApplicationPhaseReconciler struct {
+// ApplicationPhaseChangeReconciler reconciles a change of Application object
+type ApplicationPhaseChangeReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
@@ -39,7 +39,7 @@ type ApplicationPhaseReconciler struct {
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
-func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var application argocdv1alpha1.Application
@@ -72,7 +72,7 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationPhaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationPhaseChangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
 		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseComparer{})).
