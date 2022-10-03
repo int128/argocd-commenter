@@ -141,6 +141,7 @@ jobs:
       - run: sleep 3 # wait for deployment status
 
       - run: make -C e2e_test delete-apps
+      - run: sleep 3 # wait for deployment status
 
       # show logs
       - run: make -C e2e_test logs-argocd
