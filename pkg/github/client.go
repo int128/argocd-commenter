@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/google/go-github/v47/github"
@@ -43,4 +44,12 @@ func newClientForGitHubApp(ctx context.Context, appID, installationID, privateKe
 	}
 	c := github.NewClient(oauth2.NewClient(ctx, cfg.TokenSource(ctx)))
 	return &client{rest: c}, nil
+}
+
+func NewTestClient(serverURL string, hc *http.Client) (Client, error) {
+	ghc, err := github.NewEnterpriseClient(serverURL, serverURL, hc)
+	if err != nil {
+		return nil, fmt.Errorf("could not create a test client: %w", err)
+	}
+	return &client{rest: ghc}, nil
 }

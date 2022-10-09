@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -16,7 +15,6 @@ var _ = Describe("Application health change controller", func() {
 	const timeout = time.Second * 3
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
-	var appKey types.NamespacedName
 
 	BeforeEach(func() {
 		app = argocdv1alpha1.Application{
@@ -31,7 +29,7 @@ var _ = Describe("Application health change controller", func() {
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
 				Source: argocdv1alpha1.ApplicationSource{
-					RepoURL:        "https://github.com/int128/argocd-commenter.git",
+					RepoURL:        "https://github.com/int128/manifests.git",
 					Path:           "test",
 					TargetRevision: "main",
 				},
@@ -42,7 +40,6 @@ var _ = Describe("Application health change controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, &app)).Should(Succeed())
-		appKey = types.NamespacedName{Namespace: app.Namespace, Name: app.Name}
 	})
 
 	Context("When an application is healthy", func() {
@@ -57,7 +54,7 @@ var _ = Describe("Application health change controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200",
 						},
 					},
 				},
@@ -70,7 +67,7 @@ var _ = Describe("Application health change controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(200)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the health status to progressing")
@@ -84,7 +81,7 @@ var _ = Describe("Application health change controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Consistently(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(200)
 			}, 100*time.Millisecond).Should(Equal(1))
 		})
 	})
@@ -101,7 +98,7 @@ var _ = Describe("Application health change controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa201",
 						},
 					},
 				},
@@ -114,7 +111,7 @@ var _ = Describe("Application health change controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(201)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the health status to healthy")
@@ -123,7 +120,7 @@ var _ = Describe("Application health change controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(201)
 			}, timeout, interval).Should(Equal(2))
 		})
 	})

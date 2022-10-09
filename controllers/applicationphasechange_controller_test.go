@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -16,7 +15,6 @@ var _ = Describe("Application phase controller", func() {
 	const timeout = time.Second * 3
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
-	var appKey types.NamespacedName
 
 	BeforeEach(func() {
 		By("By creating an application")
@@ -32,7 +30,7 @@ var _ = Describe("Application phase controller", func() {
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
 				Source: argocdv1alpha1.ApplicationSource{
-					RepoURL:        "https://github.com/int128/argocd-commenter.git",
+					RepoURL:        "https://github.com/int128/manifests.git",
 					Path:           "test",
 					TargetRevision: "main",
 				},
@@ -43,20 +41,22 @@ var _ = Describe("Application phase controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, &app)).Should(Succeed())
-		appKey = types.NamespacedName{Namespace: app.Namespace, Name: app.Name}
 	})
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment and deployment status", func() {
 			By("By updating the operation state to running")
 			patch := client.MergeFrom(app.DeepCopy())
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999100",
+			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
 					Phase:     synccommon.OperationRunning,
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100",
 						},
 					},
 				},
@@ -64,10 +64,10 @@ var _ = Describe("Application phase controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(100)
 			}, timeout, interval).Should(Equal(1))
 			Eventually(func() int {
-				return notificationMock.DeploymentStatuses.CountBy(appKey)
+				return githubMock.DeploymentStatuses.CountBy(999100)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the operation state to succeeded")
@@ -76,10 +76,10 @@ var _ = Describe("Application phase controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(100)
 			}, timeout, interval).Should(Equal(2))
 			Eventually(func() int {
-				return notificationMock.DeploymentStatuses.CountBy(appKey)
+				return githubMock.DeploymentStatuses.CountBy(999100)
 			}, timeout, interval).Should(Equal(2))
 		})
 	})
@@ -88,13 +88,16 @@ var _ = Describe("Application phase controller", func() {
 		It("Should notify a comment and deployment status", func() {
 			By("By updating the operation state to running")
 			patch := client.MergeFrom(app.DeepCopy())
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999101",
+			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
 					Phase:     synccommon.OperationRunning,
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
 						},
 					},
 				},
@@ -102,10 +105,10 @@ var _ = Describe("Application phase controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(101)
 			}, timeout, interval).Should(Equal(1))
 			Eventually(func() int {
-				return notificationMock.DeploymentStatuses.CountBy(appKey)
+				return githubMock.DeploymentStatuses.CountBy(999101)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the operation state to failed")
@@ -114,10 +117,10 @@ var _ = Describe("Application phase controller", func() {
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return notificationMock.Comments.CountBy(appKey)
+				return githubMock.Comments.CountBy(101)
 			}, timeout, interval).Should(Equal(2))
 			Eventually(func() int {
-				return notificationMock.DeploymentStatuses.CountBy(appKey)
+				return githubMock.DeploymentStatuses.CountBy(999101)
 			}, timeout, interval).Should(Equal(2))
 		})
 	})
