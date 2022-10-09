@@ -28,6 +28,7 @@ import (
 	"github.com/int128/argocd-commenter/pkg/notification"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/oauth2"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -88,7 +89,10 @@ var _ = BeforeSuite(func() {
 	//+kubebuilder:scaffold:scheme
 
 	githubMockServer := httptest.NewServer(githubMock.NewHandler())
-	ghc, err := github.NewTestClient(githubMockServer.URL, githubMockServer.Client())
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, githubMockServer.Client())
+	GinkgoT().Setenv("GITHUB_TOKEN", "dummy-github-token")
+	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubMockServer.URL)
+	ghc, err := github.NewClient(ctx)
 	Expect(err).NotTo(HaveOccurred())
 	nc := notification.NewClient(ghc)
 

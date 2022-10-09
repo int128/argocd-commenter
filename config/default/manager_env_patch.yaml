@@ -33,3 +33,9 @@ spec:
               name: controller-manager
               key: GITHUB_APP_PRIVATE_KEY
               optional: true
+        - name: GITHUB_ENTERPRISE_URL
+          valueFrom:
+            secretKeyRef:
+              name: controller-manager
+              key: GITHUB_ENTERPRISE_URL
+              optional: true
