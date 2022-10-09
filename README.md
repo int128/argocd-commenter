@@ -145,7 +145,6 @@ sequenceDiagram
 
 Argo CD is running in your Kubernetes cluster.
 
-
 ### Setup
 
 To deploy the manifest:
@@ -192,13 +191,25 @@ You need to create either Personal Access Token or GitHub App.
       --from-file="GITHUB_APP_PRIVATE_KEY=/path/to/private-key.pem"
     ```
 
-
 ### Verify setup
 
 Make sure the controller is running.
 
 ```shell
 kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
+```
+
+
+## Configuration
+
+### GitHub Enterprise Server
+
+Set the environment variable `GITHUB_ENTERPRISE_URL`.
+
+```shell
+kubectl -n argocd-commenter-system create secret generic controller-manager \
+  --from-literal="GITHUB_TOKEN=$YOUR_PERSONAL_ACCESS_TOKEN" \
+  --from-literal="GITHUB_ENTERPRISE_URL=$YOUR_GITHUB_ENTERPRISE_URL"
 ```
 
 
