@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/google/go-github/v47/github"
@@ -39,10 +40,7 @@ type GithubMock struct {
 	DeploymentStatuses Recorder[int]
 }
 
-func (m *GithubMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	methodURI := fmt.Sprintf("%s %s", r.Method, r.RequestURI)
-	GinkgoWriter.Printf("GITHUB %s\n", methodURI)
-
+func (m *GithubMock) NewHandler() http.Handler {
 	handlers := map[string]http.HandlerFunc{
 		"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100/pulls": m.listPullRequestsWithCommit(100),
 		"GET /api/v3/repos/int128/manifests/pulls/100/files":                                        m.listFiles(),
@@ -62,16 +60,19 @@ func (m *GithubMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		"GET /api/v3/repos/int128/manifests/pulls/201/files":                                        m.listFiles(),
 		"POST /api/v3/repos/int128/manifests/issues/201/comments":                                   m.createComment(201),
 
+		//"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/pulls": http.NotFound,
 		"POST /api/v3/repos/int128/manifests/deployments/999202/statuses": m.createDeploymentStatus(999202),
 		"POST /api/v3/repos/int128/manifests/deployments/999203/statuses": m.createDeploymentStatus(999203),
 	}
 
-	handler, ok := handlers[methodURI]
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	handler(w, r)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer GinkgoRecover()
+		methodURI := fmt.Sprintf("%s %s", r.Method, r.RequestURI)
+		GinkgoWriter.Println("GITHUB", methodURI)
+		handler, ok := handlers[methodURI]
+		Expect(ok).Should(BeTrue(), methodURI)
+		handler(w, r)
+	})
 }
 
 func (m *GithubMock) listPullRequestsWithCommit(number int) http.HandlerFunc {
@@ -97,7 +98,7 @@ func (m *GithubMock) createComment(number int) http.HandlerFunc {
 		m.Comments.call(number)
 		b, err := io.ReadAll(r.Body)
 		Expect(err).Should(Succeed())
-		GinkgoWriter.Printf("GITHUB comment %s\n", string(b))
+		GinkgoWriter.Println("GITHUB", "created comment", strings.TrimSpace(string(b)))
 	}
 }
 
@@ -108,6 +109,6 @@ func (m *GithubMock) createDeploymentStatus(id int) http.HandlerFunc {
 		m.DeploymentStatuses.call(id)
 		b, err := io.ReadAll(r.Body)
 		Expect(err).Should(Succeed())
-		GinkgoWriter.Printf("GITHUB deployment %s\n", string(b))
+		GinkgoWriter.Println("GITHUB", "created deployment status", strings.TrimSpace(string(b)))
 	}
 }

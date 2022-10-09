@@ -87,7 +87,7 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	githubMockServer := httptest.NewServer(&githubMock)
+	githubMockServer := httptest.NewServer(githubMock.NewHandler())
 	ghc, err := github.NewTestClient(githubMockServer.URL, githubMockServer.Client())
 	Expect(err).NotTo(HaveOccurred())
 	nc := notification.NewClient(ghc)
