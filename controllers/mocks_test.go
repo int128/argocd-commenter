@@ -60,9 +60,9 @@ func (m *GithubMock) NewHandler() http.Handler {
 		"GET /api/v3/repos/int128/manifests/pulls/201/files":                                        m.listFiles(),
 		"POST /api/v3/repos/int128/manifests/issues/201/comments":                                   m.createComment(201),
 
-		//"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/pulls": http.NotFound,
-		"POST /api/v3/repos/int128/manifests/deployments/999202/statuses": m.createDeploymentStatus(999202),
-		"POST /api/v3/repos/int128/manifests/deployments/999203/statuses": m.createDeploymentStatus(999203),
+		"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/pulls": http.NotFound,
+		"POST /api/v3/repos/int128/manifests/deployments/999202/statuses":                           m.createDeploymentStatus(999202),
+		"POST /api/v3/repos/int128/manifests/deployments/999203/statuses":                           m.createDeploymentStatus(999203),
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
