@@ -47,7 +47,7 @@ var _ = Describe("Application health change controller with deployment", func() 
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999202",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999300",
 			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
@@ -70,7 +70,7 @@ var _ = Describe("Application health change controller with deployment", func() 
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999202)
+				return githubMock.DeploymentStatuses.CountBy(999300)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the health status to progressing")
@@ -84,7 +84,7 @@ var _ = Describe("Application health change controller with deployment", func() 
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Consistently(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999202)
+				return githubMock.DeploymentStatuses.CountBy(999300)
 			}, 100*time.Millisecond).Should(Equal(1))
 		})
 	})
@@ -94,7 +94,7 @@ var _ = Describe("Application health change controller with deployment", func() 
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999203",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999301",
 			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
@@ -117,7 +117,7 @@ var _ = Describe("Application health change controller with deployment", func() 
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999203)
+				return githubMock.DeploymentStatuses.CountBy(999301)
 			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the health status to healthy")
@@ -126,7 +126,7 @@ var _ = Describe("Application health change controller with deployment", func() 
 			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
 
 			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999203)
+				return githubMock.DeploymentStatuses.CountBy(999301)
 			}, timeout, interval).Should(Equal(2))
 		})
 	})
