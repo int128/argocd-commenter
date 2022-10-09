@@ -19,13 +19,15 @@ package controllers
 import (
 	"context"
 	"go/build"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/pkg/notification"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,11 +43,11 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient        client.Client
-	testEnv          *envtest.Environment
-	ctx              context.Context
-	cancel           context.CancelFunc
-	notificationMock NotificationMock
+	k8sClient  client.Client
+	testEnv    *envtest.Environment
+	ctx        context.Context
+	cancel     context.CancelFunc
+	githubMock GithubMock
 )
 
 func TestAPIs(t *testing.T) {
@@ -85,6 +87,11 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
+	githubMockServer := httptest.NewServer(githubMock.NewHandler())
+	ghc, err := github.NewTestClient(githubMockServer.URL, githubMockServer.Client())
+	Expect(err).NotTo(HaveOccurred())
+	nc := notification.NewClient(ghc)
+
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
@@ -97,7 +104,7 @@ var _ = BeforeSuite(func() {
 	err = (&ApplicationPhaseChangeReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
-		Notification: &notificationMock,
+		Notification: nc,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -110,7 +117,7 @@ var _ = BeforeSuite(func() {
 	err = (&ApplicationHealthChangeReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
-		Notification: &notificationMock,
+		Notification: nc,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
