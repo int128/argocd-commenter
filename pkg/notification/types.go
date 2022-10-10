@@ -18,3 +18,7 @@ func NewClient(ghc github.Client) Client {
 type client struct {
 	ghc github.Client
 }
+
+func IsNotFoundError(err error) bool {
+	return github.IsNotFoundError(err)
+}

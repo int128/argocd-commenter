@@ -22,6 +22,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/pkg/github"
@@ -126,9 +127,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ApplicationHealthDeploymentReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		Notification: nc,
+		Client:                      k8sManager.GetClient(),
+		Scheme:                      k8sManager.GetScheme(),
+		Notification:                nc,
+		RequeueOnDeploymentNotFound: 1 * time.Second, // reduce test time
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

@@ -5,9 +5,11 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -157,6 +159,7 @@ var _ = Describe("Application health deployment controller", func() {
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 			By("By updating the annotation")
+			time.Sleep(1 * time.Second)
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999302",
 			}
@@ -165,6 +168,10 @@ var _ = Describe("Application health deployment controller", func() {
 			Eventually(func() int {
 				return githubMock.DeploymentStatuses.CountBy(999302)
 			}, timeout, interval).Should(Equal(1))
+
+			var appHealth argocdcommenterv1.ApplicationHealth
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, &appHealth)).Should(Succeed())
+			Expect(appHealth.Status.LastHealthyDeploymentURL).Should(Equal("https://api.github.com/repos/int128/manifests/deployments/999302"))
 		})
 	})
 })
