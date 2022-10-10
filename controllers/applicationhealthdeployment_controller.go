@@ -92,6 +92,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	}
 	if err := r.Notification.Deployment(ctx, e); err != nil {
 		logger.Error(err, "unable to send a deployment status")
+		return ctrl.Result{}, err
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {

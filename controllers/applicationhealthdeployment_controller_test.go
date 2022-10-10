@@ -130,4 +130,41 @@ var _ = Describe("Application health deployment controller", func() {
 			}, timeout, interval).Should(Equal(2))
 		})
 	})
+
+	Context("When an application is healthy but deployment is still old", func() {
+		It("Should notify a deployment status when deployment is valid", func() {
+			By("By updating the health status to progressing")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+			}
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				Health: argocdv1alpha1.HealthStatus{
+					Status: health.HealthStatusProgressing,
+				},
+				OperationState: &argocdv1alpha1.OperationState{
+					StartedAt: metav1.Now(),
+					Operation: argocdv1alpha1.Operation{
+						Sync: &argocdv1alpha1.SyncOperation{
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("By updating the health status to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("By updating the annotation")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999302",
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Eventually(func() int {
+				return githubMock.DeploymentStatuses.CountBy(999302)
+			}, timeout, interval).Should(Equal(1))
+		})
+	})
 })
