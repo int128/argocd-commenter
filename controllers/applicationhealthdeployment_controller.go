@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationHealthChangeReconciler reconciles a change of Application object
-type ApplicationHealthChangeReconciler struct {
+// ApplicationHealthDeploymentReconciler reconciles an Application object
+type ApplicationHealthDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
@@ -44,7 +44,7 @@ type ApplicationHealthChangeReconciler struct {
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
 
-func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
@@ -52,7 +52,10 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	deployedRevision := getCurrentDeployedRevision(app)
+	deploymentURL := notification.GetDeploymentURL(app)
+	if deploymentURL == "" {
+		return ctrl.Result{}, nil
+	}
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
@@ -74,7 +77,7 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 		}
 		logger.Info("created an ApplicationHealth")
 	}
-	if deployedRevision == appHealth.Status.LastHealthyRevision {
+	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL && app.Status.Health.Status != health.HealthStatusMissing {
 		return ctrl.Result{}, nil
 	}
 
@@ -87,15 +90,15 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 		Application:     app,
 		ArgoCDURL:       argoCDURL,
 	}
-	if err := r.Notification.Comment(ctx, e); err != nil {
-		logger.Error(err, "unable to send a comment")
+	if err := r.Notification.Deployment(ctx, e); err != nil {
+		logger.Error(err, "unable to send a deployment status")
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
 		return ctrl.Result{}, nil
 	}
 	patch := client.MergeFrom(appHealth.DeepCopy())
-	appHealth.Status.LastHealthyRevision = deployedRevision
+	appHealth.Status.LastHealthyDeploymentURL = deploymentURL
 	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
 		logger.Error(err, "unable to patch the status of ApplicationHealth")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -105,23 +108,9 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationHealthChangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
 		WithEventFilter(predicates.ApplicationUpdate(applicationHealthComparer{})).
 		Complete(r)
-}
-
-type applicationHealthComparer struct{}
-
-func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
-		return false
-	}
-
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
-		return true
-	}
-	return false
 }
