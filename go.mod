@@ -9,7 +9,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v47 v47.1.0
 	github.com/int128/oauth2-github-app v1.0.0
-	github.com/onsi/ginkgo/v2 v2.2.0
+	github.com/onsi/ginkgo/v2 v2.3.0
 	github.com/onsi/gomega v1.21.1
 	golang.org/x/oauth2 v0.0.0-20221006150949-b44042a4b9c1
 	k8s.io/api v0.23.3
