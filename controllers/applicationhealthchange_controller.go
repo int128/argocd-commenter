@@ -120,7 +120,7 @@ func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1
 	}
 
 	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
+	case health.HealthStatusHealthy, health.HealthStatusDegraded:
 		return true
 	}
 	return false

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -36,9 +35,8 @@ import (
 // ApplicationHealthDeploymentReconciler reconciles an Application object
 type ApplicationHealthDeploymentReconciler struct {
 	client.Client
-	Scheme                      *runtime.Scheme
-	Notification                notification.Client
-	RequeueOnDeploymentNotFound time.Duration
+	Scheme       *runtime.Scheme
+	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
@@ -93,12 +91,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		ArgoCDURL:       argoCDURL,
 	}
 	if err := r.Notification.Deployment(ctx, e); err != nil {
-		if notification.IsNotFoundError(err) {
-			// Requeue until Argo CD syncs the Application.
-			// https://github.com/int128/argocd-commenter/issues/762
-			logger.Info("requeue notification of deployment status", "error", err)
-			return ctrl.Result{RequeueAfter: r.RequeueOnDeploymentNotFound}, nil
-		}
 		logger.Error(err, "unable to send a deployment status")
 	}
 
@@ -117,11 +109,30 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if r.RequeueOnDeploymentNotFound == 0 {
-		r.RequeueOnDeploymentNotFound = 30 * time.Second
-	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationHealthDeploymentComparer{})).
 		Complete(r)
+}
+
+type applicationHealthDeploymentComparer struct{}
+
+func (applicationHealthDeploymentComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+	// Reconcile when the deployment URL is changed.
+	// https://github.com/int128/argocd-commenter/issues/762
+	oldDeploymentURL := notification.GetDeploymentURL(applicationOld)
+	newDeploymentURL := notification.GetDeploymentURL(applicationNew)
+	if oldDeploymentURL != newDeploymentURL {
+		return true
+	}
+
+	// Reconcile when the status is changed
+	if applicationOld.Status.Health.Status != applicationNew.Status.Health.Status {
+		switch applicationNew.Status.Health.Status {
+		case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
+			return true
+		}
+	}
+
+	return false
 }
