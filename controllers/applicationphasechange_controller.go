@@ -41,6 +41,7 @@ type ApplicationPhaseChangeReconciler struct {
 
 func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx, "controller", "ApplicationPhaseChange")
+	ctx = log.IntoContext(ctx, logger)
 
 	var application argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {

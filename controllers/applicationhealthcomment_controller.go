@@ -46,6 +46,7 @@ type ApplicationHealthCommentReconciler struct {
 
 func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx, "controller", "ApplicationHealthComment")
+	ctx = log.IntoContext(ctx, logger)
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
