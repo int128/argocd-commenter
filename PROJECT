@@ -12,7 +12,7 @@ resources:
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationHealthChange
+  kind: ApplicationHealthComment
   version: v1
 - api:
     crdVersion: v1

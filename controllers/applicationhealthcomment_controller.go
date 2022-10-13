@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationHealthChangeReconciler reconciles a change of Application object
-type ApplicationHealthChangeReconciler struct {
+// ApplicationHealthCommentReconciler reconciles a change of Application object
+type ApplicationHealthCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
@@ -44,7 +44,7 @@ type ApplicationHealthChangeReconciler struct {
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
 
-func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
@@ -105,16 +105,16 @@ func (r *ApplicationHealthChangeReconciler) Reconcile(ctx context.Context, req c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationHealthChangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationHealthCommentFilter{})).
 		Complete(r)
 }
 
-type applicationHealthComparer struct{}
+type applicationHealthCommentFilter struct{}
 
-func (applicationHealthComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+func (applicationHealthCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
 		return false
 	}
