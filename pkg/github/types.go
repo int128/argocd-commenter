@@ -2,7 +2,10 @@ package github
 
 import (
 	"context"
+	"errors"
 	"regexp"
+
+	"github.com/google/go-github/v47/github"
 )
 
 type Client interface {
@@ -50,4 +53,14 @@ func parseRepositorySSH(s string) *Repository {
 type PullRequest struct {
 	Number int
 	Files  []string
+}
+
+func IsNotFoundError(err error) bool {
+	var gherr *github.ErrorResponse
+	if errors.As(err, &gherr) {
+		if gherr.Response != nil {
+			return gherr.Response.StatusCode == 404
+		}
+	}
+	return false
 }
