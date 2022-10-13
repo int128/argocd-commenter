@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Application health change controller", func() {
+var _ = Describe("Application health comment controller", func() {
 	const timeout = time.Second * 3
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application

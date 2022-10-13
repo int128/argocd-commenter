@@ -111,13 +111,13 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthDeploymentComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationHealthDeploymentFilter{})).
 		Complete(r)
 }
 
-type applicationHealthDeploymentComparer struct{}
+type applicationHealthDeploymentFilter struct{}
 
-func (applicationHealthDeploymentComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	// Reconcile when the deployment URL is changed.
 	// https://github.com/int128/argocd-commenter/issues/762
 	oldDeploymentURL := notification.GetDeploymentURL(applicationOld)
