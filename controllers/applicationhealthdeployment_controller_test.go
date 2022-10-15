@@ -135,6 +135,8 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When an application is healthy but deployment is still old", func() {
 		It("Should notify a deployment status when deployment is valid", func() {
+			requeueIntervalWhenDeploymentNotFound = 1 * time.Second
+
 			By("By updating the health status to progressing")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
@@ -169,9 +171,11 @@ var _ = Describe("Application health deployment controller", func() {
 				return githubMock.DeploymentStatuses.CountBy(999302)
 			}, timeout, interval).Should(Equal(1))
 
-			var appHealth argocdcommenterv1.ApplicationHealth
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, &appHealth)).Should(Succeed())
-			Expect(appHealth.Status.LastHealthyDeploymentURL).Should(Equal("https://api.github.com/repos/int128/manifests/deployments/999302"))
+			Eventually(func() string {
+				var appHealth argocdcommenterv1.ApplicationHealth
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, &appHealth)).Should(Succeed())
+				return appHealth.Status.LastHealthyDeploymentURL
+			}, timeout, interval).Should(Equal("https://api.github.com/repos/int128/manifests/deployments/999302"))
 		})
 	})
 })
