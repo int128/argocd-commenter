@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseChangeReconciler reconciles a change of Application object
-type ApplicationPhaseChangeReconciler struct {
+// ApplicationPhaseCommentReconciler reconciles an Application object
+type ApplicationPhaseCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
@@ -39,8 +39,8 @@ type ApplicationPhaseChangeReconciler struct {
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
-func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx, "controller", "ApplicationPhaseChange")
+func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx, "controller", "ApplicationPhaseComment")
 	ctx = log.IntoContext(ctx, logger)
 
 	var application argocdv1alpha1.Application
@@ -57,7 +57,6 @@ func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ct
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-
 	e := notification.Event{
 		PhaseIsChanged: true,
 		Application:    application,
@@ -66,23 +65,20 @@ func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ct
 	if err := r.Notification.Comment(ctx, e); err != nil {
 		logger.Error(err, "unable to send a comment")
 	}
-	if err := r.Notification.Deployment(ctx, e); err != nil {
-		logger.Error(err, "unable to send a deployment status")
-	}
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationPhaseChangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseCommentFilter{})).
 		Complete(r)
 }
 
-type applicationPhaseComparer struct{}
+type applicationPhaseCommentFilter struct{}
 
-func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}

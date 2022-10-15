@@ -44,12 +44,9 @@ var _ = Describe("Application phase controller", func() {
 	})
 
 	Context("When an application is synced", func() {
-		It("Should notify a comment and deployment status", func() {
+		It("Should notify a comment", func() {
 			By("By updating the operation state to running")
 			patch := client.MergeFrom(app.DeepCopy())
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999100",
-			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
 					Phase:     synccommon.OperationRunning,
@@ -66,9 +63,6 @@ var _ = Describe("Application phase controller", func() {
 			Eventually(func() int {
 				return githubMock.Comments.CountBy(100)
 			}, timeout, interval).Should(Equal(1))
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999100)
-			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the operation state to succeeded")
 			patch = client.MergeFrom(app.DeepCopy())
@@ -78,19 +72,13 @@ var _ = Describe("Application phase controller", func() {
 			Eventually(func() int {
 				return githubMock.Comments.CountBy(100)
 			}, timeout, interval).Should(Equal(2))
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999100)
-			}, timeout, interval).Should(Equal(2))
 		})
 	})
 
 	Context("When an application sync operation is failed", func() {
-		It("Should notify a comment and deployment status", func() {
+		It("Should notify a comment", func() {
 			By("By updating the operation state to running")
 			patch := client.MergeFrom(app.DeepCopy())
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999101",
-			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
 					Phase:     synccommon.OperationRunning,
@@ -107,9 +95,6 @@ var _ = Describe("Application phase controller", func() {
 			Eventually(func() int {
 				return githubMock.Comments.CountBy(101)
 			}, timeout, interval).Should(Equal(1))
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999101)
-			}, timeout, interval).Should(Equal(1))
 
 			By("By updating the operation state to failed")
 			patch = client.MergeFrom(app.DeepCopy())
@@ -118,9 +103,6 @@ var _ = Describe("Application phase controller", func() {
 
 			Eventually(func() int {
 				return githubMock.Comments.CountBy(101)
-			}, timeout, interval).Should(Equal(2))
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999101)
 			}, timeout, interval).Should(Equal(2))
 		})
 	})

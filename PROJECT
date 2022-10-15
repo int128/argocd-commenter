@@ -7,11 +7,6 @@ resources:
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationPhaseChange
-  version: v1
-- controller: true
-  domain: int128.github.io
-  group: argocdcommenter
   kind: ApplicationHealthComment
   version: v1
 - api:
@@ -27,5 +22,15 @@ resources:
   domain: int128.github.io
   group: argocdcommenter
   kind: ApplicationHealthDeployment
+  version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationPhaseComment
+  version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationPhaseDeployment
   version: v1
 version: "3"
