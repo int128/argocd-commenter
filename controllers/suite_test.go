@@ -28,6 +28,7 @@ import (
 	"github.com/int128/argocd-commenter/pkg/notification"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/oauth2"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,7 +59,10 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true),
+		func(o *zap.Options) {
+			o.TimeEncoder = zapcore.RFC3339NanoTimeEncoder
+		}))
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("find the CRD of Argo CD Application resource in Go module")
