@@ -40,8 +40,7 @@ type ApplicationPhaseCommentReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx, "controller", "ApplicationPhaseComment")
-	ctx = log.IntoContext(ctx, logger)
+	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
@@ -71,6 +70,7 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("applicationPhaseComment").
 		For(&argocdv1alpha1.Application{}).
 		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseCommentFilter{})).
 		Complete(r)

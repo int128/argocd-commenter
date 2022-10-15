@@ -45,8 +45,7 @@ type ApplicationHealthCommentReconciler struct {
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
 
 func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx, "controller", "ApplicationHealthComment")
-	ctx = log.IntoContext(ctx, logger)
+	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
@@ -108,6 +107,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("applicationHealthComment").
 		For(&argocdv1alpha1.Application{}).
 		WithEventFilter(predicates.ApplicationUpdate(applicationHealthCommentFilter{})).
 		Complete(r)
