@@ -43,12 +43,12 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	logger := log.FromContext(ctx, "controller", "ApplicationPhaseComment")
 	ctx = log.IntoContext(ctx, logger)
 
-	var application argocdv1alpha1.Application
-	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
+	var app argocdv1alpha1.Application
+	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if application.Status.OperationState == nil {
+	if app.Status.OperationState == nil {
 		logger.Info("skip notification due to application.status.operationState == nil")
 		return ctrl.Result{}, nil
 	}
@@ -59,7 +59,7 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	}
 	e := notification.Event{
 		PhaseIsChanged: true,
-		Application:    application,
+		Application:    app,
 		ArgoCDURL:      argoCDURL,
 	}
 	if err := r.Notification.Comment(ctx, e); err != nil {
