@@ -52,6 +52,8 @@ func (m *GithubMock) NewHandler() http.Handler {
 		"POST /api/v3/repos/int128/manifests/issues/101/comments":                                   m.createComment(101),
 		"POST /api/v3/repos/int128/manifests/deployments/999101/statuses":                           m.createDeploymentStatus(999101),
 
+		"POST /api/v3/repos/int128/manifests/deployments/999102/statuses": m.createDeploymentStatus(999102),
+
 		"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200/pulls": m.listPullRequestsWithCommit(200),
 		"GET /api/v3/repos/int128/manifests/pulls/200/files":                                        m.listFiles(),
 		"POST /api/v3/repos/int128/manifests/issues/200/comments":                                   m.createComment(200),

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -110,6 +111,58 @@ var _ = Describe("Application phase controller", func() {
 			Eventually(func() int {
 				return githubMock.DeploymentStatuses.CountBy(999101)
 			}, timeout, interval).Should(Equal(2))
+		})
+	})
+
+	Context("When an application is re-synced", func() {
+		It("Should skip the notification", func() {
+			By("By updating the operation state to succeeded")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999102",
+			}
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				Health: argocdv1alpha1.HealthStatus{
+					Status: health.HealthStatusProgressing,
+				},
+				OperationState: &argocdv1alpha1.OperationState{
+					Phase:     synccommon.OperationSucceeded,
+					StartedAt: metav1.Now(),
+					Operation: argocdv1alpha1.Operation{
+						Sync: &argocdv1alpha1.SyncOperation{
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Eventually(func() int {
+				return githubMock.DeploymentStatuses.CountBy(999102)
+			}, timeout, interval).Should(Equal(1))
+
+			By("By updating the health status to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Eventually(func() int {
+				return githubMock.DeploymentStatuses.CountBy(999102)
+			}, timeout, interval).Should(Equal(2))
+
+			By("By updating the operation state to running")
+			app.Status.OperationState.Phase = synccommon.OperationRunning
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Consistently(func() int {
+				return githubMock.DeploymentStatuses.CountBy(999102)
+			}, 100*time.Millisecond).Should(Equal(2))
+
+			By("By updating the operation state to succeeded")
+			app.Status.OperationState.Phase = synccommon.OperationSucceeded
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Consistently(func() int {
+				return githubMock.DeploymentStatuses.CountBy(999102)
+			}, 100*time.Millisecond).Should(Equal(2))
 		})
 	})
 })

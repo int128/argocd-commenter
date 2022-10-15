@@ -21,8 +21,10 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,13 +45,29 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	logger := log.FromContext(ctx, "controller", "ApplicationPhaseDeployment")
 	ctx = log.IntoContext(ctx, logger)
 
-	var application argocdv1alpha1.Application
-	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
+	var app argocdv1alpha1.Application
+	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if application.Status.OperationState == nil {
+	if app.Status.OperationState == nil {
 		logger.Info("skip notification due to application.status.operationState == nil")
+		return ctrl.Result{}, nil
+	}
+	deploymentURL := notification.GetDeploymentURL(app)
+	if deploymentURL == "" {
+		return ctrl.Result{}, nil
+	}
+
+	var appHealth argocdcommenterv1.ApplicationHealth
+	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
+		if !apierrors.IsNotFound(err) {
+			logger.Error(err, "unable to get the ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+	}
+	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL {
+		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 
@@ -59,7 +77,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	}
 	e := notification.Event{
 		PhaseIsChanged: true,
-		Application:    application,
+		Application:    app,
 		ArgoCDURL:      argoCDURL,
 	}
 	if err := r.Notification.Deployment(ctx, e); err != nil {
