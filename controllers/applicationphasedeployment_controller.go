@@ -42,8 +42,7 @@ type ApplicationPhaseDeploymentReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
 func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx, "controller", "ApplicationPhaseDeployment")
-	ctx = log.IntoContext(ctx, logger)
+	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
@@ -89,6 +88,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("applicationPhaseDeployment").
 		For(&argocdv1alpha1.Application{}).
 		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseDeploymentFilter{})).
 		Complete(r)
