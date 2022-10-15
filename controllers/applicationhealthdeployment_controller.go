@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -30,6 +31,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+var (
+	requeueIntervalWhenDeploymentNotFound = 30 * time.Second
 )
 
 // ApplicationHealthDeploymentReconciler reconciles an Application object
@@ -92,6 +97,12 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		ArgoCDURL:       argoCDURL,
 	}
 	if err := r.Notification.Deployment(ctx, e); err != nil {
+		if notification.IsNotFoundError(err) {
+			// Retry until the application is synced with a valid GitHub Deployment.
+			// https://github.com/int128/argocd-commenter/issues/762
+			logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
+		}
 		logger.Error(err, "unable to send a deployment status")
 	}
 
@@ -119,21 +130,14 @@ func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manage
 type applicationHealthDeploymentFilter struct{}
 
 func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	// Reconcile when the deployment URL is changed.
-	// https://github.com/int128/argocd-commenter/issues/762
-	oldDeploymentURL := notification.GetDeploymentURL(applicationOld)
-	newDeploymentURL := notification.GetDeploymentURL(applicationNew)
-	if oldDeploymentURL != newDeploymentURL {
+	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
+		return false
+	}
+
+	// Reconcile when the health status is changed to one:
+	switch applicationNew.Status.Health.Status {
+	case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
 		return true
 	}
-
-	// Reconcile when the status is changed
-	if applicationOld.Status.Health.Status != applicationNew.Status.Health.Status {
-		switch applicationNew.Status.Health.Status {
-		case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
-			return true
-		}
-	}
-
 	return false
 }
