@@ -21,16 +21,18 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/notification"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseChangeReconciler reconciles a change of Application object
-type ApplicationPhaseChangeReconciler struct {
+// ApplicationPhaseDeploymentReconciler reconciles a ApplicationPhaseDeployment object
+type ApplicationPhaseDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
@@ -39,17 +41,33 @@ type ApplicationPhaseChangeReconciler struct {
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
-func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx, "controller", "ApplicationPhaseChange")
+func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx, "controller", "ApplicationPhaseDeployment")
 	ctx = log.IntoContext(ctx, logger)
 
-	var application argocdv1alpha1.Application
-	if err := r.Get(ctx, req.NamespacedName, &application); err != nil {
+	var app argocdv1alpha1.Application
+	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if application.Status.OperationState == nil {
+	if app.Status.OperationState == nil {
 		logger.Info("skip notification due to application.status.operationState == nil")
+		return ctrl.Result{}, nil
+	}
+	deploymentURL := notification.GetDeploymentURL(app)
+	if deploymentURL == "" {
+		return ctrl.Result{}, nil
+	}
+
+	var appHealth argocdcommenterv1.ApplicationHealth
+	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
+		if !apierrors.IsNotFound(err) {
+			logger.Error(err, "unable to get the ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+	}
+	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL {
+		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 
@@ -57,14 +75,10 @@ func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ct
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-
 	e := notification.Event{
 		PhaseIsChanged: true,
-		Application:    application,
+		Application:    app,
 		ArgoCDURL:      argoCDURL,
-	}
-	if err := r.Notification.Comment(ctx, e); err != nil {
-		logger.Error(err, "unable to send a comment")
 	}
 	if err := r.Notification.Deployment(ctx, e); err != nil {
 		logger.Error(err, "unable to send a deployment status")
@@ -73,16 +87,16 @@ func (r *ApplicationPhaseChangeReconciler) Reconcile(ctx context.Context, req ct
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationPhaseChangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseComparer{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseDeploymentFilter{})).
 		Complete(r)
 }
 
-type applicationPhaseComparer struct{}
+type applicationPhaseDeploymentFilter struct{}
 
-func (applicationPhaseComparer) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationNew.Status.OperationState == nil {
 		return false
 	}
