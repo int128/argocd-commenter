@@ -74,12 +74,11 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.Event{
-		PhaseIsChanged: true,
-		Application:    app,
-		ArgoCDURL:      argoCDURL,
+	e := notification.PhaseChangedEvent{
+		Application: app,
+		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.Deployment(ctx, e); err != nil {
+	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, e); err != nil {
 		logger.Error(err, "unable to send a deployment status")
 	}
 	return ctrl.Result{}, nil
