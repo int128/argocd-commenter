@@ -9,27 +9,30 @@ import (
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
 	"github.com/int128/argocd-commenter/pkg/github"
+	"k8s.io/apimachinery/pkg/util/errors"
 )
 
 func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedEvent) error {
-	logger := logr.FromContextOrDiscard(ctx)
-
 	if e.Application.Status.OperationState == nil {
 		return fmt.Errorf("status.operationState == nil")
 	}
 	if e.Application.Status.OperationState.Operation.Sync == nil {
 		return fmt.Errorf("status.operationState.operation.sync == nil")
 	}
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
-
 	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
+	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"phase", e.Application.Status.OperationState.Phase,
+		"revision", revision,
+		"repository", repository,
+	)
 
 	body := generateCommentOnPhaseChanged(e)
 	if body == "" {
-		logger.Info("nothing to comment", "event", e)
+		logger.Info("no comment on this phase")
 		return nil
 	}
 
@@ -37,12 +40,12 @@ func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedE
 	if err != nil {
 		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
 	}
-
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	logger.Info("creating a comment", "repository", repository, "pulls", relatedPullNumbers)
-	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
-		return fmt.Errorf("unable to create a comment: %w", err)
+
+	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
+		return fmt.Errorf("unable to create a phase comment on revision %s: %w", revision, err)
 	}
+	logger.Info("created a phase comment", "pulls", relatedPullNumbers)
 	return nil
 }
 
@@ -83,24 +86,26 @@ func generateSyncResultComment(e PhaseChangedEvent) string {
 }
 
 func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChangedEvent) error {
-	logger := logr.FromContextOrDiscard(ctx)
-
 	if e.Application.Status.OperationState == nil {
 		return fmt.Errorf("status.operationState == nil")
 	}
 	if e.Application.Status.OperationState.Operation.Sync == nil {
 		return fmt.Errorf("status.operationState.operation.sync == nil")
 	}
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
-
 	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
+	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"health", e.Application.Status.Health.Status,
+		"revision", revision,
+		"repository", repository,
+	)
 
 	body := generateCommentOnHealthChanged(e)
 	if body == "" {
-		logger.Info("nothing to comment", "event", e)
+		logger.Info("no comment on this health status")
 		return nil
 	}
 
@@ -108,12 +113,12 @@ func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChange
 	if err != nil {
 		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
 	}
-
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	logger.Info("creating a comment", "repository", repository, "pulls", relatedPullNumbers)
-	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
-		return fmt.Errorf("unable to create a comment: %w", err)
+
+	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
+		return fmt.Errorf("unable to create a health comment on revision %s: %w", revision, err)
 	}
+	logger.Info("created a health comment", "pulls", relatedPullNumbers)
 	return nil
 }
 
@@ -139,4 +144,18 @@ func generateCommentOnHealthChanged(e HealthChangedEvent) string {
 		)
 	}
 	return ""
+}
+
+func (c client) createComment(ctx context.Context, repository github.Repository, pullNumbers []int, body string) error {
+	var errs []error
+	for _, pullNumber := range pullNumbers {
+		if err := c.ghc.CreateComment(ctx, repository, pullNumber, body); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+	if len(errs) > 0 {
+		return errors.NewAggregate(errs)
+	}
+	return nil
 }

@@ -54,7 +54,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
-		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	deploymentURL := getDeploymentURL(app)
@@ -83,6 +82,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		logger.Info("created an ApplicationHealth")
 	}
 	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL && app.Status.Health.Status != health.HealthStatusMissing {
+		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 
@@ -101,7 +101,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 			logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
 			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
 		}
-		logger.Error(err, "unable to send a deployment status")
+		logger.Error(err, "unable to create a deployment status")
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
@@ -110,10 +110,10 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	patch := client.MergeFrom(appHealth.DeepCopy())
 	appHealth.Status.LastHealthyDeploymentURL = deploymentURL
 	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-		logger.Error(err, "unable to patch the status of ApplicationHealth")
+		logger.Error(err, "unable to patch lastHealthyDeploymentURL of ApplicationHealth")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	logger.Info("patched the status of ApplicationHealth")
+	logger.Info("patched lastHealthyDeploymentURL of ApplicationHealth")
 	return ctrl.Result{}, nil
 }
 

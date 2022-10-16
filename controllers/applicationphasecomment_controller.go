@@ -44,7 +44,6 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
-		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if app.Status.OperationState == nil {
@@ -61,7 +60,7 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 		ArgoCDURL:   argoCDURL,
 	}
 	if err := r.Notification.CreateCommentOnPhaseChanged(ctx, e); err != nil {
-		logger.Error(err, "unable to send a comment")
+		logger.Error(err, "unable to create a comment")
 	}
 	return ctrl.Result{}, nil
 }

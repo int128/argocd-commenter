@@ -11,23 +11,25 @@ import (
 )
 
 func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, e PhaseChangedEvent, deploymentURL string) error {
-	logger := logr.FromContextOrDiscard(ctx)
-
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"phase", e.Application.Status.OperationState.Phase,
+		"deployment", deploymentURL,
+	)
 
 	ds := generateDeploymentStatusOnPhaseChanged(e)
 	if ds == nil {
-		logger.Info("nothing to create a deployment status", "event", e)
+		logger.Info("no deployment status on this phase")
 		return nil
 	}
 
-	logger.Info("creating a deployment status", "state", ds.State, "deployment", deploymentURL)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status: %w", err)
+		return fmt.Errorf("unable to create a deployment status of %s on phase changed: %w", ds.State, err)
 	}
+	logger.Info("created a deployment status", "state", ds.State)
 	return nil
 }
 
@@ -70,23 +72,25 @@ func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.Deploym
 }
 
 func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, e HealthChangedEvent, deploymentURL string) error {
-	logger := logr.FromContextOrDiscard(ctx)
-
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"health", e.Application.Status.Health.Status,
+		"deployment", deploymentURL,
+	)
 
 	ds := generateHealthDeploymentStatus(e)
 	if ds == nil {
-		logger.Info("nothing to create a deployment status", "event", e)
+		logger.Info("no deployment status on this health status")
 		return nil
 	}
 
-	logger.Info("creating a deployment status", "state", ds.State, "deployment", deploymentURL)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status: %w", err)
+		return fmt.Errorf("unable to create a deployment status of %s on health changed: %w", ds.State, err)
 	}
+	logger.Info("created a deployment status", "state", ds.State)
 	return nil
 }
 

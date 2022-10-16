@@ -46,7 +46,6 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
-		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if app.Status.OperationState == nil {
@@ -79,7 +78,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		ArgoCDURL:   argoCDURL,
 	}
 	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, e, deploymentURL); err != nil {
-		logger.Error(err, "unable to send a deployment status")
+		logger.Error(err, "unable to create a deployment status")
 	}
 	return ctrl.Result{}, nil
 }
