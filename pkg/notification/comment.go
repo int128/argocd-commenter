@@ -9,6 +9,7 @@ import (
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
 	"github.com/int128/argocd-commenter/pkg/github"
+	"k8s.io/apimachinery/pkg/util/errors"
 )
 
 func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedEvent) error {
@@ -39,12 +40,12 @@ func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedE
 	if err != nil {
 		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
 	}
-
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	logger.Info("creating a comment", "pulls", relatedPullNumbers)
-	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
-		return fmt.Errorf("unable to create a comment: %w", err)
+
+	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
+		return fmt.Errorf("unable to create a phase comment on revision %s: %w", revision, err)
 	}
+	logger.Info("created a phase comment", "pulls", relatedPullNumbers)
 	return nil
 }
 
@@ -112,12 +113,12 @@ func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChange
 	if err != nil {
 		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
 	}
-
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	logger.Info("creating a comment", "pulls", relatedPullNumbers)
-	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
-		return fmt.Errorf("unable to create a comment: %w", err)
+
+	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
+		return fmt.Errorf("unable to create a health comment on revision %s: %w", revision, err)
 	}
+	logger.Info("created a health comment", "pulls", relatedPullNumbers)
 	return nil
 }
 
@@ -143,4 +144,18 @@ func generateCommentOnHealthChanged(e HealthChangedEvent) string {
 		)
 	}
 	return ""
+}
+
+func (c client) createComment(ctx context.Context, repository github.Repository, pullNumbers []int, body string) error {
+	var errs []error
+	for _, pullNumber := range pullNumbers {
+		if err := c.ghc.CreateComment(ctx, repository, pullNumber, body); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+	if len(errs) > 0 {
+		return errors.NewAggregate(errs)
+	}
+	return nil
 }

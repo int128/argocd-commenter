@@ -26,10 +26,10 @@ func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, e Phas
 		return nil
 	}
 
-	logger.Info("creating a deployment status", "state", ds.State)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status: %w", err)
+		return fmt.Errorf("unable to create a deployment status of %s on phase changed: %w", ds.State, err)
 	}
+	logger.Info("created a deployment status", "state", ds.State)
 	return nil
 }
 
@@ -87,10 +87,10 @@ func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, e Hea
 		return nil
 	}
 
-	logger.Info("creating a deployment status", "state", ds.State)
 	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status: %w", err)
+		return fmt.Errorf("unable to create a deployment status of %s on health changed: %w", ds.State, err)
 	}
+	logger.Info("created a deployment status", "state", ds.State)
 	return nil
 }
 
