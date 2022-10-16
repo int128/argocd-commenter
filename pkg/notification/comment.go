@@ -12,24 +12,26 @@ import (
 )
 
 func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedEvent) error {
-	logger := logr.FromContextOrDiscard(ctx)
-
 	if e.Application.Status.OperationState == nil {
 		return fmt.Errorf("status.operationState == nil")
 	}
 	if e.Application.Status.OperationState.Operation.Sync == nil {
 		return fmt.Errorf("status.operationState.operation.sync == nil")
 	}
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
-
 	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
+	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"phase", e.Application.Status.OperationState.Phase,
+		"revision", revision,
+		"repository", repository,
+	)
 
 	body := generateCommentOnPhaseChanged(e)
 	if body == "" {
-		logger.Info("nothing to comment", "event", e)
+		logger.Info("no comment on this phase")
 		return nil
 	}
 
@@ -39,7 +41,7 @@ func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedE
 	}
 
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	logger.Info("creating a comment", "repository", repository, "pulls", relatedPullNumbers)
+	logger.Info("creating a comment", "pulls", relatedPullNumbers)
 	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
 		return fmt.Errorf("unable to create a comment: %w", err)
 	}
@@ -83,24 +85,26 @@ func generateSyncResultComment(e PhaseChangedEvent) string {
 }
 
 func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChangedEvent) error {
-	logger := logr.FromContextOrDiscard(ctx)
-
 	if e.Application.Status.OperationState == nil {
 		return fmt.Errorf("status.operationState == nil")
 	}
 	if e.Application.Status.OperationState.Operation.Sync == nil {
 		return fmt.Errorf("status.operationState.operation.sync == nil")
 	}
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
-
 	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
+	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"health", e.Application.Status.Health.Status,
+		"revision", revision,
+		"repository", repository,
+	)
 
 	body := generateCommentOnHealthChanged(e)
 	if body == "" {
-		logger.Info("nothing to comment", "event", e)
+		logger.Info("no comment on this health status")
 		return nil
 	}
 
@@ -110,7 +114,7 @@ func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChange
 	}
 
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	logger.Info("creating a comment", "repository", repository, "pulls", relatedPullNumbers)
+	logger.Info("creating a comment", "pulls", relatedPullNumbers)
 	if err := c.ghc.CreateComment(ctx, *repository, relatedPullNumbers, body); err != nil {
 		return fmt.Errorf("unable to create a comment: %w", err)
 	}

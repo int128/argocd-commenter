@@ -49,7 +49,6 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
-		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	deployedRevision := getCurrentDeployedRevision(app)
@@ -87,7 +86,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		ArgoCDURL:   argoCDURL,
 	}
 	if err := r.Notification.CreateCommentOnHealthChanged(ctx, e); err != nil {
-		logger.Error(err, "unable to send a comment")
+		logger.Error(err, "unable to create a comment")
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
@@ -96,10 +95,10 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	patch := client.MergeFrom(appHealth.DeepCopy())
 	appHealth.Status.LastHealthyRevision = deployedRevision
 	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-		logger.Error(err, "unable to patch the status of ApplicationHealth")
+		logger.Error(err, "unable to patch lastHealthyRevision of ApplicationHealth")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	logger.Info("patched the status of ApplicationHealth")
+	logger.Info("patched lastHealthyRevision of ApplicationHealth")
 	return ctrl.Result{}, nil
 }
 
