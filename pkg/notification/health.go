@@ -74,10 +74,9 @@ func generateCommentOnHealthChanged(e HealthChangedEvent) string {
 	return ""
 }
 
-func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, e HealthChangedEvent) error {
+func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, e HealthChangedEvent, deploymentURL string) error {
 	logger := logr.FromContextOrDiscard(ctx)
 
-	deploymentURL := GetDeploymentURL(e.Application)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil

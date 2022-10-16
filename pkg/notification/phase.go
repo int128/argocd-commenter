@@ -88,10 +88,9 @@ func generateSyncResultComment(e PhaseChangedEvent) string {
 	return b.String()
 }
 
-func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, e PhaseChangedEvent) error {
+func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, e PhaseChangedEvent, deploymentURL string) error {
 	logger := logr.FromContextOrDiscard(ctx)
 
-	deploymentURL := GetDeploymentURL(e.Application)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil

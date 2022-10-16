@@ -53,7 +53,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		logger.Info("skip notification due to application.status.operationState == nil")
 		return ctrl.Result{}, nil
 	}
-	deploymentURL := notification.GetDeploymentURL(app)
+	deploymentURL := getDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
@@ -78,7 +78,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		Application: app,
 		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, e); err != nil {
+	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, e, deploymentURL); err != nil {
 		logger.Error(err, "unable to send a deployment status")
 	}
 	return ctrl.Result{}, nil
@@ -101,6 +101,9 @@ func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew a
 	}
 	if applicationOld.Status.OperationState != nil &&
 		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
+		return false
+	}
+	if getDeploymentURL(applicationNew) == "" {
 		return false
 	}
 
