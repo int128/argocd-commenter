@@ -57,7 +57,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		logger.Error(err, "unable to get the Application")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	deploymentURL := notification.GetDeploymentURL(app)
+	deploymentURL := getDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
@@ -90,12 +90,11 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.Event{
-		HealthIsChanged: true,
-		Application:     app,
-		ArgoCDURL:       argoCDURL,
+	e := notification.HealthChangedEvent{
+		Application: app,
+		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.Deployment(ctx, e); err != nil {
+	if err := r.Notification.CreateDeploymentStatusOnHealthChanged(ctx, e, deploymentURL); err != nil {
 		if notification.IsNotFoundError(err) {
 			// Retry until the application is synced with a valid GitHub Deployment.
 			// https://github.com/int128/argocd-commenter/issues/762
@@ -131,6 +130,9 @@ type applicationHealthDeploymentFilter struct{}
 
 func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
+		return false
+	}
+	if getDeploymentURL(applicationNew) == "" {
 		return false
 	}
 

@@ -82,12 +82,11 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.Event{
-		HealthIsChanged: true,
-		Application:     app,
-		ArgoCDURL:       argoCDURL,
+	e := notification.HealthChangedEvent{
+		Application: app,
+		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.Comment(ctx, e); err != nil {
+	if err := r.Notification.CreateCommentOnHealthChanged(ctx, e); err != nil {
 		logger.Error(err, "unable to send a comment")
 	}
 

@@ -29,3 +29,7 @@ func getCurrentDeployedRevision(a argocdv1alpha1.Application) string {
 	}
 	return a.Status.OperationState.Operation.Sync.Revision
 }
+
+func getDeploymentURL(a argocdv1alpha1.Application) string {
+	return a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
+}
