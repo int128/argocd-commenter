@@ -35,12 +35,3 @@ type client struct {
 func IsNotFoundError(err error) bool {
 	return github.IsNotFoundError(err)
 }
-
-func trimDescription(s string) string {
-	// The maximum description length is 140 characters.
-	// https://docs.github.com/en/rest/reference/deployments#create-a-deployment-status
-	if len(s) < 140 {
-		return s
-	}
-	return s[0:139]
-}
