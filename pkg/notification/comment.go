@@ -8,6 +8,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
+	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/github"
 	"k8s.io/apimachinery/pkg/util/errors"
 )
@@ -23,7 +24,7 @@ func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedE
 	if repository == nil {
 		return nil
 	}
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	revision := argocd.GetDeployedRevision(e.Application)
 	logger := logr.FromContextOrDiscard(ctx).WithValues(
 		"phase", e.Application.Status.OperationState.Phase,
 		"revision", revision,
@@ -54,7 +55,7 @@ func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedE
 }
 
 func generateCommentOnPhaseChanged(e PhaseChangedEvent) string {
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	revision := argocd.GetDeployedRevision(e.Application)
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
 
 	switch e.Application.Status.OperationState.Phase {
@@ -100,7 +101,7 @@ func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChange
 	if repository == nil {
 		return nil
 	}
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	revision := argocd.GetDeployedRevision(e.Application)
 	logger := logr.FromContextOrDiscard(ctx).WithValues(
 		"health", e.Application.Status.Health.Status,
 		"revision", revision,

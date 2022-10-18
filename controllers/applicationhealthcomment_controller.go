@@ -23,6 +23,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
+	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +52,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	deployedRevision := getCurrentDeployedRevision(app)
+	deployedRevision := argocd.GetDeployedRevision(app)
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
@@ -77,7 +78,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
+	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}

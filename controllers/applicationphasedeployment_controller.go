@@ -23,6 +23,7 @@ import (
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
+	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,7 +53,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		logger.Info("skip notification due to application.status.operationState == nil")
 		return ctrl.Result{}, nil
 	}
-	deploymentURL := getDeploymentURL(app)
+	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
@@ -69,7 +70,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
+	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
@@ -102,7 +103,7 @@ func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew a
 		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
 		return false
 	}
-	if getDeploymentURL(applicationNew) == "" {
+	if argocd.GetDeploymentURL(applicationNew) == "" {
 		return false
 	}
 
