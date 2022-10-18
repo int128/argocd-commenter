@@ -24,6 +24,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
+	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +57,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	deploymentURL := getDeploymentURL(app)
+	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
@@ -86,7 +87,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := findArgoCDURL(ctx, r.Client, req.Namespace)
+	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
@@ -132,7 +133,7 @@ func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew 
 	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
 		return false
 	}
-	if getDeploymentURL(applicationNew) == "" {
+	if argocd.GetDeploymentURL(applicationNew) == "" {
 		return false
 	}
 
