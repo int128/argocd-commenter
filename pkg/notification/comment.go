@@ -41,6 +41,10 @@ func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedE
 		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
 	}
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
+	if len(relatedPullNumbers) == 0 {
+		logger.Info("no pull request related to the revision")
+		return nil
+	}
 
 	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
 		return fmt.Errorf("unable to create a phase comment on revision %s: %w", revision, err)
@@ -114,6 +118,10 @@ func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChange
 		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
 	}
 	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
+	if len(relatedPullNumbers) == 0 {
+		logger.Info("no pull request related to the revision")
+		return nil
+	}
 
 	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
 		return fmt.Errorf("unable to create a health comment on revision %s: %w", revision, err)
