@@ -33,4 +33,9 @@ resources:
   group: argocdcommenter
   kind: ApplicationPhaseDeployment
   version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationDeletionDeployment
+  version: v1
 version: "3"

@@ -20,7 +20,7 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
@@ -30,29 +30,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseCommentReconciler reconciles an Application object
-type ApplicationPhaseCommentReconciler struct {
+// ApplicationDeletionDeploymentReconciler reconciles an Application object on deletion
+type ApplicationDeletionDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 
-func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if !app.DeletionTimestamp.IsZero() {
-		logger.Info("skip notification because the application is deleting")
+	deploymentURL := argocd.GetDeploymentURL(app)
+	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
-	if app.Status.OperationState == nil {
-		logger.Info("skip notification due to application.status.operationState == nil")
+	if !isApplicationDeleting(app) {
 		return ctrl.Result{}, nil
 	}
 
@@ -60,39 +59,53 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.PhaseChangedEvent{
+	e := notification.DeletionEvent{
 		Application: app,
 		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.CreateCommentOnPhaseChanged(ctx, e); err != nil {
-		logger.Error(err, "unable to create a comment")
+	if err := r.Notification.CreateDeploymentStatusOnDeletion(ctx, e, deploymentURL); err != nil {
+		logger.Error(err, "unable to create a deployment status")
 	}
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationDeletionDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		Named("applicationPhaseComment").
+		Named("applicationDeletionDeployment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseCommentFilter{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationDeletionDeploymentFilter{})).
 		Complete(r)
 }
 
-type applicationPhaseCommentFilter struct{}
-
-func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationNew.Status.OperationState == nil {
-		return false
-	}
-	if applicationOld.Status.OperationState != nil &&
-		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
-		return false
-	}
-
-	switch applicationNew.Status.OperationState.Phase {
-	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
+func isApplicationDeleting(app argocdv1alpha1.Application) bool {
+	if !app.DeletionTimestamp.IsZero() {
 		return true
 	}
+	if app.Status.Health.Status == health.HealthStatusMissing {
+		return true
+	}
+	return false
+}
+
+type applicationDeletionDeploymentFilter struct{}
+
+func (applicationDeletionDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+	if argocd.GetDeploymentURL(applicationNew) == "" {
+		return false
+	}
+
+	// deletion timestamp has been set
+	if applicationOld.DeletionTimestamp != applicationNew.DeletionTimestamp &&
+		!applicationNew.DeletionTimestamp.IsZero() {
+		return true
+	}
+
+	// health status has been changed to missing
+	if applicationOld.Status.Health.Status != applicationNew.Status.Health.Status &&
+		applicationNew.Status.Health.Status == health.HealthStatusMissing {
+		return true
+	}
+
 	return false
 }

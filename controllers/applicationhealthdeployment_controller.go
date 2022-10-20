@@ -57,6 +57,10 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if !app.DeletionTimestamp.IsZero() {
+		logger.Info("skip notification because the application is deleting")
+		return ctrl.Result{}, nil
+	}
 	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
@@ -82,7 +86,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		}
 		logger.Info("created an ApplicationHealth")
 	}
-	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL && app.Status.Health.Status != health.HealthStatusMissing {
+	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL {
 		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
 		return ctrl.Result{}, nil
 	}
@@ -139,7 +143,7 @@ func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew 
 
 	// Reconcile when the health status is changed to one:
 	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded, health.HealthStatusMissing:
+	case health.HealthStatusHealthy, health.HealthStatusDegraded:
 		return true
 	}
 	return false
