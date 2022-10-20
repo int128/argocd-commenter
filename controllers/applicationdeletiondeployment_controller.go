@@ -54,6 +54,11 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	if !isApplicationDeleting(app) {
 		return ctrl.Result{}, nil
 	}
+	logger = logger.WithValues(
+		"health", app.Status.Health.Status,
+		"deletionTimestamp", app.DeletionTimestamp,
+	)
+	ctx = log.IntoContext(ctx, logger)
 
 	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {

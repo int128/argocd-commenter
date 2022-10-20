@@ -121,11 +121,7 @@ func (c client) CreateDeploymentStatusOnDeletion(ctx context.Context, e Deletion
 	if deployment == nil {
 		return nil
 	}
-	logger := logr.FromContextOrDiscard(ctx).WithValues(
-		"health", e.Application.Status.Health.Status,
-		"deployment", deploymentURL,
-	)
-
+	logger := logr.FromContextOrDiscard(ctx).WithValues("deployment", deploymentURL)
 	ds := github.DeploymentStatus{
 		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
 		State:  "inactive",
