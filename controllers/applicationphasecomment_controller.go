@@ -47,6 +47,10 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if !app.DeletionTimestamp.IsZero() {
+		logger.Info("skip notification because the application is deleting")
+		return ctrl.Result{}, nil
+	}
 	if app.Status.OperationState == nil {
 		logger.Info("skip notification due to application.status.operationState == nil")
 		return ctrl.Result{}, nil

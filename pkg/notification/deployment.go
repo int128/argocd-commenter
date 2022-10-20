@@ -112,10 +112,24 @@ func generateHealthDeploymentStatus(e HealthChangedEvent) *github.DeploymentStat
 	case health.HealthStatusDegraded:
 		ds.State = "failure"
 		return &ds
-	case health.HealthStatusMissing:
-		ds.State = "inactive"
-		return &ds
 	}
+	return nil
+}
+
+func (c client) CreateDeploymentStatusOnDeletion(ctx context.Context, e DeletionEvent, deploymentURL string) error {
+	deployment := github.ParseDeploymentURL(deploymentURL)
+	if deployment == nil {
+		return nil
+	}
+	logger := logr.FromContextOrDiscard(ctx).WithValues("deployment", deploymentURL)
+	ds := github.DeploymentStatus{
+		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
+		State:  "inactive",
+	}
+	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, ds); err != nil {
+		return fmt.Errorf("unable to create a deployment status of %s on application deletion: %w", ds.State, err)
+	}
+	logger.Info("created a deployment status", "state", ds.State)
 	return nil
 }
 

@@ -52,6 +52,10 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if !app.DeletionTimestamp.IsZero() {
+		logger.Info("skip notification because the application is deleting")
+		return ctrl.Result{}, nil
+	}
 	deployedRevision := argocd.GetDeployedRevision(app)
 
 	var appHealth argocdcommenterv1.ApplicationHealth
