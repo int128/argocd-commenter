@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
@@ -13,48 +14,36 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 )
 
-func (c client) CreateCommentOnPhaseChanged(ctx context.Context, e PhaseChangedEvent) error {
-	if e.Application.Status.OperationState == nil {
-		return fmt.Errorf("status.operationState == nil")
-	}
-	if e.Application.Status.OperationState.Operation.Sync == nil {
-		return fmt.Errorf("status.operationState.operation.sync == nil")
-	}
+type Comment struct {
+	GitHubRepository github.Repository
+	Revision         string
+	Body             string
+}
+
+func NewCommentOnOnPhaseChanged(e PhaseChangedEvent) *Comment {
 	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
 	revision := argocd.GetDeployedRevision(e.Application)
-	logger := logr.FromContextOrDiscard(ctx).WithValues(
-		"phase", e.Application.Status.OperationState.Phase,
-		"revision", revision,
-		"repository", repository,
-	)
-
+	if revision == "" {
+		return nil
+	}
 	body := generateCommentOnPhaseChanged(e)
 	if body == "" {
-		logger.Info("no comment on this phase")
 		return nil
 	}
-
-	pulls, err := c.ghc.ListPullRequests(ctx, *repository, revision)
-	if err != nil {
-		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
+	return &Comment{
+		GitHubRepository: *repository,
+		Revision:         revision,
+		Body:             body,
 	}
-	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	if len(relatedPullNumbers) == 0 {
-		logger.Info("no pull request related to the revision")
-		return nil
-	}
-
-	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
-		return fmt.Errorf("unable to create a phase comment on revision %s: %w", revision, err)
-	}
-	logger.Info("created a phase comment", "pulls", relatedPullNumbers)
-	return nil
 }
 
 func generateCommentOnPhaseChanged(e PhaseChangedEvent) string {
+	if e.Application.Status.OperationState == nil {
+		return ""
+	}
 	revision := argocd.GetDeployedRevision(e.Application)
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
 
@@ -90,49 +79,28 @@ func generateSyncResultComment(e PhaseChangedEvent) string {
 	return b.String()
 }
 
-func (c client) CreateCommentOnHealthChanged(ctx context.Context, e HealthChangedEvent) error {
-	if e.Application.Status.OperationState == nil {
-		return fmt.Errorf("status.operationState == nil")
-	}
-	if e.Application.Status.OperationState.Operation.Sync == nil {
-		return fmt.Errorf("status.operationState.operation.sync == nil")
-	}
+func NewCommentOnOnHealthChanged(e HealthChangedEvent) *Comment {
 	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
 	revision := argocd.GetDeployedRevision(e.Application)
-	logger := logr.FromContextOrDiscard(ctx).WithValues(
-		"health", e.Application.Status.Health.Status,
-		"revision", revision,
-		"repository", repository,
-	)
-
+	if revision == "" {
+		return nil
+	}
 	body := generateCommentOnHealthChanged(e)
 	if body == "" {
-		logger.Info("no comment on this health status")
 		return nil
 	}
-
-	pulls, err := c.ghc.ListPullRequests(ctx, *repository, revision)
-	if err != nil {
-		return fmt.Errorf("unable to list pull requests of revision %s: %w", revision, err)
+	return &Comment{
+		GitHubRepository: *repository,
+		Revision:         revision,
+		Body:             body,
 	}
-	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, e.Application)
-	if len(relatedPullNumbers) == 0 {
-		logger.Info("no pull request related to the revision")
-		return nil
-	}
-
-	if err := c.createComment(ctx, *repository, relatedPullNumbers, body); err != nil {
-		return fmt.Errorf("unable to create a health comment on revision %s: %w", revision, err)
-	}
-	logger.Info("created a health comment", "pulls", relatedPullNumbers)
-	return nil
 }
 
 func generateCommentOnHealthChanged(e HealthChangedEvent) string {
-	revision := e.Application.Status.OperationState.Operation.Sync.Revision
+	revision := argocd.GetDeployedRevision(e.Application)
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
 	switch e.Application.Status.Health.Status {
 	case health.HealthStatusHealthy:
@@ -153,6 +121,27 @@ func generateCommentOnHealthChanged(e HealthChangedEvent) string {
 		)
 	}
 	return ""
+}
+
+func (c client) CreateComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error {
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"revision", comment.Revision,
+		"repository", comment.GitHubRepository,
+	)
+	pulls, err := c.ghc.ListPullRequests(ctx, comment.GitHubRepository, comment.Revision)
+	if err != nil {
+		return fmt.Errorf("unable to list pull requests of revision %s: %w", comment.Revision, err)
+	}
+	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, app)
+	if len(relatedPullNumbers) == 0 {
+		logger.Info("no pull request related to the revision")
+		return nil
+	}
+	if err := c.createComment(ctx, comment.GitHubRepository, relatedPullNumbers, comment.Body); err != nil {
+		return fmt.Errorf("unable to create a phase comment on revision %s: %w", comment.Revision, err)
+	}
+	logger.Info("created a phase comment", "pulls", relatedPullNumbers)
+	return nil
 }
 
 func (c client) createComment(ctx context.Context, repository github.Repository, pullNumbers []int, body string) error {

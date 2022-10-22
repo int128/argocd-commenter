@@ -82,7 +82,12 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		Application: app,
 		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, e, deploymentURL); err != nil {
+	ds := notification.NewDeploymentStatusOnPhaseChanged(e)
+	if ds == nil {
+		logger.Info("no deployment status on this phase event")
+		return ctrl.Result{}, nil
+	}
+	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
 		logger.Error(err, "unable to create a deployment status")
 	}
 	return ctrl.Result{}, nil

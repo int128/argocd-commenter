@@ -23,11 +23,8 @@ type DeletionEvent struct {
 }
 
 type Client interface {
-	CreateCommentOnPhaseChanged(context.Context, PhaseChangedEvent) error
-	CreateCommentOnHealthChanged(context.Context, HealthChangedEvent) error
-	CreateDeploymentStatusOnPhaseChanged(context.Context, PhaseChangedEvent, string) error
-	CreateDeploymentStatusOnHealthChanged(context.Context, HealthChangedEvent, string) error
-	CreateDeploymentStatusOnDeletion(context.Context, DeletionEvent, string) error
+	CreateComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error
+	CreateDeployment(ctx context.Context, ds DeploymentStatus) error
 }
 
 func NewClient(ghc github.Client) Client {

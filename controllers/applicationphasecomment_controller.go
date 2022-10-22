@@ -64,7 +64,12 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 		Application: app,
 		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.CreateCommentOnPhaseChanged(ctx, e); err != nil {
+	comment := notification.NewCommentOnOnPhaseChanged(e)
+	if comment == nil {
+		logger.Info("no comment on this phase event")
+		return ctrl.Result{}, nil
+	}
+	if err := r.Notification.CreateComment(ctx, *comment, app); err != nil {
 		logger.Error(err, "unable to create a comment")
 	}
 	return ctrl.Result{}, nil

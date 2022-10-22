@@ -90,7 +90,12 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		Application: app,
 		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.CreateCommentOnHealthChanged(ctx, e); err != nil {
+	comment := notification.NewCommentOnOnHealthChanged(e)
+	if comment == nil {
+		logger.Info("no comment on this health event")
+		return ctrl.Result{}, nil
+	}
+	if err := r.Notification.CreateComment(ctx, *comment, app); err != nil {
 		logger.Error(err, "unable to create a comment")
 	}
 
