@@ -24,7 +24,9 @@ import (
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,11 +36,13 @@ import (
 type ApplicationDeletionDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
 	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -71,12 +75,17 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	}
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
 		logger.Error(err, "unable to create a deployment status")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
+			"unable to create a deployment status: %s", err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status")
 	}
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationDeletionDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("application-deletion-deployment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationDeletionDeployment").
 		For(&argocdv1alpha1.Application{}).
