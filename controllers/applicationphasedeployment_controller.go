@@ -53,10 +53,6 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
-	if app.Status.OperationState == nil {
-		logger.Info("skip notification due to application.status.operationState == nil")
-		return ctrl.Result{}, nil
-	}
 	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
@@ -105,18 +101,18 @@ func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager
 type applicationPhaseDeploymentFilter struct{}
 
 func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationNew.Status.OperationState == nil {
+	phaseOld, phaseNew := argocd.GetOperationPhase(applicationOld), argocd.GetOperationPhase(applicationNew)
+	if phaseNew == "" {
 		return false
 	}
-	if applicationOld.Status.OperationState != nil &&
-		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
+	if phaseOld == phaseNew {
 		return false
 	}
 	if argocd.GetDeploymentURL(applicationNew) == "" {
 		return false
 	}
 
-	switch applicationNew.Status.OperationState.Phase {
+	switch phaseNew {
 	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
 		return true
 	}

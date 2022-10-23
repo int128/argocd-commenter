@@ -2,6 +2,7 @@ package argocd
 
 import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 )
 
 // GetDeployedRevision returns the last synced revision
@@ -21,4 +22,11 @@ func GetDeploymentURL(a argocdv1alpha1.Application) string {
 		return ""
 	}
 	return a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
+}
+
+func GetOperationPhase(a argocdv1alpha1.Application) synccommon.OperationPhase {
+	if a.Status.OperationState == nil {
+		return ""
+	}
+	return a.Status.OperationState.Phase
 }

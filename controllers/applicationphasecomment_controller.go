@@ -51,10 +51,6 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
-	if app.Status.OperationState == nil {
-		logger.Info("skip notification due to application.status.operationState == nil")
-		return ctrl.Result{}, nil
-	}
 
 	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -87,15 +83,15 @@ func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) e
 type applicationPhaseCommentFilter struct{}
 
 func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationNew.Status.OperationState == nil {
+	phaseOld, phaseNew := argocd.GetOperationPhase(applicationOld), argocd.GetOperationPhase(applicationNew)
+	if phaseNew == "" {
 		return false
 	}
-	if applicationOld.Status.OperationState != nil &&
-		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
+	if phaseOld == phaseNew {
 		return false
 	}
 
-	switch applicationNew.Status.OperationState.Phase {
+	switch phaseNew {
 	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
 		return true
 	}

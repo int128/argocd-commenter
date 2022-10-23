@@ -33,20 +33,18 @@ func NewDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *DeploymentStatus {
 }
 
 func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.DeploymentStatus {
-	if e.Application.Status.OperationState == nil {
+	phase := argocd.GetOperationPhase(e.Application)
+	if phase == "" {
 		return nil
 	}
 	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
+		LogURL:      fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
+		Description: trimDescription(fmt.Sprintf("%s:\n%s", phase, e.Application.Status.OperationState.Message)),
 	}
 	if len(e.Application.Status.Summary.ExternalURLs) > 0 {
 		ds.EnvironmentURL = e.Application.Status.Summary.ExternalURLs[0]
 	}
-	ds.Description = trimDescription(fmt.Sprintf("%s:\n%s",
-		e.Application.Status.OperationState.Phase,
-		e.Application.Status.OperationState.Message,
-	))
-	switch e.Application.Status.OperationState.Phase {
+	switch phase {
 	case synccommon.OperationRunning:
 		ds.State = "queued"
 		return &ds
