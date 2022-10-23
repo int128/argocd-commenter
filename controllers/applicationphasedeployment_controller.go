@@ -105,18 +105,18 @@ func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager
 type applicationPhaseDeploymentFilter struct{}
 
 func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationNew.Status.OperationState == nil {
+	phaseOld, phaseNew := argocd.GetOperationPhase(applicationOld), argocd.GetOperationPhase(applicationNew)
+	if phaseNew == "" {
 		return false
 	}
-	if applicationOld.Status.OperationState != nil &&
-		applicationOld.Status.OperationState.Phase == applicationNew.Status.OperationState.Phase {
+	if phaseOld == phaseNew {
 		return false
 	}
 	if argocd.GetDeploymentURL(applicationNew) == "" {
 		return false
 	}
 
-	switch applicationNew.Status.OperationState.Phase {
+	switch phaseNew {
 	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
 		return true
 	}

@@ -41,20 +41,21 @@ func NewCommentOnOnPhaseChanged(e PhaseChangedEvent) *Comment {
 }
 
 func generateCommentOnPhaseChanged(e PhaseChangedEvent) string {
-	if e.Application.Status.OperationState == nil {
+	phase := argocd.GetOperationPhase(e.Application)
+	if phase == "" {
 		return ""
 	}
 	revision := argocd.GetDeployedRevision(e.Application)
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
 
-	switch e.Application.Status.OperationState.Phase {
+	switch phase {
 	case synccommon.OperationRunning:
 		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
 	case synccommon.OperationSucceeded:
 		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
 	case synccommon.OperationFailed, synccommon.OperationError:
 		return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
-			e.Application.Status.OperationState.Phase,
+			phase,
 			e.Application.Name,
 			argocdApplicationURL,
 			revision,
