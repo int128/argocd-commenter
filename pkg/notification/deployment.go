@@ -7,42 +7,40 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
+	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
-func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, e PhaseChangedEvent, deploymentURL string) error {
+type DeploymentStatus struct {
+	GitHubDeployment       github.Deployment
+	GitHubDeploymentStatus github.DeploymentStatus
+}
+
+func NewDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *DeploymentStatus {
+	deploymentURL := argocd.GetDeploymentURL(e.Application)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	logger := logr.FromContextOrDiscard(ctx).WithValues(
-		"phase", e.Application.Status.OperationState.Phase,
-		"deployment", deploymentURL,
-	)
-
 	ds := generateDeploymentStatusOnPhaseChanged(e)
 	if ds == nil {
-		logger.Info("no deployment status on this phase")
 		return nil
 	}
-
-	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status of %s on phase changed: %w", ds.State, err)
+	return &DeploymentStatus{
+		GitHubDeployment:       *deployment,
+		GitHubDeploymentStatus: *ds,
 	}
-	logger.Info("created a deployment status", "state", ds.State)
-	return nil
 }
 
 func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.DeploymentStatus {
+	if e.Application.Status.OperationState == nil {
+		return nil
+	}
 	ds := github.DeploymentStatus{
 		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
 	}
 	if len(e.Application.Status.Summary.ExternalURLs) > 0 {
 		ds.EnvironmentURL = e.Application.Status.Summary.ExternalURLs[0]
-	}
-
-	if e.Application.Status.OperationState == nil {
-		return nil
 	}
 	ds.Description = trimDescription(fmt.Sprintf("%s:\n%s",
 		e.Application.Status.OperationState.Phase,
@@ -71,27 +69,20 @@ func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.Deploym
 	return nil
 }
 
-func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, e HealthChangedEvent, deploymentURL string) error {
+func NewDeploymentStatusOnHealthChanged(e HealthChangedEvent) *DeploymentStatus {
+	deploymentURL := argocd.GetDeploymentURL(e.Application)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	logger := logr.FromContextOrDiscard(ctx).WithValues(
-		"health", e.Application.Status.Health.Status,
-		"deployment", deploymentURL,
-	)
-
 	ds := generateHealthDeploymentStatus(e)
 	if ds == nil {
-		logger.Info("no deployment status on this health status")
 		return nil
 	}
-
-	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, *ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status of %s on health changed: %w", ds.State, err)
+	return &DeploymentStatus{
+		GitHubDeployment:       *deployment,
+		GitHubDeploymentStatus: *ds,
 	}
-	logger.Info("created a deployment status", "state", ds.State)
-	return nil
 }
 
 func generateHealthDeploymentStatus(e HealthChangedEvent) *github.DeploymentStatus {
@@ -116,21 +107,20 @@ func generateHealthDeploymentStatus(e HealthChangedEvent) *github.DeploymentStat
 	return nil
 }
 
-func (c client) CreateDeploymentStatusOnDeletion(ctx context.Context, e DeletionEvent, deploymentURL string) error {
+func NewDeploymentStatusOnDeletion(e DeletionEvent) *DeploymentStatus {
+	deploymentURL := argocd.GetDeploymentURL(e.Application)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	logger := logr.FromContextOrDiscard(ctx).WithValues("deployment", deploymentURL)
 	ds := github.DeploymentStatus{
 		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
 		State:  "inactive",
 	}
-	if err := c.ghc.CreateDeploymentStatus(ctx, *deployment, ds); err != nil {
-		return fmt.Errorf("unable to create a deployment status of %s on application deletion: %w", ds.State, err)
+	return &DeploymentStatus{
+		GitHubDeployment:       *deployment,
+		GitHubDeploymentStatus: ds,
 	}
-	logger.Info("created a deployment status", "state", ds.State)
-	return nil
 }
 
 func trimDescription(s string) string {
@@ -140,4 +130,16 @@ func trimDescription(s string) string {
 		return s
 	}
 	return s[0:139]
+}
+
+func (c client) CreateDeployment(ctx context.Context, ds DeploymentStatus) error {
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"deployment", ds.GitHubDeployment,
+		"state", ds.GitHubDeploymentStatus.State,
+	)
+	if err := c.ghc.CreateDeploymentStatus(ctx, ds.GitHubDeployment, ds.GitHubDeploymentStatus); err != nil {
+		return fmt.Errorf("unable to create a deployment status of %s: %w", ds.GitHubDeploymentStatus.State, err)
+	}
+	logger.Info("created a deployment status")
+	return nil
 }

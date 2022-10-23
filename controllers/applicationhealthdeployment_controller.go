@@ -99,7 +99,12 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		Application: app,
 		ArgoCDURL:   argoCDURL,
 	}
-	if err := r.Notification.CreateDeploymentStatusOnHealthChanged(ctx, e, deploymentURL); err != nil {
+	ds := notification.NewDeploymentStatusOnHealthChanged(e)
+	if ds == nil {
+		logger.Info("no deployment status on this health event")
+		return ctrl.Result{}, nil
+	}
+	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
 		if notification.IsNotFoundError(err) {
 			// Retry until the application is synced with a valid GitHub Deployment.
 			// https://github.com/int128/argocd-commenter/issues/762
