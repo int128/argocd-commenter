@@ -58,7 +58,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if !app.DeletionTimestamp.IsZero() {
-		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
 	deploymentURL := argocd.GetDeploymentURL(app)
@@ -91,15 +90,14 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
+	argoCDURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.HealthChangedEvent{
+	ds := notification.NewDeploymentStatusOnHealthChanged(notification.HealthChangedEvent{
 		Application: app,
 		ArgoCDURL:   argoCDURL,
-	}
-	ds := notification.NewDeploymentStatusOnHealthChanged(e)
+	})
 	if ds == nil {
 		logger.Info("no deployment status on this health event")
 		return ctrl.Result{}, nil

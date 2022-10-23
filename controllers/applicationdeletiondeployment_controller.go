@@ -60,15 +60,14 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	)
 	ctx = log.IntoContext(ctx, logger)
 
-	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
+	argoCDURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.DeletionEvent{
+	ds := notification.NewDeploymentStatusOnDeletion(notification.DeletionEvent{
 		Application: app,
 		ArgoCDURL:   argoCDURL,
-	}
-	ds := notification.NewDeploymentStatusOnDeletion(e)
+	})
 	if ds == nil {
 		logger.Info("no deployment status on this event")
 		return ctrl.Result{}, nil
