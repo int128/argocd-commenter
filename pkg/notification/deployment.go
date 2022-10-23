@@ -133,10 +133,13 @@ func trimDescription(s string) string {
 }
 
 func (c client) CreateDeployment(ctx context.Context, ds DeploymentStatus) error {
-	logger := logr.FromContextOrDiscard(ctx).WithValues("deployment", ds.GitHubDeployment)
+	logger := logr.FromContextOrDiscard(ctx).WithValues(
+		"deployment", ds.GitHubDeployment,
+		"state", ds.GitHubDeploymentStatus.State,
+	)
 	if err := c.ghc.CreateDeploymentStatus(ctx, ds.GitHubDeployment, ds.GitHubDeploymentStatus); err != nil {
-		return fmt.Errorf("unable to create a deployment status of %s on phase changed: %w", ds.GitHubDeploymentStatus.State, err)
+		return fmt.Errorf("unable to create a deployment status of %s: %w", ds.GitHubDeploymentStatus.State, err)
 	}
-	logger.Info("created a deployment status", "state", ds.GitHubDeploymentStatus.State)
+	logger.Info("created a deployment status")
 	return nil
 }

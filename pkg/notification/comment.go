@@ -138,9 +138,9 @@ func (c client) CreateComment(ctx context.Context, comment Comment, app argocdv1
 		return nil
 	}
 	if err := c.createComment(ctx, comment.GitHubRepository, relatedPullNumbers, comment.Body); err != nil {
-		return fmt.Errorf("unable to create a phase comment on revision %s: %w", comment.Revision, err)
+		return fmt.Errorf("unable to create comment(s) on revision %s: %w", comment.Revision, err)
 	}
-	logger.Info("created a phase comment", "pulls", relatedPullNumbers)
+	logger.Info("created comment(s)", "pulls", relatedPullNumbers)
 	return nil
 }
 
