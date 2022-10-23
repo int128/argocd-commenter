@@ -51,10 +51,6 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
-	if app.Status.OperationState == nil {
-		logger.Info("skip notification due to application.status.operationState == nil")
-		return ctrl.Result{}, nil
-	}
 
 	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {

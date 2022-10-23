@@ -53,10 +53,6 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
-	if app.Status.OperationState == nil {
-		logger.Info("skip notification due to application.status.operationState == nil")
-		return ctrl.Result{}, nil
-	}
 	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
