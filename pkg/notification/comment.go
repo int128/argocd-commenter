@@ -20,16 +20,16 @@ type Comment struct {
 	Body             string
 }
 
-func NewCommentOnOnPhaseChanged(e PhaseChangedEvent) *Comment {
-	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
+func NewCommentOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
+	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
-	revision := argocd.GetDeployedRevision(e.Application)
+	revision := argocd.GetDeployedRevision(app)
 	if revision == "" {
 		return nil
 	}
-	body := generateCommentOnPhaseChanged(e)
+	body := generateCommentOnPhaseChanged(app, argocdURL)
 	if body == "" {
 		return nil
 	}
@@ -40,37 +40,37 @@ func NewCommentOnOnPhaseChanged(e PhaseChangedEvent) *Comment {
 	}
 }
 
-func generateCommentOnPhaseChanged(e PhaseChangedEvent) string {
-	phase := argocd.GetOperationPhase(e.Application)
+func generateCommentOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) string {
+	phase := argocd.GetOperationPhase(app)
 	if phase == "" {
 		return ""
 	}
-	revision := argocd.GetDeployedRevision(e.Application)
-	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
+	revision := argocd.GetDeployedRevision(app)
+	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argocdURL, app.Name)
 
 	switch phase {
 	case synccommon.OperationRunning:
-		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
+		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", app.Name, argocdApplicationURL, revision)
 	case synccommon.OperationSucceeded:
-		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", e.Application.Name, argocdApplicationURL, revision)
+		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", app.Name, argocdApplicationURL, revision)
 	case synccommon.OperationFailed, synccommon.OperationError:
 		return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
 			phase,
-			e.Application.Name,
+			app.Name,
 			argocdApplicationURL,
 			revision,
-			generateSyncResultComment(e),
+			generateSyncResultComment(app),
 		)
 	}
 	return ""
 }
 
-func generateSyncResultComment(e PhaseChangedEvent) string {
-	if e.Application.Status.OperationState.SyncResult == nil {
+func generateSyncResultComment(app argocdv1alpha1.Application) string {
+	if app.Status.OperationState.SyncResult == nil {
 		return ""
 	}
 	var b strings.Builder
-	for _, r := range e.Application.Status.OperationState.SyncResult.Resources {
+	for _, r := range app.Status.OperationState.SyncResult.Resources {
 		namespacedName := r.Namespace + "/" + r.Name
 		switch r.Status {
 		case synccommon.ResultCodeSyncFailed, synccommon.ResultCodePruneSkipped:
@@ -80,16 +80,16 @@ func generateSyncResultComment(e PhaseChangedEvent) string {
 	return b.String()
 }
 
-func NewCommentOnOnHealthChanged(e HealthChangedEvent) *Comment {
-	repository := github.ParseRepositoryURL(e.Application.Spec.Source.RepoURL)
+func NewCommentOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
+	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
-	revision := argocd.GetDeployedRevision(e.Application)
+	revision := argocd.GetDeployedRevision(app)
 	if revision == "" {
 		return nil
 	}
-	body := generateCommentOnHealthChanged(e)
+	body := generateCommentOnHealthChanged(app, argocdURL)
 	if body == "" {
 		return nil
 	}
@@ -100,23 +100,23 @@ func NewCommentOnOnHealthChanged(e HealthChangedEvent) *Comment {
 	}
 }
 
-func generateCommentOnHealthChanged(e HealthChangedEvent) string {
-	revision := argocd.GetDeployedRevision(e.Application)
-	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name)
-	switch e.Application.Status.Health.Status {
+func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) string {
+	revision := argocd.GetDeployedRevision(app)
+	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argocdURL, app.Name)
+	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
 		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
 			":white_check_mark:",
-			e.Application.Status.Health.Status,
-			e.Application.Name,
+			app.Status.Health.Status,
+			app.Name,
 			argocdApplicationURL,
 			revision,
 		)
 	case health.HealthStatusDegraded:
 		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
 			":x:",
-			e.Application.Status.Health.Status,
-			e.Application.Name,
+			app.Status.Health.Status,
+			app.Name,
 			argocdApplicationURL,
 			revision,
 		)

@@ -48,19 +48,14 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if !app.DeletionTimestamp.IsZero() {
-		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.PhaseChangedEvent{
-		Application: app,
-		ArgoCDURL:   argoCDURL,
-	}
-	comment := notification.NewCommentOnOnPhaseChanged(e)
+	comment := notification.NewCommentOnOnPhaseChanged(app, argocdURL)
 	if comment == nil {
 		logger.Info("no comment on this phase event")
 		return ctrl.Result{}, nil

@@ -53,7 +53,6 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if !app.DeletionTimestamp.IsZero() {
-		logger.Info("skip notification because the application is deleting")
 		return ctrl.Result{}, nil
 	}
 	deployedRevision := argocd.GetDeployedRevision(app)
@@ -82,15 +81,11 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := argocd.FindExternalURL(ctx, r.Client, req.Namespace)
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	e := notification.HealthChangedEvent{
-		Application: app,
-		ArgoCDURL:   argoCDURL,
-	}
-	comment := notification.NewCommentOnOnHealthChanged(e)
+	comment := notification.NewCommentOnOnHealthChanged(app, argocdURL)
 	if comment == nil {
 		logger.Info("no comment on this health event")
 		return ctrl.Result{}, nil

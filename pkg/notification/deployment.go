@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
@@ -16,13 +17,13 @@ type DeploymentStatus struct {
 	GitHubDeploymentStatus github.DeploymentStatus
 }
 
-func NewDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(e.Application)
+func NewDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
+	deploymentURL := argocd.GetDeploymentURL(app)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	ds := generateDeploymentStatusOnPhaseChanged(e)
+	ds := generateDeploymentStatusOnPhaseChanged(app, argocdURL)
 	if ds == nil {
 		return nil
 	}
@@ -32,17 +33,17 @@ func NewDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *DeploymentStatus {
 	}
 }
 
-func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.DeploymentStatus {
-	phase := argocd.GetOperationPhase(e.Application)
+func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
+	phase := argocd.GetOperationPhase(app)
 	if phase == "" {
 		return nil
 	}
 	ds := github.DeploymentStatus{
-		LogURL:      fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
-		Description: trimDescription(fmt.Sprintf("%s:\n%s", phase, e.Application.Status.OperationState.Message)),
+		LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+		Description: trimDescription(fmt.Sprintf("%s:\n%s", phase, app.Status.OperationState.Message)),
 	}
-	if len(e.Application.Status.Summary.ExternalURLs) > 0 {
-		ds.EnvironmentURL = e.Application.Status.Summary.ExternalURLs[0]
+	if len(app.Status.Summary.ExternalURLs) > 0 {
+		ds.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
 	}
 	switch phase {
 	case synccommon.OperationRunning:
@@ -51,7 +52,7 @@ func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.Deploym
 	case synccommon.OperationSucceeded:
 		// Some resources (such as CronJob) do not trigger Progressing status.
 		// If healthy, complete the deployment as success.
-		if e.Application.Status.Health.Status == health.HealthStatusHealthy {
+		if app.Status.Health.Status == health.HealthStatusHealthy {
 			ds.State = "success"
 			return &ds
 		}
@@ -67,13 +68,13 @@ func generateDeploymentStatusOnPhaseChanged(e PhaseChangedEvent) *github.Deploym
 	return nil
 }
 
-func NewDeploymentStatusOnHealthChanged(e HealthChangedEvent) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(e.Application)
+func NewDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
+	deploymentURL := argocd.GetDeploymentURL(app)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	ds := generateHealthDeploymentStatus(e)
+	ds := generateHealthDeploymentStatus(app, argocdURL)
 	if ds == nil {
 		return nil
 	}
@@ -83,18 +84,18 @@ func NewDeploymentStatusOnHealthChanged(e HealthChangedEvent) *DeploymentStatus 
 	}
 }
 
-func generateHealthDeploymentStatus(e HealthChangedEvent) *github.DeploymentStatus {
+func generateHealthDeploymentStatus(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
 	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
+		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
 	}
-	if len(e.Application.Status.Summary.ExternalURLs) > 0 {
-		ds.EnvironmentURL = e.Application.Status.Summary.ExternalURLs[0]
+	if len(app.Status.Summary.ExternalURLs) > 0 {
+		ds.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
 	}
 	ds.Description = trimDescription(fmt.Sprintf("%s:\n%s",
-		e.Application.Status.Health.Status,
-		e.Application.Status.Health.Message,
+		app.Status.Health.Status,
+		app.Status.Health.Message,
 	))
-	switch e.Application.Status.Health.Status {
+	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
 		ds.State = "success"
 		return &ds
@@ -105,14 +106,14 @@ func generateHealthDeploymentStatus(e HealthChangedEvent) *github.DeploymentStat
 	return nil
 }
 
-func NewDeploymentStatusOnDeletion(e DeletionEvent) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(e.Application)
+func NewDeploymentStatusOnDeletion(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
+	deploymentURL := argocd.GetDeploymentURL(app)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
 	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", e.ArgoCDURL, e.Application.Name),
+		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
 		State:  "inactive",
 	}
 	return &DeploymentStatus{
