@@ -69,14 +69,11 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnPhaseChanged(notification.PhaseChangedEvent{
-		Application: app,
-		ArgoCDURL:   argoCDURL,
-	})
+	ds := notification.NewDeploymentStatusOnPhaseChanged(app, argocdURL)
 	if ds == nil {
 		logger.Info("no deployment status on this phase event")
 		return ctrl.Result{}, nil

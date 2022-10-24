@@ -51,14 +51,11 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	comment := notification.NewCommentOnOnPhaseChanged(notification.PhaseChangedEvent{
-		Application: app,
-		ArgoCDURL:   argoCDURL,
-	})
+	comment := notification.NewCommentOnOnPhaseChanged(app, argocdURL)
 	if comment == nil {
 		logger.Info("no comment on this phase event")
 		return ctrl.Result{}, nil

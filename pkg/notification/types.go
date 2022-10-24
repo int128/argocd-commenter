@@ -7,21 +7,6 @@ import (
 	"github.com/int128/argocd-commenter/pkg/github"
 )
 
-type PhaseChangedEvent struct {
-	Application argocdv1alpha1.Application
-	ArgoCDURL   string
-}
-
-type HealthChangedEvent struct {
-	Application argocdv1alpha1.Application
-	ArgoCDURL   string
-}
-
-type DeletionEvent struct {
-	Application argocdv1alpha1.Application
-	ArgoCDURL   string
-}
-
 type Client interface {
 	CreateComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error
 	CreateDeployment(ctx context.Context, ds DeploymentStatus) error

@@ -81,14 +81,11 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
-	argoCDURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	comment := notification.NewCommentOnOnHealthChanged(notification.HealthChangedEvent{
-		Application: app,
-		ArgoCDURL:   argoCDURL,
-	})
+	comment := notification.NewCommentOnOnHealthChanged(app, argocdURL)
 	if comment == nil {
 		logger.Info("no comment on this health event")
 		return ctrl.Result{}, nil
