@@ -50,12 +50,6 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 		ds.State = "queued"
 		return &ds
 	case synccommon.OperationSucceeded:
-		// Some resources (such as CronJob) do not trigger Progressing status.
-		// If healthy, complete the deployment as success.
-		if app.Status.Health.Status == health.HealthStatusHealthy {
-			ds.State = "success"
-			return &ds
-		}
 		ds.State = "in_progress"
 		return &ds
 	case synccommon.OperationFailed:
