@@ -26,9 +26,11 @@ import (
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,6 +44,7 @@ var (
 type ApplicationHealthDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
 	Notification notification.Client
 }
 
@@ -49,6 +52,7 @@ type ApplicationHealthDeploymentReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -104,9 +108,15 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 			// Retry until the application is synced with a valid GitHub Deployment.
 			// https://github.com/int128/argocd-commenter/issues/762
 			logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+				"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
 			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
 		}
 		logger.Error(err, "unable to create a deployment status")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
+			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
@@ -119,11 +129,14 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	logger.Info("patched lastHealthyDeploymentURL of ApplicationHealth")
+	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdateLastHealthyDeploymentURL",
+		"patched lastHealthyDeploymentURL to %s", deploymentURL)
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("application-health-deployment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthDeployment").
 		For(&argocdv1alpha1.Application{}).

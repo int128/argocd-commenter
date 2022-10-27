@@ -25,8 +25,10 @@ import (
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,11 +38,13 @@ import (
 type ApplicationPhaseDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
 	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -56,6 +60,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
+	phase := argocd.GetOperationPhase(app)
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
@@ -75,17 +80,22 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	}
 	ds := notification.NewDeploymentStatusOnPhaseChanged(app, argocdURL)
 	if ds == nil {
-		logger.Info("no deployment status on this phase event")
+		logger.Info("no deployment status on this phase event", "phase", phase)
 		return ctrl.Result{}, nil
 	}
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
 		logger.Error(err, "unable to create a deployment status")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
+			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
 	}
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("application-phase-deployment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseDeployment").
 		For(&argocdv1alpha1.Application{}).

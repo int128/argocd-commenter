@@ -24,7 +24,9 @@ import (
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,11 +36,13 @@ import (
 type ApplicationPhaseCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
 	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -50,6 +54,7 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
+	phase := argocd.GetOperationPhase(app)
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -57,17 +62,22 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	}
 	comment := notification.NewCommentOnOnPhaseChanged(app, argocdURL)
 	if comment == nil {
-		logger.Info("no comment on this phase event")
+		logger.Info("no comment on this phase event", "phase", phase)
 		return ctrl.Result{}, nil
 	}
 	if err := r.Notification.CreateComment(ctx, *comment, app); err != nil {
 		logger.Error(err, "unable to create a comment")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+			"unable to create a comment by %s: %s", phase, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", phase)
 	}
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("application-phase-comment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseComment").
 		For(&argocdv1alpha1.Application{}).
