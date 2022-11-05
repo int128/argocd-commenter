@@ -5,11 +5,10 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
-	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
+	"github.com/google/go-github/v47/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -46,6 +45,8 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When an application is healthy", func() {
 		It("Should notify a deployment status once", func() {
+			githubMock.DeploymentStatuses.SetResponse(999300, []*github.DeploymentStatus{})
+
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Annotations = map[string]string{
@@ -93,6 +94,8 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When an application is degraded and then healthy", func() {
 		It("Should notify a deployment status for degraded and healthy", func() {
+			githubMock.DeploymentStatuses.SetResponse(999301, []*github.DeploymentStatus{})
+
 			By("By updating the health status to progressing")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Annotations = map[string]string{
@@ -135,7 +138,7 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When an application is healthy but deployment is still old", func() {
 		It("Should notify a deployment status when deployment is valid", func() {
-			requeueIntervalWhenDeploymentNotFound = 1 * time.Second
+			githubMock.DeploymentStatuses.SetResponse(999302, []*github.DeploymentStatus{})
 
 			By("By updating the health status to progressing")
 			app.Annotations = map[string]string{
@@ -170,12 +173,6 @@ var _ = Describe("Application health deployment controller", func() {
 			Eventually(func() int {
 				return githubMock.DeploymentStatuses.CountBy(999302)
 			}, timeout, interval).Should(Equal(1))
-
-			Eventually(func() string {
-				var appHealth argocdcommenterv1.ApplicationHealth
-				Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, &appHealth)).Should(Succeed())
-				return appHealth.Status.LastHealthyDeploymentURL
-			}, timeout, interval).Should(Equal("https://api.github.com/repos/int128/manifests/deployments/999302"))
 		})
 	})
 })

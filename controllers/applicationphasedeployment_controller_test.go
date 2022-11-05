@@ -6,6 +6,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/google/go-github/v47/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +47,8 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a deployment status", func() {
+			githubMock.DeploymentStatuses.SetResponse(999100, []*github.DeploymentStatus{})
+
 			By("By updating the operation state to running")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Annotations = map[string]string{
@@ -81,6 +84,8 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a deployment status", func() {
+			githubMock.DeploymentStatuses.SetResponse(999101, []*github.DeploymentStatus{})
+
 			By("By updating the operation state to running")
 			patch := client.MergeFrom(app.DeepCopy())
 			app.Annotations = map[string]string{
@@ -116,6 +121,8 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is re-synced", func() {
 		It("Should skip the notification", func() {
+			githubMock.DeploymentStatuses.SetResponse(999102, []*github.DeploymentStatus{})
+
 			By("By updating the operation state to succeeded")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999102",

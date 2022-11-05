@@ -136,3 +136,18 @@ func (c client) CreateDeployment(ctx context.Context, ds DeploymentStatus) error
 	logger.Info("created a deployment status")
 	return nil
 }
+
+func (c client) CheckIfDeploymentIsAlreadyHealthy(ctx context.Context, deploymentURL string) (bool, error) {
+	deployment := github.ParseDeploymentURL(deploymentURL)
+	if deployment == nil {
+		return false, nil
+	}
+	latestDeploymentStatus, err := c.ghc.FindLatestDeploymentStatus(ctx, *deployment)
+	if err != nil {
+		return false, fmt.Errorf("unable to find the latest deployment status: %w", err)
+	}
+	if latestDeploymentStatus == nil {
+		return false, nil
+	}
+	return latestDeploymentStatus.State == "success", nil
+}

@@ -57,3 +57,20 @@ func (c *client) CreateDeploymentStatus(ctx context.Context, d Deployment, ds De
 	}
 	return nil
 }
+
+func (c *client) FindLatestDeploymentStatus(ctx context.Context, d Deployment) (*DeploymentStatus, error) {
+	r, _, err := c.rest.Repositories.ListDeploymentStatuses(ctx, d.Repository.Owner, d.Repository.Name, d.Id, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GitHub API error: %w", err)
+	}
+	if len(r) == 0 {
+		return nil, nil
+	}
+	ds := r[0]
+	return &DeploymentStatus{
+		State:          ds.GetState(),
+		Description:    ds.GetDescription(),
+		LogURL:         ds.GetLogURL(),
+		EnvironmentURL: ds.GetEnvironmentURL(),
+	}, nil
+}
