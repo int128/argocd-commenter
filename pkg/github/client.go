@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/google/go-github/v47/github"
+	"github.com/gregjones/httpcache"
 	"github.com/int128/oauth2-github-app"
 	"golang.org/x/oauth2"
 )
@@ -16,6 +17,8 @@ type client struct {
 }
 
 func NewClient(ctx context.Context) (Client, error) {
+	transport := httpcache.NewMemoryCacheTransport()
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, transport)
 	oauth2Client, err := newOAuth2Client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not create an OAuth2 client: %w", err)
