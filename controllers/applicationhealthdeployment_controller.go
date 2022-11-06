@@ -68,6 +68,19 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
+	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
+	if notification.IsNotFoundError(err) {
+		// Retry until the application is synced with a valid GitHub Deployment.
+		// https://github.com/int128/argocd-commenter/issues/762
+		logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+			"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
+		return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
+	}
+	if deploymentIsAlreadyHealthy {
+		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
+		return ctrl.Result{}, nil
+	}
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
@@ -89,10 +102,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		}
 		logger.Info("created an ApplicationHealth")
 	}
-	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
-		return ctrl.Result{}, nil
-	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -104,33 +113,12 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
-		if notification.IsNotFoundError(err) {
-			// Retry until the application is synced with a valid GitHub Deployment.
-			// https://github.com/int128/argocd-commenter/issues/762
-			logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
-				"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
-			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
-		}
 		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
 			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
 	}
-
-	if app.Status.Health.Status != health.HealthStatusHealthy {
-		return ctrl.Result{}, nil
-	}
-	patch := client.MergeFrom(appHealth.DeepCopy())
-	appHealth.Status.LastHealthyDeploymentURL = deploymentURL
-	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-		logger.Error(err, "unable to patch lastHealthyDeploymentURL of ApplicationHealth")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	logger.Info("patched lastHealthyDeploymentURL of ApplicationHealth")
-	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdateLastHealthyDeploymentURL",
-		"patched lastHealthyDeploymentURL to %s", deploymentURL)
 	return ctrl.Result{}, nil
 }
 

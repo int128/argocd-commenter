@@ -10,6 +10,7 @@ import (
 type Client interface {
 	CreateComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error
 	CreateDeployment(ctx context.Context, ds DeploymentStatus) error
+	CheckIfDeploymentIsAlreadyHealthy(ctx context.Context, deploymentURL string) (bool, error)
 }
 
 func NewClient(ghc github.Client) Client {

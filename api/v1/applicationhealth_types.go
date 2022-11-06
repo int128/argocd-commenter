@@ -32,10 +32,6 @@ type ApplicationHealthStatus struct {
 	// Last revision when the application is healthy.
 	// +optional
 	LastHealthyRevision string `json:"lastHealthyRevision,omitempty"`
-
-	// Last deployment URL when the application is healthy.
-	// +optional
-	LastHealthyDeploymentURL string `json:"lastHealthyDeploymentURL,omitempty"`
 }
 
 //+kubebuilder:object:root=true
