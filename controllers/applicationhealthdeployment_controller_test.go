@@ -8,7 +8,9 @@ import (
 	"github.com/google/go-github/v47/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Application health deployment controller", func() {
@@ -163,6 +165,36 @@ var _ = Describe("Application health deployment controller", func() {
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999303) }, timeout, interval).Should(Equal(1))
 			Expect(githubMock.DeploymentStatuses.CountBy(999302)).Should(Equal(1))
+		})
+
+		It("Should retry a deployment status until timeout", func() {
+			By("Updating the deployment annotation")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+			}
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				OperationState: &argocdv1alpha1.OperationState{
+					StartedAt: metav1.NewTime(time.Now().Add(-requeueTimeoutWhenDeploymentNotFound)),
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to progressing")
+			app.Status.Health.Status = health.HealthStatusProgressing
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				var eventList corev1.EventList
+				g.Expect(k8sClient.List(ctx, &eventList, client.MatchingFields{
+					"involvedObject.name": app.Name,
+					"reason":              "DeploymentNotFoundRetryTimeout",
+				})).Should(Succeed())
+				g.Expect(eventList.Items).Should(HaveLen(1))
+			}, timeout, interval)
 		})
 	})
 })

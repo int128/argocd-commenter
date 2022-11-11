@@ -37,8 +37,8 @@ func GetLastOperationAt(a argocdv1alpha1.Application) metav1.Time {
 	if a.Status.OperationState == nil {
 		return metav1.Time{}
 	}
-	if a.Status.OperationState.FinishedAt == nil {
-		return a.Status.OperationState.StartedAt
+	if a.Status.OperationState.FinishedAt != nil {
+		return *a.Status.OperationState.FinishedAt
 	}
-	return *a.Status.OperationState.FinishedAt
+	return a.Status.OperationState.StartedAt
 }
