@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
@@ -57,6 +58,10 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		return ctrl.Result{}, nil
 	}
 	phase := argocd.GetOperationPhase(app)
+	if phase == "" {
+		return ctrl.Result{}, nil
+	}
+
 	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
@@ -65,6 +70,11 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if notification.IsNotFoundError(err) {
 		// Retry until the application is synced with a valid GitHub Deployment.
 		// https://github.com/int128/argocd-commenter/issues/762
+		lastOperationAt := argocd.GetLastOperationAt(app)
+		if time.Now().After(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
+			logger.Info("requeue timeout because last operation is too old", "lastOperationAt", lastOperationAt)
+			return ctrl.Result{}, nil
+		}
 		logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
 			"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)

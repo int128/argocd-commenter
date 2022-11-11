@@ -37,7 +37,15 @@ import (
 )
 
 var (
+	// When the GitHub Deployment is not found, this action will retry by this interval
+	// until the application is synced with a valid GitHub Deployment.
+	// This should be reasonable to avoid the rate limit of GitHub API.
 	requeueIntervalWhenDeploymentNotFound = 30 * time.Second
+
+	// When the GitHub Deployment is not found, this action will retry by this timeout.
+	// Argo CD refreshes an application every 3 minutes by default.
+	// This should be reasonable to avoid the rate limit of GitHub API.
+	requeueTimeoutWhenDeploymentNotFound = 10 * time.Minute
 )
 
 // ApplicationHealthDeploymentReconciler reconciles an Application object
@@ -68,10 +76,16 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
+
 	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
 	if notification.IsNotFoundError(err) {
 		// Retry until the application is synced with a valid GitHub Deployment.
 		// https://github.com/int128/argocd-commenter/issues/762
+		lastOperationAt := argocd.GetLastOperationAt(app)
+		if time.Now().After(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
+			logger.Info("requeue timeout because last operation is too old", "lastOperationAt", lastOperationAt)
+			return ctrl.Result{}, nil
+		}
 		logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
 			"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)

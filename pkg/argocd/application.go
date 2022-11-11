@@ -3,6 +3,7 @@ package argocd
 import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // GetDeployedRevision returns the last synced revision
@@ -29,4 +30,15 @@ func GetOperationPhase(a argocdv1alpha1.Application) synccommon.OperationPhase {
 		return ""
 	}
 	return a.Status.OperationState.Phase
+}
+
+// GetLastOperationAt returns OperationState.FinishedAt, OperationState.StartedAt or zero Time.
+func GetLastOperationAt(a argocdv1alpha1.Application) metav1.Time {
+	if a.Status.OperationState == nil {
+		return metav1.Time{}
+	}
+	if a.Status.OperationState.FinishedAt == nil {
+		return a.Status.OperationState.StartedAt
+	}
+	return *a.Status.OperationState.FinishedAt
 }
