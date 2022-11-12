@@ -89,6 +89,8 @@ func (m *GithubMock) NewHandler() http.Handler {
 		"POST /api/v3/repos/int128/manifests/deployments/999301/statuses":                           m.createDeploymentStatus(999301),
 		"GET /api/v3/repos/int128/manifests/deployments/999302/statuses":                            m.listDeploymentStatus(999302),
 		"POST /api/v3/repos/int128/manifests/deployments/999302/statuses":                           m.createDeploymentStatus(999302),
+		"GET /api/v3/repos/int128/manifests/deployments/999303/statuses":                            m.listDeploymentStatus(999303),
+		"POST /api/v3/repos/int128/manifests/deployments/999303/statuses":                           m.createDeploymentStatus(999303),
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
