@@ -18,16 +18,15 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -62,55 +61,36 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		return ctrl.Result{}, nil
 	}
 
-	deploymentURL := argocd.GetDeploymentURL(app)
-	if deploymentURL == "" {
+	var ghd argocdcommenterv1.GitHubDeployment
+	if err := r.Client.Get(ctx, req.NamespacedName, &ghd); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if !ghd.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
-	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
-	if notification.IsNotFoundError(err) {
-		// Retry until the application is synced with a valid GitHub Deployment.
-		// https://github.com/int128/argocd-commenter/issues/762
-		lastOperationAt := argocd.GetLastOperationAt(app)
-		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
-			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
-				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
-			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
-		}
-		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
-			"deployment %s not found, retry timeout", deploymentURL)
+	if ghd.Status.LastHealthEvent.DeploymentURL == ghd.Spec.DeploymentURL &&
+		ghd.Status.LastHealthEvent.Health == health.HealthStatusHealthy {
+		logger.Info("skip notification because deployment is already healthy")
 		return ctrl.Result{}, nil
-	}
-	if deploymentIsAlreadyHealthy {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
-		return ctrl.Result{}, nil
-	}
-
-	var appHealth argocdcommenterv1.ApplicationHealth
-	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
-		if !apierrors.IsNotFound(err) {
-			logger.Error(err, "unable to get the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnPhaseChanged(app, argocdURL)
+	ds := notification.NewDeploymentStatusOnPhaseChanged(app, ghd, argocdURL)
 	if ds == nil {
 		logger.Info("no deployment status on this phase event", "phase", phase)
 		return ctrl.Result{}, nil
 	}
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
-		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
-			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
-	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
+			"unable to create a deployment status on %s event: %s", phase, err)
+		return ctrl.Result{}, err
 	}
+
+	r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment",
+		"created a deployment status on %s event", phase)
 	return ctrl.Result{}, nil
 }
 
@@ -132,9 +112,6 @@ func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew a
 		return false
 	}
 	if phaseOld == phaseNew {
-		return false
-	}
-	if argocd.GetDeploymentURL(applicationNew) == "" {
 		return false
 	}
 

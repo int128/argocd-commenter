@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -27,25 +26,12 @@ import (
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-var (
-	// When the GitHub Deployment is not found, this action will retry by this interval
-	// until the application is synced with a valid GitHub Deployment.
-	// This should be reasonable to avoid the rate limit of GitHub API.
-	requeueIntervalWhenDeploymentNotFound = 30 * time.Second
-
-	// When the GitHub Deployment is not found, this action will retry by this timeout.
-	// Argo CD refreshes an application every 3 minutes by default.
-	// This should be reasonable to avoid the rate limit of GitHub API.
-	requeueTimeoutWhenDeploymentNotFound = 10 * time.Minute
 )
 
 // ApplicationHealthDeploymentReconciler reconciles an Application object
@@ -72,68 +58,46 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
-	deploymentURL := argocd.GetDeploymentURL(app)
-	if deploymentURL == "" {
-		return ctrl.Result{}, nil
-	}
 
-	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
-	if notification.IsNotFoundError(err) {
-		// Retry until the application is synced with a valid GitHub Deployment.
-		// https://github.com/int128/argocd-commenter/issues/762
-		lastOperationAt := argocd.GetLastOperationAt(app)
-		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
-			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
-				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
-			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
-		}
-		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
-			"deployment %s not found, retry timeout", deploymentURL)
+	var ghd argocdcommenterv1.GitHubDeployment
+	if err := r.Client.Get(ctx, req.NamespacedName, &ghd); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if !ghd.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
-	if deploymentIsAlreadyHealthy {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
+	if ghd.Status.LastHealthEvent.DeploymentURL == ghd.Spec.DeploymentURL &&
+		ghd.Status.LastHealthEvent.Health == health.HealthStatusHealthy {
+		logger.Info("skip notification because deployment is already healthy")
 		return ctrl.Result{}, nil
-	}
-
-	var appHealth argocdcommenterv1.ApplicationHealth
-	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
-		if !apierrors.IsNotFound(err) {
-			logger.Error(err, "unable to get the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		appHealth.ObjectMeta = metav1.ObjectMeta{
-			Namespace: req.Namespace,
-			Name:      req.Name,
-		}
-		if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
-			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		if err := r.Client.Create(ctx, &appHealth); err != nil {
-			logger.Error(err, "unable to create an ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		logger.Info("created an ApplicationHealth")
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnHealthChanged(app, argocdURL)
+	ds := notification.NewDeploymentStatusOnHealthChanged(app, ghd, argocdURL)
 	if ds == nil {
-		logger.Info("no deployment status on this health event")
+		logger.Info("no deployment status on %s event", app.Status.Health.Status)
 		return ctrl.Result{}, nil
 	}
+
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
-		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
-			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
-	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
+			"unable to create a deployment status on %s event: %s", app.Status.Health.Status, err)
+		return ctrl.Result{}, err
+	}
+	r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment",
+		"created a deployment status on %s event", app.Status.Health.Status)
+
+	patch := client.MergeFrom(ghd.DeepCopy())
+	ghd.Status.LastHealthEvent = argocdcommenterv1.GitHubDeploymentStatusHealthEvent{
+		UpdatedAt:     metav1.Now(),
+		Health:        app.Status.Health.Status,
+		DeploymentURL: ghd.Spec.DeploymentURL,
+	}
+	if err := r.Status().Patch(ctx, &ghd, patch); err != nil {
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -152,9 +116,6 @@ type applicationHealthDeploymentFilter struct{}
 
 func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
 	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
-		return false
-	}
-	if argocd.GetDeploymentURL(applicationNew) == "" {
 		return false
 	}
 

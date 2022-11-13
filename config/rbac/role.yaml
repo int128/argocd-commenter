@@ -32,6 +32,32 @@ rules:
   - patch
   - update
 - apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - githubdeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - githubdeployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - githubdeployments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - argoproj.io
   resources:
   - applications

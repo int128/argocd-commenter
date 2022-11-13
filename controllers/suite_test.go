@@ -22,7 +22,6 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
-	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/pkg/github"
@@ -149,8 +148,6 @@ var _ = BeforeSuite(func() {
 		Notification: nc,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-
-	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
 
 	go func() {
 		defer GinkgoRecover()

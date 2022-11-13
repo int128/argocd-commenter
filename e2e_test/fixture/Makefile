@@ -18,6 +18,7 @@ push-base-branch:
 update-manifest-app1:
 	git checkout "$(FIXTURE_BASE_BRANCH)"
 	git checkout -b "$(FIXTURE_BRANCH_PREFIX)/update-manifest-app1"
+	sed -i -e 's/DEPLOYMENT_URL/$(DEPLOYMENT_URL)/g' app1/githubdeployment/app1.yaml
 	sed -i -e 's/echoserver:1.8/echoserver:1.9/g' app1/deployment/echoserver.yaml
 	git commit -a -m 'e2e-test: update-manifest-app1'
 	git push origin -f "$(FIXTURE_BRANCH_PREFIX)/update-manifest-app1"
@@ -33,6 +34,7 @@ update-manifest-app1:
 update-manifest-app2:
 	git checkout "$(FIXTURE_BASE_BRANCH)"
 	git checkout -b "$(FIXTURE_BRANCH_PREFIX)/update-manifest-app2"
+	sed -i -e 's/DEPLOYMENT_URL/$(DEPLOYMENT_URL)/g' app2/githubdeployment/app2.yaml
 	sed -i -e 's/app: echoserver/app: echoserver-test2/g' app2/deployment/echoserver.yaml
 	git commit -a -m 'e2e-test: update-manifest-app2'
 	git push origin -f "$(FIXTURE_BRANCH_PREFIX)/update-manifest-app2"
@@ -47,6 +49,7 @@ update-manifest-app2:
 update-manifest-app3:
 	git checkout "$(FIXTURE_BASE_BRANCH)"
 	git checkout -b "$(FIXTURE_BRANCH_PREFIX)/update-manifest-app3"
+	sed -i -e 's/DEPLOYMENT_URL/$(DEPLOYMENT_URL)/g' app3/githubdeployment/app3.yaml
 	sed -i -e 's/busybox:1.28/busybox:1.30/g' app3/cronjob/echoserver.yaml
 	git commit -a -m 'e2e-test: update-manifest-app3'
 	git push origin -f "$(FIXTURE_BRANCH_PREFIX)/update-manifest-app3"
