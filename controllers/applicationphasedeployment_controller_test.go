@@ -7,6 +7,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/google/go-github/v47/github"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,11 +48,21 @@ var _ = Describe("Application phase controller", func() {
 		It("Should notify a deployment status", func() {
 			githubMock.DeploymentStatuses.SetResponse(999100, []*github.DeploymentStatus{})
 
-			By("Updating the deployment annotation")
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999100",
+			By("Creating the GitHubDeployment")
+			ghd := argocdcommenterv1.GitHubDeployment{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "argocdcommenter.int128.github.io/v1",
+					Kind:       "GitHubDeployment",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: app.Namespace,
+					Name:      app.Name,
+				},
+				Spec: argocdcommenterv1.GitHubDeploymentSpec{
+					DeploymentURL: "https://api.github.com/repos/int128/manifests/deployments/999100",
+				},
 			}
-			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, &ghd)).Should(Succeed())
 
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -93,11 +104,21 @@ var _ = Describe("Application phase controller", func() {
 		It("Should notify a deployment status", func() {
 			githubMock.DeploymentStatuses.SetResponse(999101, []*github.DeploymentStatus{})
 
-			By("Updating the deployment annotation")
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999101",
+			By("Creating the GitHubDeployment")
+			ghd := argocdcommenterv1.GitHubDeployment{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "argocdcommenter.int128.github.io/v1",
+					Kind:       "GitHubDeployment",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: app.Namespace,
+					Name:      app.Name,
+				},
+				Spec: argocdcommenterv1.GitHubDeploymentSpec{
+					DeploymentURL: "https://api.github.com/repos/int128/manifests/deployments/999101",
+				},
 			}
-			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, &ghd)).Should(Succeed())
 
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -125,11 +146,21 @@ var _ = Describe("Application phase controller", func() {
 		It("Should skip the notification", func() {
 			githubMock.DeploymentStatuses.SetResponse(999102, []*github.DeploymentStatus{})
 
-			By("Updating the deployment annotation")
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+			By("Creating the GitHubDeployment")
+			ghd := argocdcommenterv1.GitHubDeployment{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "argocdcommenter.int128.github.io/v1",
+					Kind:       "GitHubDeployment",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: app.Namespace,
+					Name:      app.Name,
+				},
+				Spec: argocdcommenterv1.GitHubDeploymentSpec{
+					DeploymentURL: "https://api.github.com/repos/int128/manifests/deployments/999999",
+				},
 			}
-			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, &ghd)).Should(Succeed())
 
 			By("Updating the application to succeeded")
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -146,10 +177,8 @@ var _ = Describe("Application phase controller", func() {
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 			By("Updating the deployment annotation")
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999102",
-			}
-			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			ghd.Spec.DeploymentURL = "https://api.github.com/repos/int128/manifests/deployments/999102"
+			Expect(k8sClient.Update(ctx, &ghd)).Should(Succeed())
 			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999102) }, timeout, interval).Should(Equal(1))
 		})
 	})

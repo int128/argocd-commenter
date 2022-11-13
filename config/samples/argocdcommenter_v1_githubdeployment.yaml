@@ -1,0 +1,12 @@
+apiVersion: argocdcommenter.int128.github.io/v1
+kind: GitHubDeployment
+metadata:
+  labels:
+    app.kubernetes.io/name: githubdeployment
+    app.kubernetes.io/instance: githubdeployment-sample
+    app.kubernetes.io/part-of: argocd-commenter
+    app.kuberentes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: argocd-commenter
+  name: githubdeployment-sample
+spec:
+  # TODO(user): Add fields here

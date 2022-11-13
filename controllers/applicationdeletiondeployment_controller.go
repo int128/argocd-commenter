@@ -21,6 +21,7 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
@@ -51,10 +52,13 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	deploymentURL := argocd.GetDeploymentURL(app)
-	if deploymentURL == "" {
-		return ctrl.Result{}, nil
+
+	// FIXME: GitHubDeployment may be already deleted by finalizer at this time?
+	var ghd argocdcommenterv1.GitHubDeployment
+	if err := r.Client.Get(ctx, req.NamespacedName, &ghd); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
 	if !isApplicationDeleting(app) {
 		return ctrl.Result{}, nil
 	}
@@ -68,7 +72,7 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnDeletion(app, argocdURL)
+	ds := notification.NewDeploymentStatusOnDeletion(app, ghd, argocdURL)
 	if ds == nil {
 		logger.Info("no deployment status on this event")
 		return ctrl.Result{}, nil
@@ -106,10 +110,6 @@ func isApplicationDeleting(app argocdv1alpha1.Application) bool {
 type applicationDeletionDeploymentFilter struct{}
 
 func (applicationDeletionDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if argocd.GetDeploymentURL(applicationNew) == "" {
-		return false
-	}
-
 	// deletion timestamp has been set
 	if applicationOld.DeletionTimestamp != applicationNew.DeletionTimestamp &&
 		!applicationNew.DeletionTimestamp.IsZero() {

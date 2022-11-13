@@ -8,6 +8,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/github"
 )
@@ -17,9 +18,8 @@ type DeploymentStatus struct {
 	GitHubDeploymentStatus github.DeploymentStatus
 }
 
-func NewDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(app)
-	deployment := github.ParseDeploymentURL(deploymentURL)
+func NewDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, ghd argocdcommenterv1.GitHubDeployment, argocdURL string) *DeploymentStatus {
+	deployment := github.ParseDeploymentURL(ghd.Spec.DeploymentURL)
 	if deployment == nil {
 		return nil
 	}
@@ -62,9 +62,8 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 	return nil
 }
 
-func NewDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(app)
-	deployment := github.ParseDeploymentURL(deploymentURL)
+func NewDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, ghd argocdcommenterv1.GitHubDeployment, argocdURL string) *DeploymentStatus {
+	deployment := github.ParseDeploymentURL(ghd.Spec.DeploymentURL)
 	if deployment == nil {
 		return nil
 	}
@@ -100,9 +99,8 @@ func generateHealthDeploymentStatus(app argocdv1alpha1.Application, argocdURL st
 	return nil
 }
 
-func NewDeploymentStatusOnDeletion(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(app)
-	deployment := github.ParseDeploymentURL(deploymentURL)
+func NewDeploymentStatusOnDeletion(app argocdv1alpha1.Application, ghd argocdcommenterv1.GitHubDeployment, argocdURL string) *DeploymentStatus {
+	deployment := github.ParseDeploymentURL(ghd.Spec.DeploymentURL)
 	if deployment == nil {
 		return nil
 	}

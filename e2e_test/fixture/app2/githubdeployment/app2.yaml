@@ -1,0 +1,7 @@
+apiVersion: argocdcommenter.int128.github.io/v1
+kind: GitHubDeployment
+metadata:
+  name: app2
+  namespace: argocd
+spec:
+  url: DEPLOYMENT_URL
