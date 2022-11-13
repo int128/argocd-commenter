@@ -37,7 +37,15 @@ import (
 )
 
 var (
+	// When the GitHub Deployment is not found, this action will retry by this interval
+	// until the application is synced with a valid GitHub Deployment.
+	// This should be reasonable to avoid the rate limit of GitHub API.
 	requeueIntervalWhenDeploymentNotFound = 30 * time.Second
+
+	// When the GitHub Deployment is not found, this action will retry by this timeout.
+	// Argo CD refreshes an application every 3 minutes by default.
+	// This should be reasonable to avoid the rate limit of GitHub API.
+	requeueTimeoutWhenDeploymentNotFound = 10 * time.Minute
 )
 
 // ApplicationHealthDeploymentReconciler reconciles an Application object
@@ -68,14 +76,22 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
+
 	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
 	if notification.IsNotFoundError(err) {
 		// Retry until the application is synced with a valid GitHub Deployment.
 		// https://github.com/int128/argocd-commenter/issues/762
-		logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
-			"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
-		return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
+		lastOperationAt := argocd.GetLastOperationAt(app)
+		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
+			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
+			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
+		}
+		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
+			"deployment %s not found, retry timeout", deploymentURL)
+		return ctrl.Result{}, nil
 	}
 	if deploymentIsAlreadyHealthy {
 		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
