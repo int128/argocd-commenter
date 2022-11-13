@@ -22,13 +22,10 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
-	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -96,27 +93,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if deploymentIsAlreadyHealthy {
 		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
 		return ctrl.Result{}, nil
-	}
-
-	var appHealth argocdcommenterv1.ApplicationHealth
-	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
-		if !apierrors.IsNotFound(err) {
-			logger.Error(err, "unable to get the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		appHealth.ObjectMeta = metav1.ObjectMeta{
-			Namespace: req.Namespace,
-			Name:      req.Name,
-		}
-		if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
-			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		if err := r.Client.Create(ctx, &appHealth); err != nil {
-			logger.Error(err, "unable to create an ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		logger.Info("created an ApplicationHealth")
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)

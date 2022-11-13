@@ -22,12 +22,10 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
-	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/controllers/predicates"
 	"github.com/int128/argocd-commenter/pkg/argocd"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,14 +83,6 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if deploymentIsAlreadyHealthy {
 		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
 		return ctrl.Result{}, nil
-	}
-
-	var appHealth argocdcommenterv1.ApplicationHealth
-	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
-		if !apierrors.IsNotFound(err) {
-			logger.Error(err, "unable to get the ApplicationHealth")
-			return ctrl.Result{}, err
-		}
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
