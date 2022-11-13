@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Application phase controller", func() {
@@ -45,8 +44,7 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment", func() {
-			By("By updating the operation state to running")
-			patch := client.MergeFrom(app.DeepCopy())
+			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
 					Phase:     synccommon.OperationRunning,
@@ -58,27 +56,19 @@ var _ = Describe("Application phase controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(100) }, timeout, interval).Should(Equal(1))
 
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(100)
-			}, timeout, interval).Should(Equal(1))
-
-			By("By updating the operation state to succeeded")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to succeeded")
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(100)
-			}, timeout, interval).Should(Equal(2))
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(100) }, timeout, interval).Should(Equal(2))
 		})
 	})
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a comment", func() {
-			By("By updating the operation state to running")
-			patch := client.MergeFrom(app.DeepCopy())
+			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
 					Phase:     synccommon.OperationRunning,
@@ -90,20 +80,13 @@ var _ = Describe("Application phase controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(101) }, timeout, interval).Should(Equal(1))
 
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(101)
-			}, timeout, interval).Should(Equal(1))
-
-			By("By updating the operation state to failed")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to failed")
 			app.Status.OperationState.Phase = synccommon.OperationFailed
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(101)
-			}, timeout, interval).Should(Equal(2))
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(101) }, timeout, interval).Should(Equal(2))
 		})
 	})
 })
