@@ -12,6 +12,7 @@ type Client interface {
 	ListPullRequests(ctx context.Context, r Repository, revision string) ([]PullRequest, error)
 	CreateComment(ctx context.Context, r Repository, pullNumber int, body string) error
 	CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error
+	FindLatestDeploymentStatus(ctx context.Context, d Deployment) (*DeploymentStatus, error)
 }
 
 type Repository struct {

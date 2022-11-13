@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
@@ -56,11 +57,35 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
+	phase := argocd.GetOperationPhase(app)
+	if phase == "" {
+		return ctrl.Result{}, nil
+	}
+
 	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
-	phase := argocd.GetOperationPhase(app)
+	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
+	if notification.IsNotFoundError(err) {
+		// Retry until the application is synced with a valid GitHub Deployment.
+		// https://github.com/int128/argocd-commenter/issues/762
+		lastOperationAt := argocd.GetLastOperationAt(app)
+		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
+			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
+			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
+		}
+		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
+			"deployment %s not found, retry timeout", deploymentURL)
+		return ctrl.Result{}, nil
+	}
+	if deploymentIsAlreadyHealthy {
+		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
+		return ctrl.Result{}, nil
+	}
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
@@ -68,10 +93,6 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 			logger.Error(err, "unable to get the ApplicationHealth")
 			return ctrl.Result{}, err
 		}
-	}
-	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
-		return ctrl.Result{}, nil
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)

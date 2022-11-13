@@ -5,11 +5,11 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
-	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
+	"github.com/google/go-github/v47/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,140 +42,159 @@ var _ = Describe("Application health deployment controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, &app)).Should(Succeed())
+
+		app.Status = argocdv1alpha1.ApplicationStatus{
+			Health: argocdv1alpha1.HealthStatus{
+				Status: health.HealthStatusProgressing,
+			},
+			OperationState: &argocdv1alpha1.OperationState{
+				StartedAt: metav1.Now(),
+				Operation: argocdv1alpha1.Operation{
+					Sync: &argocdv1alpha1.SyncOperation{
+						Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 	})
 
 	Context("When an application is healthy", func() {
 		It("Should notify a deployment status once", func() {
-			By("By updating the health status to progressing")
-			patch := client.MergeFrom(app.DeepCopy())
+			githubMock.DeploymentStatuses.SetResponse(999300, []*github.DeploymentStatus{})
+
+			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999300",
 			}
-			app.Status = argocdv1alpha1.ApplicationStatus{
-				Health: argocdv1alpha1.HealthStatus{
-					Status: health.HealthStatusProgressing,
-				},
-				OperationState: &argocdv1alpha1.OperationState{
-					StartedAt: metav1.Now(),
-					Operation: argocdv1alpha1.Operation{
-						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
-			By("By updating the health status to healthy")
-			patch = client.MergeFrom(app.DeepCopy())
-			app.Status.Health.Status = health.HealthStatusHealthy
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999300)
-			}, timeout, interval).Should(Equal(1))
-
-			By("By updating the health status to progressing")
-			patch = client.MergeFrom(app.DeepCopy())
-			app.Status.Health.Status = health.HealthStatusProgressing
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			By("By updating the health status to healthy")
-			patch = client.MergeFrom(app.DeepCopy())
-			app.Status.Health.Status = health.HealthStatusHealthy
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			Consistently(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999300)
-			}, 100*time.Millisecond).Should(Equal(1))
-		})
-	})
-
-	Context("When an application is degraded and then healthy", func() {
-		It("Should notify a deployment status for degraded and healthy", func() {
-			By("By updating the health status to progressing")
-			patch := client.MergeFrom(app.DeepCopy())
-			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999301",
-			}
-			app.Status = argocdv1alpha1.ApplicationStatus{
-				Health: argocdv1alpha1.HealthStatus{
-					Status: health.HealthStatusProgressing,
-				},
-				OperationState: &argocdv1alpha1.OperationState{
-					StartedAt: metav1.Now(),
-					Operation: argocdv1alpha1.Operation{
-						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			By("By updating the health status to degraded")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to degraded")
 			app.Status.Health.Status = health.HealthStatusDegraded
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999300) }, timeout, interval).Should(Equal(1))
 
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999301)
-			}, timeout, interval).Should(Equal(1))
-
-			By("By updating the health status to healthy")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999300) }, timeout, interval).Should(Equal(2))
 
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999301)
-			}, timeout, interval).Should(Equal(2))
+			By("Updating the application to progressing")
+			app.Status.Health.Status = health.HealthStatusProgressing
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to healthy, again")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Consistently(func() int { return githubMock.DeploymentStatuses.CountBy(999300) }, "100ms").Should(Equal(2))
 		})
 	})
 
-	Context("When an application is healthy but deployment is still old", func() {
-		It("Should notify a deployment status when deployment is valid", func() {
-			requeueIntervalWhenDeploymentNotFound = 1 * time.Second
+	Context("When the deployment annotation is updated and then the application becomes healthy", func() {
+		It("Should notify a deployment status", func() {
+			githubMock.DeploymentStatuses.SetResponse(999301, []*github.DeploymentStatus{})
 
-			By("By updating the health status to progressing")
+			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
 			}
-			app.Status = argocdv1alpha1.ApplicationStatus{
-				Health: argocdv1alpha1.HealthStatus{
-					Status: health.HealthStatusProgressing,
-				},
-				OperationState: &argocdv1alpha1.OperationState{
-					StartedAt: metav1.Now(),
-					Operation: argocdv1alpha1.Operation{
-						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-						},
-					},
-				},
-			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
-			By("By updating the health status to healthy")
+			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
-			By("By updating the annotation")
-			time.Sleep(1 * time.Second)
+			By("Updating the deployment annotation")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999301",
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Consistently(func() int { return githubMock.DeploymentStatuses.CountBy(999301) }, "100ms").Should(BeZero())
+
+			By("Updating the application to progressing")
+			app.Status.Health.Status = health.HealthStatusProgressing
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999301) }, timeout, interval).Should(Equal(1))
+		})
+	})
+
+	Context("When an application became healthy before the deployment annotation is updated", func() {
+		It("Should notify a deployment status when the deployment annotation is valid", func() {
+			githubMock.DeploymentStatuses.SetResponse(999302, []*github.DeploymentStatus{})
+
+			By("Updating the deployment annotation")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Consistently(func() int { return githubMock.DeploymentStatuses.CountBy(999302) }, "100ms").Should(BeZero())
+
+			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999302",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999302) }, timeout, interval).Should(Equal(1))
 
-			Eventually(func() int {
-				return githubMock.DeploymentStatuses.CountBy(999302)
-			}, timeout, interval).Should(Equal(1))
+			By("Deleting the old deployment")
+			githubMock.DeploymentStatuses.SetResponse(999302, nil)
+			By("Creating a new deployment")
+			githubMock.DeploymentStatuses.SetResponse(999303, []*github.DeploymentStatus{})
 
-			Eventually(func() string {
-				var appHealth argocdcommenterv1.ApplicationHealth
-				Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: app.Namespace, Name: app.Name}, &appHealth)).Should(Succeed())
-				return appHealth.Status.LastHealthyDeploymentURL
-			}, timeout, interval).Should(Equal("https://api.github.com/repos/int128/manifests/deployments/999302"))
+			By("Updating the application to progressing")
+			app.Status.Health.Status = health.HealthStatusProgressing
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Consistently(func() int { return githubMock.DeploymentStatuses.CountBy(999303) }, "100ms").Should(BeZero())
+
+			By("Updating the deployment annotation")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999303",
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999303) }, timeout, interval).Should(Equal(1))
+			Expect(githubMock.DeploymentStatuses.CountBy(999302)).Should(Equal(1))
+		})
+
+		It("Should retry a deployment status until timeout", func() {
+			By("Updating the deployment annotation")
+			app.Annotations = map[string]string{
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+			}
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				OperationState: &argocdv1alpha1.OperationState{
+					StartedAt: metav1.NewTime(time.Now().Add(-requeueTimeoutWhenDeploymentNotFound)),
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to progressing")
+			app.Status.Health.Status = health.HealthStatusProgressing
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			By("Updating the application to healthy")
+			app.Status.Health.Status = health.HealthStatusHealthy
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				var eventList corev1.EventList
+				g.Expect(k8sClient.List(ctx, &eventList, client.MatchingFields{
+					"involvedObject.name": app.Name,
+					"reason":              "DeploymentNotFoundRetryTimeout",
+				})).Should(Succeed())
+				g.Expect(eventList.Items).Should(HaveLen(1))
+			}, timeout, interval)
 		})
 	})
 })

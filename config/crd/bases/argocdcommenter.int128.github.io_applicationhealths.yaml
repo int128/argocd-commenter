@@ -38,9 +38,6 @@ spec:
           status:
             description: ApplicationHealthStatus defines the observed state of ApplicationHealth
             properties:
-              lastHealthyDeploymentURL:
-                description: Last deployment URL when the application is healthy.
-                type: string
               lastHealthyRevision:
                 description: Last revision when the application is healthy.
                 type: string

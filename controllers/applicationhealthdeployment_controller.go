@@ -37,7 +37,15 @@ import (
 )
 
 var (
+	// When the GitHub Deployment is not found, this action will retry by this interval
+	// until the application is synced with a valid GitHub Deployment.
+	// This should be reasonable to avoid the rate limit of GitHub API.
 	requeueIntervalWhenDeploymentNotFound = 30 * time.Second
+
+	// When the GitHub Deployment is not found, this action will retry by this timeout.
+	// Argo CD refreshes an application every 3 minutes by default.
+	// This should be reasonable to avoid the rate limit of GitHub API.
+	requeueTimeoutWhenDeploymentNotFound = 10 * time.Minute
 )
 
 // ApplicationHealthDeploymentReconciler reconciles an Application object
@@ -69,6 +77,27 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
+	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
+	if notification.IsNotFoundError(err) {
+		// Retry until the application is synced with a valid GitHub Deployment.
+		// https://github.com/int128/argocd-commenter/issues/762
+		lastOperationAt := argocd.GetLastOperationAt(app)
+		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
+			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
+			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
+		}
+		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
+			"deployment %s not found, retry timeout", deploymentURL)
+		return ctrl.Result{}, nil
+	}
+	if deploymentIsAlreadyHealthy {
+		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
+		return ctrl.Result{}, nil
+	}
+
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -89,10 +118,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		}
 		logger.Info("created an ApplicationHealth")
 	}
-	if deploymentURL == appHealth.Status.LastHealthyDeploymentURL {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
-		return ctrl.Result{}, nil
-	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -104,33 +129,12 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
-		if notification.IsNotFoundError(err) {
-			// Retry until the application is synced with a valid GitHub Deployment.
-			// https://github.com/int128/argocd-commenter/issues/762
-			logger.Info("requeue because deployment is not found", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
-				"deployment %s is not found, requeue after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
-			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
-		}
 		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
 			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
 	}
-
-	if app.Status.Health.Status != health.HealthStatusHealthy {
-		return ctrl.Result{}, nil
-	}
-	patch := client.MergeFrom(appHealth.DeepCopy())
-	appHealth.Status.LastHealthyDeploymentURL = deploymentURL
-	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-		logger.Error(err, "unable to patch lastHealthyDeploymentURL of ApplicationHealth")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	logger.Info("patched lastHealthyDeploymentURL of ApplicationHealth")
-	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdateLastHealthyDeploymentURL",
-		"patched lastHealthyDeploymentURL to %s", deploymentURL)
 	return ctrl.Result{}, nil
 }
 
