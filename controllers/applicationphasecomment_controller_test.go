@@ -16,7 +16,6 @@ var _ = Describe("Application phase controller", func() {
 	var app argocdv1alpha1.Application
 
 	BeforeEach(func() {
-		By("By creating an application")
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
