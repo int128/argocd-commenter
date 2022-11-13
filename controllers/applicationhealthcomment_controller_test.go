@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Application health comment controller", func() {
@@ -44,8 +43,7 @@ var _ = Describe("Application health comment controller", func() {
 
 	Context("When an application is healthy", func() {
 		It("Should notify a comment once", func() {
-			By("By updating the health status to progressing")
-			patch := client.MergeFrom(app.DeepCopy())
+			By("Updating the application to progressing")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
 					Status: health.HealthStatusProgressing,
@@ -59,37 +57,27 @@ var _ = Describe("Application health comment controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
-			By("By updating the health status to healthy")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(200) }, timeout, interval).Should(Equal(1))
 
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(200)
-			}, timeout, interval).Should(Equal(1))
-
-			By("By updating the health status to progressing")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to progressing")
 			app.Status.Health.Status = health.HealthStatusProgressing
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
-			By("By updating the health status to healthy")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			Consistently(func() int {
-				return githubMock.Comments.CountBy(200)
-			}, 100*time.Millisecond).Should(Equal(1))
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Consistently(func() int { return githubMock.Comments.CountBy(200) }, 100*time.Millisecond).Should(Equal(1))
 		})
 	})
 
 	Context("When an application is degraded and then healthy", func() {
 		It("Should notify a comment for degraded and healthy", func() {
-			By("By updating the health status to progressing")
-			patch := client.MergeFrom(app.DeepCopy())
+			By("Updating the application to progressing")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
 					Status: health.HealthStatusProgressing,
@@ -103,25 +91,17 @@ var _ = Describe("Application health comment controller", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
-			By("By updating the health status to degraded")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to degraded")
 			app.Status.Health.Status = health.HealthStatusDegraded
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(201) }, timeout, interval).Should(Equal(1))
 
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(201)
-			}, timeout, interval).Should(Equal(1))
-
-			By("By updating the health status to healthy")
-			patch = client.MergeFrom(app.DeepCopy())
+			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
-			Expect(k8sClient.Patch(ctx, &app, patch)).Should(Succeed())
-
-			Eventually(func() int {
-				return githubMock.Comments.CountBy(201)
-			}, timeout, interval).Should(Equal(2))
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return githubMock.Comments.CountBy(201) }, timeout, interval).Should(Equal(2))
 		})
 	})
 })
