@@ -120,7 +120,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           # set outputs.tags to single tag
-          flavor: latest=false,suffix=-amd64
+          flavor: latest=false,suffix=-linux-amd64
       - uses: int128/wait-for-docker-image-action@v1
         with:
           tags: ${{ steps.metadata.outputs.tags }}
