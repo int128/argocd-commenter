@@ -34,7 +34,14 @@ on:
 
 jobs:
   build:
-    uses: int128/docker-build-multi-architecture-workflow/.github/workflows/build.yaml@v1
+    if: github.event_name == 'pull_request'
+    uses: int128/docker-build-workflow/.github/workflows/build.yaml@v1
+    with:
+      suffix: -linux-amd64
+
+  build-multi-architecture:
+    if: github.event_name != 'pull_request'
+    uses: int128/docker-build-workflow/.github/workflows/build-multi-architecture.yaml@v1
 
   e2e-test:
     runs-on: ubuntu-latest
