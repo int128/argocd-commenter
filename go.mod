@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.5.5
-	github.com/argoproj/gitops-engine v0.7.3
+	github.com/argoproj/gitops-engine v0.7.1-0.20221004132320-98ccd3d43fd9
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v47 v47.1.0
