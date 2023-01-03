@@ -3,11 +3,6 @@
     "github>int128/renovate-base",
     "github>int128/go-actions",
   ],
-  "postUpdateOptions": [
-    // update replace statements in go.mod
-    // https://docs.renovatebot.com/golang/#replace-massaging
-    "gomodMassage",
-  ],
   "regexManagers": [
     {
       "fileMatch": [
