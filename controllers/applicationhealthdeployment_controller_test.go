@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -18,7 +19,7 @@ var _ = Describe("Application health deployment controller", func() {
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
 
-	BeforeEach(func() {
+	BeforeEach(func(ctx context.Context) {
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
@@ -60,7 +61,7 @@ var _ = Describe("Application health deployment controller", func() {
 	})
 
 	Context("When an application is healthy", func() {
-		It("Should notify a deployment status once", func() {
+		It("Should notify a deployment status once", func(ctx context.Context) {
 			githubMock.DeploymentStatuses.SetResponse(999300, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -91,7 +92,7 @@ var _ = Describe("Application health deployment controller", func() {
 	})
 
 	Context("When the deployment annotation is updated and then the application becomes healthy", func() {
-		It("Should notify a deployment status", func() {
+		It("Should notify a deployment status", func(ctx context.Context) {
 			githubMock.DeploymentStatuses.SetResponse(999301, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -123,7 +124,7 @@ var _ = Describe("Application health deployment controller", func() {
 	})
 
 	Context("When an application became healthy before the deployment annotation is updated", func() {
-		It("Should notify a deployment status when the deployment annotation is valid", func() {
+		It("Should notify a deployment status when the deployment annotation is valid", func(ctx context.Context) {
 			githubMock.DeploymentStatuses.SetResponse(999302, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -167,7 +168,7 @@ var _ = Describe("Application health deployment controller", func() {
 			Expect(githubMock.DeploymentStatuses.CountBy(999302)).Should(Equal(1))
 		})
 
-		It("Should retry a deployment status until timeout", func() {
+		It("Should retry a deployment status until timeout", func(ctx context.Context) {
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",

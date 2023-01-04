@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -17,7 +18,7 @@ var _ = Describe("Application phase controller", func() {
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
 
-	BeforeEach(func() {
+	BeforeEach(func(ctx context.Context) {
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
@@ -44,7 +45,7 @@ var _ = Describe("Application phase controller", func() {
 	})
 
 	Context("When an application is synced", func() {
-		It("Should notify a deployment status", func() {
+		It("Should notify a deployment status", func(ctx context.Context) {
 			githubMock.DeploymentStatuses.SetResponse(999100, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -90,7 +91,7 @@ var _ = Describe("Application phase controller", func() {
 	})
 
 	Context("When an application sync operation is failed", func() {
-		It("Should notify a deployment status", func() {
+		It("Should notify a deployment status", func(ctx context.Context) {
 			githubMock.DeploymentStatuses.SetResponse(999101, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -122,7 +123,7 @@ var _ = Describe("Application phase controller", func() {
 	})
 
 	Context("When an application was synced before the deployment annotation is updated", func() {
-		It("Should skip the notification", func() {
+		It("Should skip the notification", func(ctx context.Context) {
 			githubMock.DeploymentStatuses.SetResponse(999102, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")

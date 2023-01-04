@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -15,7 +16,7 @@ var _ = Describe("Application health comment controller", func() {
 	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
 
-	BeforeEach(func() {
+	BeforeEach(func(ctx context.Context) {
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
@@ -42,7 +43,7 @@ var _ = Describe("Application health comment controller", func() {
 	})
 
 	Context("When an application is healthy", func() {
-		It("Should notify a comment once", func() {
+		It("Should notify a comment once", func(ctx context.Context) {
 			By("Updating the application to progressing")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
@@ -76,7 +77,7 @@ var _ = Describe("Application health comment controller", func() {
 	})
 
 	Context("When an application is degraded and then healthy", func() {
-		It("Should notify a comment for degraded and healthy", func() {
+		It("Should notify a comment for degraded and healthy", func(ctx context.Context) {
 			By("Updating the application to progressing")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
