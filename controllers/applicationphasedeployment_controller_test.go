@@ -14,8 +14,6 @@ import (
 )
 
 var _ = Describe("Application phase controller", func() {
-	const timeout = time.Second * 3
-	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
 
 	BeforeEach(func(ctx context.Context) {
@@ -67,17 +65,17 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }, timeout, interval).Should(Equal(1))
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }).Should(Equal(1))
 
 			By("Updating the application to succeeded")
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }, timeout, interval).Should(Equal(2))
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }).Should(Equal(2))
 
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }, timeout, interval).Should(Equal(3))
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }).Should(Equal(3))
 
 			By("Updating the application to running")
 			app.Status.OperationState.Phase = synccommon.OperationRunning
@@ -87,7 +85,7 @@ var _ = Describe("Application phase controller", func() {
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Consistently(func() int { return githubMock.DeploymentStatuses.CountBy(999100) }, "100ms").Should(Equal(3))
-		})
+		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application sync operation is failed", func() {
@@ -113,13 +111,13 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999101) }, timeout, interval).Should(Equal(1))
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999101) }).Should(Equal(1))
 
 			By("Updating the application to failed")
 			app.Status.OperationState.Phase = synccommon.OperationFailed
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999101) }, timeout, interval).Should(Equal(2))
-		})
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999101) }).Should(Equal(2))
+		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application was synced before the deployment annotation is updated", func() {
@@ -151,7 +149,8 @@ var _ = Describe("Application phase controller", func() {
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999102",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999102) }, timeout, interval).Should(Equal(1))
-		})
+			// this test depends on requeueIntervalWhenDeploymentNotFound and takes longer time
+			Eventually(func() int { return githubMock.DeploymentStatuses.CountBy(999102) }, 3*time.Second).Should(Equal(1))
+		}, SpecTimeout(5*time.Second))
 	})
 })

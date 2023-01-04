@@ -12,8 +12,6 @@ import (
 )
 
 var _ = Describe("Application phase controller", func() {
-	const timeout = time.Second * 3
-	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
 
 	BeforeEach(func(ctx context.Context) {
@@ -57,13 +55,13 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(100) }, timeout, interval).Should(Equal(1))
+			Eventually(func() int { return githubMock.Comments.CountBy(100) }).Should(Equal(1))
 
 			By("Updating the application to succeeded")
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(100) }, timeout, interval).Should(Equal(2))
-		})
+			Eventually(func() int { return githubMock.Comments.CountBy(100) }).Should(Equal(2))
+		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application sync operation is failed", func() {
@@ -81,12 +79,12 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(101) }, timeout, interval).Should(Equal(1))
+			Eventually(func() int { return githubMock.Comments.CountBy(101) }).Should(Equal(1))
 
 			By("Updating the application to failed")
 			app.Status.OperationState.Phase = synccommon.OperationFailed
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(101) }, timeout, interval).Should(Equal(2))
-		})
+			Eventually(func() int { return githubMock.Comments.CountBy(101) }).Should(Equal(2))
+		}, SpecTimeout(3*time.Second))
 	})
 })

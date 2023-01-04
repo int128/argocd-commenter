@@ -12,8 +12,6 @@ import (
 )
 
 var _ = Describe("Application health comment controller", func() {
-	const timeout = time.Second * 3
-	const interval = time.Millisecond * 250
 	var app argocdv1alpha1.Application
 
 	BeforeEach(func(ctx context.Context) {
@@ -63,7 +61,7 @@ var _ = Describe("Application health comment controller", func() {
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(200) }, timeout, interval).Should(Equal(1))
+			Eventually(func() int { return githubMock.Comments.CountBy(200) }).Should(Equal(1))
 
 			By("Updating the application to progressing")
 			app.Status.Health.Status = health.HealthStatusProgressing
@@ -73,7 +71,7 @@ var _ = Describe("Application health comment controller", func() {
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Consistently(func() int { return githubMock.Comments.CountBy(200) }, 100*time.Millisecond).Should(Equal(1))
-		})
+		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application is degraded and then healthy", func() {
@@ -97,12 +95,12 @@ var _ = Describe("Application health comment controller", func() {
 			By("Updating the application to degraded")
 			app.Status.Health.Status = health.HealthStatusDegraded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(201) }, timeout, interval).Should(Equal(1))
+			Eventually(func() int { return githubMock.Comments.CountBy(201) }).Should(Equal(1))
 
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(201) }, timeout, interval).Should(Equal(2))
-		})
+			Eventually(func() int { return githubMock.Comments.CountBy(201) }).Should(Equal(2))
+		}, SpecTimeout(3*time.Second))
 	})
 })
