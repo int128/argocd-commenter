@@ -34,14 +34,7 @@ on:
 
 jobs:
   build:
-    if: github.event_name == 'pull_request'
     uses: int128/docker-build-workflow/.github/workflows/build.yaml@v1
-    with:
-      suffix: -linux-amd64
-
-  build-multi-architecture:
-    if: github.event_name != 'pull_request'
-    uses: int128/docker-build-workflow/.github/workflows/build-multi-architecture.yaml@v1
 
   e2e-test:
     runs-on: ubuntu-latest
@@ -74,7 +67,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           # set outputs.tags to single tag
-          flavor: latest=false,suffix=-linux-amd64
+          flavor: latest=false
       - uses: int128/wait-for-docker-image-action@v1
         with:
           tags: ${{ steps.metadata.outputs.tags }}
