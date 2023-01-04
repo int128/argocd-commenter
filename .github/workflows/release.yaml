@@ -16,12 +16,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - run: kustomize edit set image controller="ghcr.io/int128/argocd-commenter:${GITHUB_REF##*/}"
+      - run: kustomize edit set image controller='ghcr.io/${{ github.repository }}:${{ github.ref_name }}'
         working-directory: config/manager
       - run: kustomize build config/default > /tmp/argocd-commenter.yaml
       - run: cat /tmp/argocd-commenter.yaml
 
-      - run: gh release upload "${GITHUB_REF##*/}" /tmp/argocd-commenter.yaml --clobber
-        if: github.event_name == 'push'
+      - if: github.ref_type == 'tag'
+        run: gh release upload '${{ github.ref_name }}' /tmp/argocd-commenter.yaml --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
