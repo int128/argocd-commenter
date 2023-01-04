@@ -47,9 +47,6 @@ import (
 
 var (
 	k8sClient  client.Client
-	testEnv    *envtest.Environment
-	ctx        context.Context
-	cancel     context.CancelFunc
 	githubMock GithubMock
 )
 
@@ -64,7 +61,6 @@ var _ = BeforeSuite(func() {
 		func(o *zap.Options) {
 			o.TimeEncoder = zapcore.RFC3339NanoTimeEncoder
 		}))
-	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("find the CRD of Argo CD Application resource in Go module")
 	crdPaths, err := filepath.Glob(filepath.Join(
@@ -76,10 +72,17 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	crdPaths = append(crdPaths, filepath.Join("..", "config", "crd", "bases"))
-	testEnv = &envtest.Environment{
+	testEnv := &envtest.Environment{
 		CRDDirectoryPaths:     crdPaths,
 		ErrorIfCRDPathMissing: true,
 	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	DeferCleanup(func() {
+		cancel()
+		By("tearing down the test environment")
+		Expect(testEnv.Stop()).Should(Succeed())
+	})
 
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
@@ -157,11 +160,4 @@ var _ = BeforeSuite(func() {
 		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
-})
-
-var _ = AfterSuite(func() {
-	cancel()
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
 })
