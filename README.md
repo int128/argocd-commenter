@@ -96,7 +96,7 @@ jobs:
           git push manifests-repository main
 ```
 
-See the [e2e test](https://github.com/int128/argocd-commenter/blob/master/.github/workflows/docker.yaml) for details.
+See the [e2e test](https://github.com/int128/argocd-commenter/blob/main/.github/workflows/docker.yaml) for details.
 
 ### Sequence diagram
 

@@ -1,9 +1,7 @@
 name: docker
 
 on:
-  push:
-    branches:
-      - master
+  pull_request:
     paths:
       - .github/workflows/docker.yaml
       - Dockerfile
@@ -15,11 +13,11 @@ on:
       - e2e_test/**
       - '!**/*_test.go'
       - '!**/*.md'
+  push:
+    branches:
+      - main
     tags:
       - v*
-  pull_request:
-    branches:
-      - master
     paths:
       - .github/workflows/docker.yaml
       - Dockerfile
