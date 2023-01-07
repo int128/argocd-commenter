@@ -5,7 +5,8 @@ on:
     tags:
       - v*
   pull_request:
-    branches: [master]
+    branches:
+      - main
     paths:
       - config/**
       - .github/workflows/release.yaml

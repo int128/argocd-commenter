@@ -1,9 +1,7 @@
 name: docker
 
 on:
-  push:
-    branches:
-      - master
+  pull_request:
     paths:
       - .github/workflows/docker.yaml
       - Dockerfile
@@ -17,9 +15,9 @@ on:
       - '!**/*.md'
     tags:
       - v*
-  pull_request:
+  push:
     branches:
-      - master
+      - main
     paths:
       - .github/workflows/docker.yaml
       - Dockerfile
