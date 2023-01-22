@@ -35,18 +35,18 @@ jobs:
           version: v1.50.1
           args: --timeout=3m
 
-  tidy:
+  generate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19.5
           cache: true
       - run: go mod tidy
+      - run: make fmt
+      - run: make generate manifests
       - uses: int128/update-generated-files-action@v2
 
   test:
