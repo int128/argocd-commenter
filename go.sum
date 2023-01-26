@@ -1599,8 +1599,8 @@ k8s.io/cluster-bootstrap v0.24.2/go.mod h1:eIHV338K03vBm3u/ROZiNXxWJ4AJRoTR9PEUh
 k8s.io/code-generator v0.24.2/go.mod h1:dpVhs00hTuTdTY6jvVxvTFCk6gSMrtfRydbhZwHI15w=
 k8s.io/component-base v0.24.2 h1:kwpQdoSfbcH+8MPN4tALtajLDfSfYxBDYlXobNWI6OU=
 k8s.io/component-base v0.24.2/go.mod h1:ucHwW76dajvQ9B7+zecZAP3BVqvrHoOxm8olHEg0nmM=
-k8s.io/component-helpers v0.26.0 h1:KNgwqs3EUdK0HLfW4GhnbD+q/Zl9U021VfIU7qoVYFk=
-k8s.io/component-helpers v0.26.0/go.mod h1:jHN01qS/Jdj95WCbTe9S2VZ9yxpxXNY488WjF+yW4fo=
+k8s.io/component-helpers v0.26.1 h1:Y5h1OYUJTGyHZlSAsc7mcfNsWF08S/MlrQyF/vn93mU=
+k8s.io/component-helpers v0.26.1/go.mod h1:jxNTnHb1axLe93MyVuvKj9T/+f4nxBVrj/xf01/UNFk=
 k8s.io/controller-manager v0.24.2/go.mod h1:hpwCof4KxP4vrw/M5QiVxU6Zmmggmr1keGXtjGHF+vc=
 k8s.io/cri-api v0.24.2/go.mod h1:t3tImFtGeStN+ES69bQUX9sFg67ek38BM9YIJhMmuig=
 k8s.io/csi-translation-lib v0.24.2/go.mod h1:pdHc2CYLViQYYsOqOp79hjKYi8J4NZ7vpiVzn1SqBrg=
