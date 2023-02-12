@@ -1,18 +1,9 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>int128/renovate-base",
-    "github>int128/go-actions",
-  ],
-  "regexManagers": [
-    {
-      "fileMatch": [
-        "^.*/kustomization.yaml$",
-      ],
-      "matchStrings": [
-        "https://raw.githubusercontent.com/(?<depName>[^/]+/[^/]+?)/(?<currentValue>[^/]+)/",
-        "https://github.com/(?<depName>.*?)/releases/download/(?<currentValue>[^/]+)/",
-      ],
-      "datasourceTemplate": "github-releases",
-    },
+    "github>int128/go-renovate-config",
+    "github>int128/go-renovate-config:kubernetes",
+    "github>int128/go-renovate-config:kustomization-github-releases",
   ],
 }
