@@ -31,24 +31,31 @@ func NewClient(ctx context.Context) (Client, error) {
 }
 
 func newOAuth2Client(ctx context.Context) (*http.Client, error) {
+	// Personal Access Token
 	token := os.Getenv("GITHUB_TOKEN")
 	if token != "" {
 		return oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})), nil
 	}
-	appID, installationID, privateKey := os.Getenv("GITHUB_APP_ID"), os.Getenv("GITHUB_APP_INSTALLATION_ID"), os.Getenv("GITHUB_APP_PRIVATE_KEY")
-	if appID != "" && installationID != "" && privateKey != "" {
-		k, err := oauth2githubapp.ParsePrivateKey([]byte(privateKey))
-		if err != nil {
-			return nil, fmt.Errorf("invalid GITHUB_APP_PRIVATE_KEY: %w", err)
-		}
-		cfg := oauth2githubapp.Config{
-			PrivateKey:     k,
-			AppID:          appID,
-			InstallationID: installationID,
-		}
-		return oauth2.NewClient(ctx, cfg.TokenSource(ctx)), nil
+
+	// GitHub App
+	appID := os.Getenv("GITHUB_APP_ID")
+	installationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
+	privateKey := os.Getenv("GITHUB_APP_PRIVATE_KEY")
+	ghesURL := os.Getenv("GITHUB_ENTERPRISE_URL")
+	if appID == "" || installationID == "" || privateKey == "" {
+		return nil, fmt.Errorf("you need to set either GITHUB_TOKEN or GitHub App configuration")
 	}
-	return nil, fmt.Errorf("you need to set either GITHUB_TOKEN or GITHUB_APP_ID")
+	k, err := oauth2githubapp.ParsePrivateKey([]byte(privateKey))
+	if err != nil {
+		return nil, fmt.Errorf("invalid GITHUB_APP_PRIVATE_KEY: %w", err)
+	}
+	cfg := oauth2githubapp.Config{
+		PrivateKey:     k,
+		AppID:          appID,
+		InstallationID: installationID,
+		BaseURL:        ghesURL,
+	}
+	return oauth2.NewClient(ctx, cfg.TokenSource(ctx)), nil
 }
 
 func newGitHubClient(hc *http.Client) (*github.Client, error) {
