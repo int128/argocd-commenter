@@ -31,17 +31,16 @@ func NewClient(ctx context.Context) (Client, error) {
 }
 
 func newOAuth2Client(ctx context.Context) (*http.Client, error) {
-	// Personal Access Token
-	token := os.Getenv("GITHUB_TOKEN")
+	var (
+		token          = os.Getenv("GITHUB_TOKEN")
+		appID          = os.Getenv("GITHUB_APP_ID")
+		installationID = os.Getenv("GITHUB_APP_INSTALLATION_ID")
+		privateKey     = os.Getenv("GITHUB_APP_PRIVATE_KEY")
+		ghesURL        = os.Getenv("GITHUB_ENTERPRISE_URL")
+	)
 	if token != "" {
 		return oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})), nil
 	}
-
-	// GitHub App
-	appID := os.Getenv("GITHUB_APP_ID")
-	installationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
-	privateKey := os.Getenv("GITHUB_APP_PRIVATE_KEY")
-	ghesURL := os.Getenv("GITHUB_ENTERPRISE_URL")
 	if appID == "" || installationID == "" || privateKey == "" {
 		return nil, fmt.Errorf("you need to set either GITHUB_TOKEN or GitHub App configuration")
 	}
