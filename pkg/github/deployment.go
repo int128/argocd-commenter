@@ -14,7 +14,7 @@ type Deployment struct {
 	Id         int64
 }
 
-var patternDeploymentURL = regexp.MustCompile(`^https://api\.github\.com/repos/(.+?)/(.+?)/deployments/(\d+)$`)
+var patternDeploymentURL = regexp.MustCompile(`^https://[^/]+?/repos/([^/]+?)/([^/]+?)/deployments/(\d+)$`)
 
 // ParseDeploymentURL parses the URL.
 // For example, https://api.github.com/repos/int128/sandbox/deployments/422988781

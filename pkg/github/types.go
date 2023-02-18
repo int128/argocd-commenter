@@ -21,8 +21,8 @@ type Repository struct {
 }
 
 var (
-	patternRepositoryHTTPS = regexp.MustCompile(`^https://github\.com/([^/]+?)/([^/]+?)(\.git)?$`)
-	patternRepositorySSH   = regexp.MustCompile(`^git@github\.com:([^/]+?)/([^/]+?)(\.git)?$`)
+	patternRepositoryHTTPS = regexp.MustCompile(`^https://[^/]+?/([^/]+?)/([^/]+?)(\.git)?$`)
+	patternRepositorySSH   = regexp.MustCompile(`^git@[^:]+?:([^/]+?)/([^/]+?)(\.git)?$`)
 )
 
 func ParseRepositoryURL(s string) *Repository {
