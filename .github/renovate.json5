@@ -7,4 +7,18 @@
     "github>int128/go-renovate-config:kubernetes",
     "github>int128/go-renovate-config:kustomization-github-releases",
   ],
+  "packageRules": [
+    {
+      "description": "Update argo-cd with kubernetes packages",
+      "matchPackageNames": [
+        "github.com/argoproj/argo-cd/v2",
+        "github.com/argoproj/gitops-engine",
+        "sigs.k8s.io/controller-runtime",
+      ],
+      "matchPackagePrefixes": [
+        "k8s.io/",
+      ],
+      "groupName": "argo-cd-kubernetes",
+    },
+  ],
 }
