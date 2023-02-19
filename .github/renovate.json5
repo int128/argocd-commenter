@@ -9,16 +9,14 @@
   ],
   "packageRules": [
     {
-      "description": "Update argo-cd with kubernetes packages",
+      "description": "Ignore replaced Go packages in github.com/argoproj/argo-cd/v2",
       "matchPackageNames": [
-        "github.com/argoproj/argo-cd/v2",
         "github.com/argoproj/gitops-engine",
-        "sigs.k8s.io/controller-runtime",
       ],
       "matchPackagePrefixes": [
         "k8s.io/",
       ],
-      "groupName": "argo-cd-kubernetes",
+      "enabled": false,
     },
   ],
 }
