@@ -21,6 +21,9 @@ type Comment struct {
 }
 
 func NewCommentOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
+	if app.Spec.Source == nil {
+		return nil
+	}
 	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
@@ -81,6 +84,9 @@ func generateSyncResultComment(app argocdv1alpha1.Application) string {
 }
 
 func NewCommentOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
+	if app.Spec.Source == nil {
+		return nil
+	}
 	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
 	if repository == nil {
 		return nil
