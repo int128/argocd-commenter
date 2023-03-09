@@ -26,7 +26,7 @@ var _ = Describe("Application health comment controller", func() {
 			},
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
-				Source: argocdv1alpha1.ApplicationSource{
+				Source: &argocdv1alpha1.ApplicationSource{
 					RepoURL:        "https://github.com/int128/manifests.git",
 					Path:           "test",
 					TargetRevision: "main",
