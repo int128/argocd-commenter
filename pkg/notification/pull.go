@@ -19,6 +19,10 @@ func filterPullRequestsRelatedToEvent(pulls []github.PullRequest, app argocdv1al
 }
 
 func isPullRequestRelatedToEvent(pull github.PullRequest, app argocdv1alpha1.Application) bool {
+	if app.Spec.Source == nil {
+		return false
+	}
+
 	// support manifest path annotation
 	// see https://argo-cd.readthedocs.io/en/stable/operator-manual/high_availability/#webhook-and-manifest-paths-annotation
 	// https://github.com/int128/argocd-commenter/pull/656
@@ -42,6 +46,9 @@ func isPullRequestRelatedToEvent(pull github.PullRequest, app argocdv1alpha1.App
 // https://argo-cd.readthedocs.io/en/stable/operator-manual/high_availability/#webhook-and-manifest-paths-annotation
 func getManifestGeneratePaths(app argocdv1alpha1.Application) []string {
 	if app.Annotations == nil {
+		return nil
+	}
+	if app.Spec.Source == nil {
 		return nil
 	}
 	var canonicalPaths []string
