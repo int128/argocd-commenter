@@ -7,7 +7,7 @@ require (
 	github.com/argoproj/gitops-engine v0.7.1-0.20221208230615-917f5a0f16d5
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-github/v50 v50.1.0
+	github.com/google/go-github/v50 v50.2.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/int128/oauth2-github-app v1.1.0
 	github.com/onsi/ginkgo/v2 v2.9.1
@@ -32,7 +32,7 @@ require (
 	github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Microsoft/go-winio v0.4.17 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/argoproj/pkg v0.13.7-0.20221221191914-44694015343d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -40,6 +40,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chai2010/gettext-go v0.0.0-20170215093142-bf70f2a70fb1 // indirect
+	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
@@ -121,7 +122,7 @@ require (
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/exp v0.0.0-20210901193431-a062eea981d2 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
