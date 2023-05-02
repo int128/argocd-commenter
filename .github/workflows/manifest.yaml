@@ -2,8 +2,6 @@ name: manifest
 
 on:
   pull_request:
-    branches:
-      - main
     paths:
       - config/**
       - e2e_test/**
