@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controller
 
 import (
 	"context"
@@ -71,7 +71,7 @@ var _ = BeforeSuite(func() {
 	Expect(crdPaths).NotTo(BeEmpty())
 
 	By("bootstrapping test environment")
-	crdPaths = append(crdPaths, filepath.Join("..", "config", "crd", "bases"))
+	crdPaths = append(crdPaths, filepath.Join("..", "..", "config", "crd", "bases"))
 	testEnv := &envtest.Environment{
 		CRDDirectoryPaths:     crdPaths,
 		ErrorIfCRDPathMissing: true,

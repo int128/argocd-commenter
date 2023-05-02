@@ -36,7 +36,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
-	"github.com/int128/argocd-commenter/controllers"
+	"github.com/int128/argocd-commenter/internal/controller"
 	"github.com/int128/argocd-commenter/pkg/github"
 	"github.com/int128/argocd-commenter/pkg/notification"
 	//+kubebuilder:scaffold:imports
@@ -106,7 +106,7 @@ func main() {
 	}
 	notificationClient := notification.NewClient(ghc)
 
-	if err = (&controllers.ApplicationHealthReconciler{
+	if err = (&controller.ApplicationHealthReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
@@ -114,8 +114,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// comment controllers
-	if err = (&controllers.ApplicationPhaseCommentReconciler{
+	// comment controller
+	if err = (&controller.ApplicationPhaseCommentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
@@ -123,7 +123,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseComment")
 		os.Exit(1)
 	}
-	if err = (&controllers.ApplicationHealthCommentReconciler{
+	if err = (&controller.ApplicationHealthCommentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
@@ -132,8 +132,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// deployment controllers
-	if err = (&controllers.ApplicationPhaseDeploymentReconciler{
+	// deployment controller
+	if err = (&controller.ApplicationPhaseDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
@@ -141,7 +141,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseDeployment")
 		os.Exit(1)
 	}
-	if err = (&controllers.ApplicationHealthDeploymentReconciler{
+	if err = (&controller.ApplicationHealthDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
@@ -149,7 +149,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthDeployment")
 		os.Exit(1)
 	}
-	if err = (&controllers.ApplicationDeletionDeploymentReconciler{
+	if err = (&controller.ApplicationDeletionDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
