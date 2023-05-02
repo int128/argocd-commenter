@@ -10,14 +10,9 @@ on:
       - .github/workflows/manifest.yaml
 
 jobs:
-  diff:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v3
-      - uses: int128/kustomize-action/diff@v1
-        with:
-          write-individual-files: true
-          kustomization: |
-            config/default/kustomization.yaml
-            e2e_test/**/kustomization.yaml
+  manifest:
+    uses: int128/kubebuilder-workflows/.github/workflows/manifest.yaml@v1
+    with:
+      kustomization: |
+        config/default/kustomization.yaml
+        e2e_test/**/kustomization.yaml
