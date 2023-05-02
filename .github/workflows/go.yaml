@@ -5,54 +5,18 @@ on:
     paths:
       - .github/workflows/go.yaml
       - go.*
-      - main.go
-      - api/**.go
-      - controllers/**.go
-      - pkg/**.go
+      - '**/*.go'
   push:
     branches:
       - main
     paths:
       - .github/workflows/go.yaml
       - go.*
-      - main.go
-      - api/**.go
-      - controllers/**.go
-      - pkg/**.go
+      - '**/*.go'
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.20.3
-      - uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.52.2
-          args: --timeout=3m
-
-  generate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.20.3
-      - run: go mod tidy
-      - run: make fmt
-      - run: make generate manifests
-      - uses: int128/update-generated-files-action@v2
-
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.20.3
-      - run: make test
+  go:
+    uses: int128/kubebuilder-workflows/.github/workflows/go.yaml@v1
+    with:
+      go-version: 1.20.3
+      golangci-lint-version: v1.52.2
