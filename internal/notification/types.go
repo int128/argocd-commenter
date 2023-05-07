@@ -4,7 +4,7 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/internal/github"
 )
 
 type Client interface {

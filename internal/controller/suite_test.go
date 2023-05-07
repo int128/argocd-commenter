@@ -25,8 +25,8 @@ import (
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/int128/argocd-commenter/pkg/github"
-	"github.com/int128/argocd-commenter/pkg/notification"
+	"github.com/int128/argocd-commenter/internal/github"
+	"github.com/int128/argocd-commenter/internal/notification"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"

@@ -6,10 +6,8 @@ on:
       - .github/workflows/docker.yaml
       - Dockerfile
       - go.*
-      - main.go
       - api/**
-      - controllers/**
-      - pkg/**
+      - internal/**
       - e2e_test/**
       - '!**/*_test.go'
       - '!**/*.md'
@@ -22,10 +20,8 @@ on:
       - .github/workflows/docker.yaml
       - Dockerfile
       - go.*
-      - main.go
       - api/**
-      - controllers/**
-      - pkg/**
+      - internal/**
       - e2e_test/**
       - '!**/*_test.go'
       - '!**/*.md'

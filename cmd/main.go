@@ -37,8 +37,8 @@ import (
 
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/controller"
-	"github.com/int128/argocd-commenter/pkg/github"
-	"github.com/int128/argocd-commenter/pkg/notification"
+	"github.com/int128/argocd-commenter/internal/github"
+	"github.com/int128/argocd-commenter/internal/notification"
 	//+kubebuilder:scaffold:imports
 )
 

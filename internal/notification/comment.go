@@ -9,8 +9,8 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/go-logr/logr"
-	"github.com/int128/argocd-commenter/pkg/argocd"
-	"github.com/int128/argocd-commenter/pkg/github"
+	"github.com/int128/argocd-commenter/internal/argocd"
+	"github.com/int128/argocd-commenter/internal/github"
 	"k8s.io/apimachinery/pkg/util/errors"
 )
 
