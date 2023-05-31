@@ -3,8 +3,8 @@ module github.com/int128/argocd-commenter
 go 1.19
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.7.1
-	github.com/argoproj/gitops-engine v0.7.1-0.20230214165351-ed70eac8b7bd
+	github.com/argoproj/argo-cd/v2 v2.7.3
+	github.com/argoproj/gitops-engine v0.7.1-0.20230512020822-b4dd8b8c3976
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v52 v52.0.0
