@@ -113,10 +113,10 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFI
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20210826220005-b48c857c3a0e/go.mod h1:F7bn7fEU90QkQ3tnmaTx3LTKLEDqnwWODIYppRQ5hnY=
-github.com/argoproj/argo-cd/v2 v2.7.3 h1:0NNLqVWPE96bEgAZI3TYWtmy6y98rYiEY963z9evycU=
-github.com/argoproj/argo-cd/v2 v2.7.3/go.mod h1:qkTbgsrfa7SPvwmcineNPrz8MfzPlJmD3lN5QchL/5A=
-github.com/argoproj/gitops-engine v0.7.1-0.20230512020822-b4dd8b8c3976 h1:8i12dOcimhwrJxUznzZR/NW4JpIL5DXZjkI3Bl3yh38=
-github.com/argoproj/gitops-engine v0.7.1-0.20230512020822-b4dd8b8c3976/go.mod h1:WpA/B7tgwfz+sdNE3LqrTrb7ArEY1FOPI2pAGI0hfPc=
+github.com/argoproj/argo-cd/v2 v2.7.4 h1:GjO/S04ja3BCvsCWYLVio3V+AiZCOLtedUUGeM8whi0=
+github.com/argoproj/argo-cd/v2 v2.7.4/go.mod h1:7bpfosd7lV3d21MtEGA5uQNPWmeFMgdZqI8IVh023ZI=
+github.com/argoproj/gitops-engine v0.7.1-0.20230526233214-ad9a694fe4bc h1:i6OgOvFFsoWiGBFEhhDNcYoRtxxtrVwcD7wCEeqhct4=
+github.com/argoproj/gitops-engine v0.7.1-0.20230526233214-ad9a694fe4bc/go.mod h1:WpA/B7tgwfz+sdNE3LqrTrb7ArEY1FOPI2pAGI0hfPc=
 github.com/argoproj/pkg v0.13.7-0.20221221191914-44694015343d h1:7fXEKF3OQ9i1PrgieA6FLrXOL3UAKyiotomn0RHevds=
 github.com/argoproj/pkg v0.13.7-0.20221221191914-44694015343d/go.mod h1:RKjj5FJ6KxtktOY49GJSG49qO6Z4lH7RnrVCaS3tf18=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -168,8 +168,9 @@ github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMn
 github.com/cilium/ebpf v0.4.0/go.mod h1:4tRaxcgiL706VnOzHOdBlY8IEAIdxINsQBcU4xJJXRs=
 github.com/cilium/ebpf v0.7.0/go.mod h1:/oI2+1shJiTGAMgl6/RgJr36Eo1jzrRcAWbcXO2usCA=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
-github.com/cloudflare/circl v1.1.0 h1:bZgT/A+cikZnKIwn7xL2OBj012Bmvho/o6RpRvv3GKY=
 github.com/cloudflare/circl v1.1.0/go.mod h1:prBCrKB9DV4poKZY1l9zBXg2QJY7mvgRvtMxxK7fi4I=
+github.com/cloudflare/circl v1.3.3 h1:fE/Qz0QdIGqeWfnwq0RE0R7MI51s0M2E4Ga9kq5AEMs=
+github.com/cloudflare/circl v1.3.3/go.mod h1:5XYMA4rFBvNIrhs50XuiBJ15vF2pZn4nnUKZrLbUZFA=
 github.com/clusterhq/flocker-go v0.0.0-20160920122132-2b8b7259d313/go.mod h1:P1wt9Z3DP8O6W3rvwCt0REIlshg1InHImaLW0t3ObY0=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
