@@ -5,7 +5,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v53/github"
 )
 
 type Client interface {
