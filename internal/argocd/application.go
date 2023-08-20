@@ -17,6 +17,32 @@ func GetDeployedRevision(a argocdv1alpha1.Application) string {
 	return a.Status.OperationState.Operation.Sync.Revision
 }
 
+type SourceRevision struct {
+	Source   argocdv1alpha1.ApplicationSource
+	Revision string
+}
+
+func GetSourceRevisions(app argocdv1alpha1.Application) []SourceRevision {
+	if app.Status.OperationState == nil {
+		return nil
+	}
+	sources := app.Spec.GetSources()
+	revisions := app.Status.OperationState.Operation.Sync.Revisions
+	if revisions == nil {
+		revisions = []string{app.Status.OperationState.Operation.Sync.Revision}
+	}
+	size := min(len(sources), len(revisions))
+
+	sourceRevisions := make([]SourceRevision, size)
+	for i := 0; i < size; i++ {
+		sourceRevisions[i] = SourceRevision{
+			Source:   sources[i],
+			Revision: revisions[i],
+		}
+	}
+	return sourceRevisions
+}
+
 // GetDeploymentURL returns the deployment URL in annotations
 func GetDeploymentURL(a argocdv1alpha1.Application) string {
 	if a.Annotations == nil {
