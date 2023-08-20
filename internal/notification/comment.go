@@ -87,31 +87,36 @@ func generateSyncResultComment(syncResult *argocdv1alpha1.SyncOperationResult) s
 	return b.String()
 }
 
-func NewCommentOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
-	if app.Spec.Source == nil {
-		return nil
+func NewCommentsOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+	sourceRevisions := argocd.GetSourceRevisions(app)
+	var comments []Comment
+	for _, sourceRevision := range sourceRevisions {
+		comment := generateCommentOnHealthChanged(app, argocdURL, sourceRevision)
+		if comment == nil {
+			continue
+		}
+		comments = append(comments, *comment)
 	}
-	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
+	return comments
+}
+
+func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) *Comment {
+	repository := github.ParseRepositoryURL(sourceRevision.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
-	revision := argocd.GetDeployedRevision(app)
-	if revision == "" {
-		return nil
-	}
-	body := generateCommentOnHealthChanged(app, argocdURL)
+	body := generateCommentBodyOnHealthChanged(app, argocdURL, sourceRevision)
 	if body == "" {
 		return nil
 	}
 	return &Comment{
 		GitHubRepository: *repository,
-		Revision:         revision,
+		Revision:         sourceRevision.Revision,
 		Body:             body,
 	}
 }
 
-func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) string {
-	revision := argocd.GetDeployedRevision(app)
+func generateCommentBodyOnHealthChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) string {
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argocdURL, app.Name)
 	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
@@ -120,7 +125,7 @@ func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL st
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
-			revision,
+			sourceRevision.Revision,
 		)
 	case health.HealthStatusDegraded:
 		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
@@ -128,7 +133,7 @@ func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL st
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
-			revision,
+			sourceRevision.Revision,
 		)
 	}
 	return ""
