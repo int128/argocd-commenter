@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.8.1
+	github.com/argoproj/argo-cd/v2 v2.8.2
 	github.com/argoproj/gitops-engine v0.7.1-0.20230607163028-425d65e07695
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.5.9
