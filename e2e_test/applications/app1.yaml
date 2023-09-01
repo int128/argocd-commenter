@@ -9,10 +9,11 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/int128/argocd-commenter-e2e-test
-    targetRevision: FIXTURE_BASE_BRANCH
-    path: app1
+  # https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/
+  sources:
+    - repoURL: https://github.com/int128/argocd-commenter-e2e-test
+      targetRevision: FIXTURE_BASE_BRANCH
+      path: app1
   destination:
     server: https://kubernetes.default.svc
     namespace: app1
