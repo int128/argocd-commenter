@@ -114,6 +114,10 @@ func newApplicationStatus(app *argocdv1alpha1.Application) ApplicationStatus {
 		Sync:     string(app.Status.Sync.Status),
 		Health:   string(app.Status.Health.Status),
 	}
+	// for multiple sources
+	if len(app.Status.Sync.Revisions) > 0 {
+		s.Revision = app.Status.Sync.Revisions[0]
+	}
 	if app.Status.OperationState != nil {
 		s.Operation = string(app.Status.OperationState.Phase)
 	}
