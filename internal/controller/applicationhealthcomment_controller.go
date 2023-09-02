@@ -59,7 +59,6 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
-	deployedRevision := argocd.GetDeployedRevision(app)
 
 	var appHealth argocdcommenterv1.ApplicationHealth
 	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
@@ -81,39 +80,44 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		}
 		logger.Info("created an ApplicationHealth")
 	}
-	if deployedRevision == appHealth.Status.LastHealthyRevision {
-		return ctrl.Result{}, nil
-	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	comment := notification.NewCommentOnOnHealthChanged(app, argocdURL)
-	if comment == nil {
+	comments := notification.NewCommentsOnOnHealthChanged(app, argocdURL)
+	if len(comments) == 0 {
 		logger.Info("no comment on this health event")
 		return ctrl.Result{}, nil
 	}
-	if err := r.Notification.CreateComment(ctx, *comment, app); err != nil {
-		logger.Error(err, "unable to create a comment")
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-			"unable to create a comment by %s: %s", app.Status.Health.Status, err)
-	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
+	currentRevision := comments[0].Revision
+	if appHealth.Status.LastHealthyRevision == currentRevision {
+		logger.Info("current revision is already healthy", "revision", currentRevision)
+		return ctrl.Result{}, nil
+	}
+
+	for _, comment := range comments {
+		if err := r.Notification.CreateComment(ctx, comment, app); err != nil {
+			logger.Error(err, "unable to create a comment")
+			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+				"unable to create a comment by %s: %s", app.Status.Health.Status, err)
+		} else {
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
+		}
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
 		return ctrl.Result{}, nil
 	}
 	patch := client.MergeFrom(appHealth.DeepCopy())
-	appHealth.Status.LastHealthyRevision = deployedRevision
+	appHealth.Status.LastHealthyRevision = currentRevision
 	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
 		logger.Error(err, "unable to patch lastHealthyRevision of ApplicationHealth")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	logger.Info("patched lastHealthyRevision of ApplicationHealth")
 	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdateLastHealthyRevision",
-		"patched lastHealthyRevision to %s", deployedRevision)
+		"patched lastHealthyRevision to %s", currentRevision)
 	return ctrl.Result{}, nil
 }
 

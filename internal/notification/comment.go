@@ -20,60 +20,64 @@ type Comment struct {
 	Body             string
 }
 
-func NewCommentOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
-	if app.Spec.Source == nil {
-		return nil
+func NewCommentsOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+	sourceRevisions := argocd.GetSourceRevisions(app)
+	var comments []Comment
+	for _, sourceRevision := range sourceRevisions {
+		comment := generateCommentOnPhaseChanged(app, argocdURL, sourceRevision)
+		if comment == nil {
+			continue
+		}
+		comments = append(comments, *comment)
 	}
-	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
+	return comments
+}
+
+func generateCommentOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) *Comment {
+	repository := github.ParseRepositoryURL(sourceRevision.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
-	revision := argocd.GetDeployedRevision(app)
-	if revision == "" {
-		return nil
-	}
-	body := generateCommentOnPhaseChanged(app, argocdURL)
+	body := generateCommentBodyOnPhaseChanged(app, argocdURL, sourceRevision)
 	if body == "" {
 		return nil
 	}
 	return &Comment{
 		GitHubRepository: *repository,
-		Revision:         revision,
+		Revision:         sourceRevision.Revision,
 		Body:             body,
 	}
 }
 
-func generateCommentOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) string {
-	phase := argocd.GetOperationPhase(app)
-	if phase == "" {
+func generateCommentBodyOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) string {
+	if app.Status.OperationState == nil {
 		return ""
 	}
-	revision := argocd.GetDeployedRevision(app)
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argocdURL, app.Name)
-
+	phase := app.Status.OperationState.Phase
 	switch phase {
 	case synccommon.OperationRunning:
-		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", app.Name, argocdApplicationURL, revision)
+		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", app.Name, argocdApplicationURL, sourceRevision.Revision)
 	case synccommon.OperationSucceeded:
-		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", app.Name, argocdApplicationURL, revision)
+		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", app.Name, argocdApplicationURL, sourceRevision.Revision)
 	case synccommon.OperationFailed, synccommon.OperationError:
 		return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
 			phase,
 			app.Name,
 			argocdApplicationURL,
-			revision,
-			generateSyncResultComment(app),
+			sourceRevision.Revision,
+			generateSyncResultComment(app.Status.OperationState.SyncResult),
 		)
 	}
 	return ""
 }
 
-func generateSyncResultComment(app argocdv1alpha1.Application) string {
-	if app.Status.OperationState.SyncResult == nil {
+func generateSyncResultComment(syncResult *argocdv1alpha1.SyncOperationResult) string {
+	if syncResult == nil {
 		return ""
 	}
 	var b strings.Builder
-	for _, r := range app.Status.OperationState.SyncResult.Resources {
+	for _, r := range syncResult.Resources {
 		namespacedName := r.Namespace + "/" + r.Name
 		switch r.Status {
 		case synccommon.ResultCodeSyncFailed, synccommon.ResultCodePruneSkipped:
@@ -83,31 +87,36 @@ func generateSyncResultComment(app argocdv1alpha1.Application) string {
 	return b.String()
 }
 
-func NewCommentOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *Comment {
-	if app.Spec.Source == nil {
-		return nil
+func NewCommentsOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+	sourceRevisions := argocd.GetSourceRevisions(app)
+	var comments []Comment
+	for _, sourceRevision := range sourceRevisions {
+		comment := generateCommentOnHealthChanged(app, argocdURL, sourceRevision)
+		if comment == nil {
+			continue
+		}
+		comments = append(comments, *comment)
 	}
-	repository := github.ParseRepositoryURL(app.Spec.Source.RepoURL)
+	return comments
+}
+
+func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) *Comment {
+	repository := github.ParseRepositoryURL(sourceRevision.Source.RepoURL)
 	if repository == nil {
 		return nil
 	}
-	revision := argocd.GetDeployedRevision(app)
-	if revision == "" {
-		return nil
-	}
-	body := generateCommentOnHealthChanged(app, argocdURL)
+	body := generateCommentBodyOnHealthChanged(app, argocdURL, sourceRevision)
 	if body == "" {
 		return nil
 	}
 	return &Comment{
 		GitHubRepository: *repository,
-		Revision:         revision,
+		Revision:         sourceRevision.Revision,
 		Body:             body,
 	}
 }
 
-func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) string {
-	revision := argocd.GetDeployedRevision(app)
+func generateCommentBodyOnHealthChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) string {
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argocdURL, app.Name)
 	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
@@ -116,7 +125,7 @@ func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL st
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
-			revision,
+			sourceRevision.Revision,
 		)
 	case health.HealthStatusDegraded:
 		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
@@ -124,7 +133,7 @@ func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL st
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
-			revision,
+			sourceRevision.Revision,
 		)
 	}
 	return ""

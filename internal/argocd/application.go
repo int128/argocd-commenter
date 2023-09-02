@@ -6,15 +6,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GetDeployedRevision returns the last synced revision
-func GetDeployedRevision(a argocdv1alpha1.Application) string {
-	if a.Status.OperationState == nil {
-		return ""
+type SourceRevision struct {
+	Source   argocdv1alpha1.ApplicationSource
+	Revision string
+}
+
+// GetSourceRevisions returns the last synced revisions
+func GetSourceRevisions(app argocdv1alpha1.Application) []SourceRevision {
+	if app.Status.OperationState == nil {
+		return nil
 	}
-	if a.Status.OperationState.Operation.Sync == nil {
-		return ""
+	if app.Status.OperationState.Operation.Sync == nil {
+		return nil
 	}
-	return a.Status.OperationState.Operation.Sync.Revision
+	sources := app.Spec.GetSources()
+	revisions := app.Status.OperationState.Operation.Sync.Revisions
+	if revisions == nil {
+		revisions = []string{app.Status.OperationState.Operation.Sync.Revision}
+	}
+	size := min(len(sources), len(revisions))
+
+	sourceRevisions := make([]SourceRevision, size)
+	for i := 0; i < size; i++ {
+		sourceRevisions[i] = SourceRevision{
+			Source:   sources[i],
+			Revision: revisions[i],
+		}
+	}
+	return sourceRevisions
 }
 
 // GetDeploymentURL returns the deployment URL in annotations
