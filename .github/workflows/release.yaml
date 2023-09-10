@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: kustomize edit set image controller='ghcr.io/${{ github.repository }}:${{ github.ref_name }}'
         working-directory: config/manager
       - run: kustomize build config/default > /tmp/argocd-commenter.yaml
