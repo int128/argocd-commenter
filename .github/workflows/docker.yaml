@@ -55,7 +55,7 @@ jobs:
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
-      - uses: docker/metadata-action@v4
+      - uses: docker/metadata-action@v5
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
