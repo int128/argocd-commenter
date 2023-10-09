@@ -12,7 +12,7 @@ require (
 	github.com/google/go-github/v54 v54.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/int128/oauth2-github-app v1.1.0
-	github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.28.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/oauth2 v0.13.0
