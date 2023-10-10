@@ -8,7 +8,7 @@ require (
 	github.com/argoproj/argo-cd/v2 v2.8.4
 	github.com/argoproj/gitops-engine v0.7.1-0.20230607163028-425d65e07695
 	github.com/go-logr/logr v1.2.4
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v54 v54.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/int128/oauth2-github-app v1.1.0
