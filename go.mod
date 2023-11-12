@@ -2,8 +2,6 @@ module github.com/int128/argocd-commenter
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	github.com/argoproj/argo-cd/v2 v2.9.0
 	github.com/argoproj/gitops-engine v0.7.1-0.20230906152414-b0fffe419a0f
