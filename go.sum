@@ -108,8 +108,8 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFI
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20210826220005-b48c857c3a0e/go.mod h1:F7bn7fEU90QkQ3tnmaTx3LTKLEDqnwWODIYppRQ5hnY=
-github.com/argoproj/argo-cd/v2 v2.9.2 h1:WJFLZOESdrigOcj8ttUEllJDffkcdrj2k8aJQIu+TLc=
-github.com/argoproj/argo-cd/v2 v2.9.2/go.mod h1:+Ve37mJedhW4fpRTpQNbE9VaSmkijET1UgxZOFNi3dI=
+github.com/argoproj/argo-cd/v2 v2.9.3 h1:P3oi9WEzi7NkPoinPhv/RCS6vKJT5vmB1YjgZduK0uw=
+github.com/argoproj/argo-cd/v2 v2.9.3/go.mod h1:+Ve37mJedhW4fpRTpQNbE9VaSmkijET1UgxZOFNi3dI=
 github.com/argoproj/gitops-engine v0.7.1-0.20230906152414-b0fffe419a0f h1:cb2j6HxYJutMBvvQc/Y3EOSL7pcr5pcnP/4MNmYi4xc=
 github.com/argoproj/gitops-engine v0.7.1-0.20230906152414-b0fffe419a0f/go.mod h1:/GMN0JuoJUUpnKlNLp2Wn/mfK8sglFsdPn+eoxSddmg=
 github.com/argoproj/pkg v0.13.7-0.20230627120311-a4dd357b057e h1:kuLQvJqwwRMQTheT4MFyKVM8Txncu21CHT4yBWUl1Mk=
