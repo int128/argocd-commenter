@@ -2,6 +2,7 @@ package notification
 
 import (
 	"fmt"
+	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -50,13 +51,29 @@ func generateCommentBodyOnHealthChanged(app argocdv1alpha1.Application, argocdUR
 			sourceRevision.Revision,
 		)
 	case health.HealthStatusDegraded:
-		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
+		return fmt.Sprintf("## %s %s: [%s](%s)\nError while deploying %s:\n%s",
 			":x:",
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,
+			generateCommentResourcesHealth(app),
 		)
 	}
 	return ""
+}
+
+func generateCommentResourcesHealth(app argocdv1alpha1.Application) string {
+	var b strings.Builder
+	for _, r := range app.Status.Resources {
+		if r.Health == nil {
+			continue
+		}
+		namespacedName := r.Namespace + "/" + r.Name
+		switch r.Health.Status {
+		case health.HealthStatusDegraded, health.HealthStatusMissing:
+			b.WriteString(fmt.Sprintf("- %s `%s`: %s\n", r.Health.Status, namespacedName, r.Health.Message))
+		}
+	}
+	return b.String()
 }

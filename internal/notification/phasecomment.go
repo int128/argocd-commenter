@@ -56,13 +56,13 @@ func generateCommentBodyOnPhaseChanged(app argocdv1alpha1.Application, argocdURL
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,
-			generateSyncResultComment(app.Status.OperationState.SyncResult),
+			generateCommentSyncResultResources(app.Status.OperationState.SyncResult),
 		)
 	}
 	return ""
 }
 
-func generateSyncResultComment(syncResult *argocdv1alpha1.SyncOperationResult) string {
+func generateCommentSyncResultResources(syncResult *argocdv1alpha1.SyncOperationResult) string {
 	if syncResult == nil {
 		return ""
 	}
