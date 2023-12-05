@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/go-github/v54/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/gregjones/httpcache"
 	"github.com/int128/oauth2-github-app"
 	"golang.org/x/oauth2"
@@ -60,7 +60,7 @@ func newOAuth2Client(ctx context.Context) (*http.Client, error) {
 func newGitHubClient(hc *http.Client) (*github.Client, error) {
 	ghesURL := os.Getenv("GITHUB_ENTERPRISE_URL")
 	if ghesURL != "" {
-		ghc, err := github.NewEnterpriseClient(ghesURL, ghesURL, hc)
+		ghc, err := github.NewClient(hc).WithEnterpriseURLs(ghesURL, ghesURL)
 		if err != nil {
 			return nil, fmt.Errorf("could not create a GitHub Enterprise client: %w", err)
 		}
