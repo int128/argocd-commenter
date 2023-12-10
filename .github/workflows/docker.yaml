@@ -36,7 +36,6 @@ jobs:
       - uses: actions/checkout@v4
       - id: go-version
         run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
-        working-directory: fixtures
 
   build:
     needs: go-version
