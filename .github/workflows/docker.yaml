@@ -40,14 +40,15 @@ jobs:
           go-version: 1.21.5
 
       # set up the test environment
-      - uses: cybozu/octoken-action@v1
-        id: octoken
+      - uses: actions/create-github-app-token@v1
+        id: e2e-test-token
         with:
-          github_app_id: ${{ secrets.E2E_SETUP_GITHUB_APP_ID }}
-          github_app_private_key: ${{ secrets.E2E_SETUP_GITHUB_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.E2E_SETUP_GITHUB_APP_ID }}
+          private-key: ${{ secrets.E2E_SETUP_GITHUB_APP_PRIVATE_KEY }}
+          repositories: argocd-commenter-e2e-test
       - uses: actions/checkout@v4
         with:
-          token: ${{ steps.octoken.outputs.token }}
+          token: ${{ steps.e2e-test-token.outputs.token }}
           repository: int128/argocd-commenter-e2e-test
           path: e2e_test/argocd-commenter-e2e-test-repository
       - run: make -C e2e_test setup-fixture-branch
@@ -92,7 +93,7 @@ jobs:
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
       - run: make -C e2e_test restart-app1
 
@@ -100,13 +101,13 @@ jobs:
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
       - run: make -C e2e_test deploy-app3
         env:
           PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.octoken.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
       # show logs
       - run: make -C e2e_test logs-argocd
