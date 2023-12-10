@@ -27,8 +27,21 @@ on:
       - '!**/*.md'
 
 jobs:
+  go-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      go-version: ${{ steps.go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: go-version
+        run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: go-version
     uses: int128/docker-build-workflow/.github/workflows/build.yaml@v1
+    with:
+      build-args: go_version=${{ needs.go-version.outputs.go-version }}
 
   e2e-test:
     runs-on: ubuntu-latest
@@ -37,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.21.5
+          go-version-file: go.mod
 
       # set up the test environment
       - uses: actions/create-github-app-token@v1
