@@ -1,0 +1,56 @@
+name: build
+
+on:
+  workflow_call:
+    outputs:
+      digest:
+        description: image digest (e.g. sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef)
+        value: ${{ jobs.build.outputs.digest }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
+      - uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+      - uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@9dc751fe249ad99385a2583ee0d084c400eee04e # v5.4.0
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - uses: int128/docker-build-cache-config-action@1ae274f683e01b2b3eb290167f51590fd7035316 # v1.28.0
+        id: cache
+        with:
+          image: ghcr.io/${{ github.repository }}
+          flavor: suffix=-cache
+      - id: go-version
+        run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
+
+      - uses: int128/docker-mount-cache-action/restore@v0
+        with:
+          path: /root/.cache/go-build
+          tags: ghcr.io/${{ github.repository }}:go-build-cache
+      - uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
+        id: build
+        with:
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: ${{ steps.cache.outputs.cache-from }}
+          cache-to: ${{ steps.cache.outputs.cache-to }}
+          build-args: go_version=${{ steps.go-version.outputs.go-version }}
+      - uses: int128/docker-mount-cache-action/save@v0
+        with:
+          path: /root/.cache/go-build
+          tags: ghcr.io/${{ github.repository }}:go-build-cache
