@@ -21,9 +21,8 @@ import (
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,22 +44,28 @@ var (
 	requeueTimeoutWhenDeploymentNotFound = 10 * time.Minute
 )
 
-// ApplicationHealthDeploymentReconciler reconciles an Application object
-type ApplicationHealthDeploymentReconciler struct {
+// NotificationDeploymentReconciler reconciles a NotificationDeployment object
+type NotificationDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Recorder     record.EventRecorder
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
-//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
-//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=notifications,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=notifications/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=notifications/finalizers,verbs=update
 
-func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *NotificationDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	var appNotification argocdcommenterv1.Notification
+	if err := r.Client.Get(ctx, req.NamespacedName, &appNotification); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if appNotification.Status.DeploymentState == appNotification.Status.State {
+		return ctrl.Result{}, nil
+	}
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
@@ -69,11 +74,15 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
+
+	if appNotification.Status.DeploymentState == argocdcommenterv1.NotificationStateHealthy {
+		return ctrl.Result{}, nil
+	}
+
 	deploymentURL := argocd.GetDeploymentURL(app)
 	if deploymentURL == "" {
 		return ctrl.Result{}, nil
 	}
-
 	deploymentIsAlreadyHealthy, err := r.Notification.CheckIfDeploymentIsAlreadyHealthy(ctx, deploymentURL)
 	if notification.IsNotFoundError(err) {
 		// Retry until the application is synced with a valid GitHub Deployment.
@@ -95,14 +104,43 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	switch appNotification.Status.State {
+	case argocdcommenterv1.NotificationStateSyncing,
+		argocdcommenterv1.NotificationStateSynced,
+		argocdcommenterv1.NotificationStateSyncFailed:
+		if err := r.handlePhaseChanged(ctx, app); err != nil {
+			return ctrl.Result{}, err
+		}
+
+	case argocdcommenterv1.NotificationStateProgressing,
+		argocdcommenterv1.NotificationStateHealthy,
+		argocdcommenterv1.NotificationStateDegraded:
+		if err := r.handleHealthChanged(ctx, app); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	patch := client.MergeFrom(appNotification.DeepCopy())
+	appNotification.Status.DeploymentState = appNotification.Status.State
+	if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
+		logger.Error(err, "unable to patch the Notification")
+		return ctrl.Result{}, err
+	}
+	logger.Info("patched the Notification", "deploymentState", appNotification.Status.DeploymentState)
+	return ctrl.Result{}, nil
+}
+
+func (r *NotificationDeploymentReconciler) handlePhaseChanged(ctx context.Context, app argocdv1alpha1.Application) error {
+	logger := log.FromContext(ctx)
+
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, app.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnHealthChanged(app, argocdURL)
+	ds := notification.NewDeploymentStatusOnPhaseChanged(app, argocdURL)
 	if ds == nil {
-		logger.Info("no deployment status on this health event")
-		return ctrl.Result{}, nil
+		logger.Info("no deployment status on this phase event")
+		return nil
 	}
 	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
 		logger.Error(err, "unable to create a deployment status")
@@ -111,33 +149,36 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
 	}
-	return ctrl.Result{}, nil
+	return nil
+}
+
+func (r *NotificationDeploymentReconciler) handleHealthChanged(ctx context.Context, app argocdv1alpha1.Application) error {
+	logger := log.FromContext(ctx)
+
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, app.Namespace)
+	if err != nil {
+		logger.Info("unable to determine Argo CD URL", "error", err)
+	}
+	ds := notification.NewDeploymentStatusOnHealthChanged(app, argocdURL)
+	if ds == nil {
+		logger.Info("no deployment status on this health event")
+		return nil
+	}
+	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
+		logger.Error(err, "unable to create a deployment status")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
+			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-health-deployment")
+func (r *NotificationDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("notification-deployment-controller")
 	return ctrl.NewControllerManagedBy(mgr).
-		Named("applicationHealthDeployment").
-		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthDeploymentFilter{})).
+		Named("notificationDeployment").
+		For(&argocdcommenterv1.Notification{}).
 		Complete(r)
-}
-
-type applicationHealthDeploymentFilter struct{}
-
-func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
-		return false
-	}
-	if argocd.GetDeploymentURL(applicationNew) == "" {
-		return false
-	}
-
-	// Reconcile when the health status is changed to one:
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		return true
-	}
-	return false
 }

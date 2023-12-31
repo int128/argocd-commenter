@@ -11,35 +11,34 @@ resources:
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationHealthComment
+  kind: ApplicationDeletionDeployment
+  version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationPhase
+  version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationHealth
   version: v1
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationHealth
+  kind: Notification
   path: github.com/int128/argocd-commenter/api/v1
   version: v1
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationHealthDeployment
+  kind: NotificationComment
   version: v1
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationPhaseComment
-  version: v1
-- controller: true
-  domain: int128.github.io
-  group: argocdcommenter
-  kind: ApplicationPhaseDeployment
-  version: v1
-- controller: true
-  domain: int128.github.io
-  group: argocdcommenter
-  kind: ApplicationDeletionDeployment
+  kind: NotificationDeployment
   version: v1
 version: "3"

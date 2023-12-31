@@ -1,0 +1,12 @@
+apiVersion: argocdcommenter.int128.github.io/v1
+kind: Notification
+metadata:
+  labels:
+    app.kubernetes.io/name: notification
+    app.kubernetes.io/instance: notification-sample
+    app.kubernetes.io/part-of: argocd-commenter
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: argocd-commenter
+  name: notification-sample
+spec:
+  # TODO(user): Add fields here

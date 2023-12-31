@@ -7,7 +7,7 @@ rules:
 - apiGroups:
   - argocdcommenter.int128.github.io
   resources:
-  - applicationhealths
+  - notifications
   verbs:
   - create
   - delete
@@ -19,13 +19,13 @@ rules:
 - apiGroups:
   - argocdcommenter.int128.github.io
   resources:
-  - applicationhealths/finalizers
+  - notifications/finalizers
   verbs:
   - update
 - apiGroups:
   - argocdcommenter.int128.github.io
   resources:
-  - applicationhealths/status
+  - notifications/status
   verbs:
   - get
   - patch

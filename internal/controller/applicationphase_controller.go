@@ -20,8 +20,9 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
+	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationHealthReconciler reconciles a ApplicationHealth object
-type ApplicationHealthReconciler struct {
+// ApplicationPhaseReconciler reconciles a ApplicationPhase object
+type ApplicationPhaseReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
@@ -42,7 +43,7 @@ type ApplicationHealthReconciler struct {
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
-func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
@@ -74,11 +75,10 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		logger.Info("created an Notification")
 	}
 
-	appHealth := app.Status.Health.Status
-	switch {
-	case appHealth == health.HealthStatusProgressing:
+	switch argocd.GetOperationPhase(app) {
+	case synccommon.OperationRunning:
 		patch := client.MergeFrom(appNotification.DeepCopy())
-		appNotification.Status.State = argocdcommenterv1.NotificationStateProgressing
+		appNotification.Status.State = argocdcommenterv1.NotificationStateSyncing
 		if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
 			logger.Error(err, "unable to patch ApplicationHealth")
 			return ctrl.Result{}, err
@@ -86,9 +86,9 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		logger.Info("patched the Notification", "state", appNotification.Status.State)
 		return ctrl.Result{}, nil
 
-	case appHealth == health.HealthStatusHealthy:
+	case synccommon.OperationSucceeded:
 		patch := client.MergeFrom(appNotification.DeepCopy())
-		appNotification.Status.State = argocdcommenterv1.NotificationStateHealthy
+		appNotification.Status.State = argocdcommenterv1.NotificationStateSynced
 		if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
 			logger.Error(err, "unable to patch ApplicationHealth")
 			return ctrl.Result{}, err
@@ -96,9 +96,9 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		logger.Info("patched the Notification", "state", appNotification.Status.State)
 		return ctrl.Result{}, nil
 
-	case appHealth == health.HealthStatusDegraded:
+	case synccommon.OperationFailed:
 		patch := client.MergeFrom(appNotification.DeepCopy())
-		appNotification.Status.State = argocdcommenterv1.NotificationStateDegraded
+		appNotification.Status.State = argocdcommenterv1.NotificationStateSyncFailed
 		if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
 			logger.Error(err, "unable to patch ApplicationHealth")
 			return ctrl.Result{}, err
@@ -110,19 +110,23 @@ func (r *ApplicationHealthReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationHealthReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-health-controller")
+func (r *ApplicationPhaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("application-phase-controller")
 	return ctrl.NewControllerManagedBy(mgr).
-		Named("applicationHealth").
+		Named("applicationPhase").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthChangedFilter{})).
+		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseChangedFilter{})).
 		Complete(r)
 }
 
-type applicationHealthChangedFilter struct{}
+type applicationPhaseChangedFilter struct{}
 
-func (applicationHealthChangedFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
+func (applicationPhaseChangedFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
+	phaseOld, phaseNew := argocd.GetOperationPhase(applicationOld), argocd.GetOperationPhase(applicationNew)
+	if phaseNew == "" {
+		return false
+	}
+	if phaseOld == phaseNew {
 		return false
 	}
 	return true

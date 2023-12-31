@@ -106,6 +106,23 @@ func main() {
 	}
 	notificationClient := notification.NewClient(ghc)
 
+	if err = (&controller.ApplicationDeletionDeploymentReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Notification: notificationClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationDeletionDeployment")
+		os.Exit(1)
+	}
+
+	if err = (&controller.ApplicationPhaseReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhase")
+		os.Exit(1)
+	}
+
 	if err = (&controller.ApplicationHealthReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -114,47 +131,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	// comment controller
-	if err = (&controller.ApplicationPhaseCommentReconciler{
+	if err = (&controller.NotificationCommentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseComment")
-		os.Exit(1)
-	}
-	if err = (&controller.ApplicationHealthCommentReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Notification: notificationClient,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthComment")
+		setupLog.Error(err, "unable to create controller", "controller", "NotificationComment")
 		os.Exit(1)
 	}
 
-	// deployment controller
-	if err = (&controller.ApplicationPhaseDeploymentReconciler{
+	if err = (&controller.NotificationDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Notification: notificationClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseDeployment")
-		os.Exit(1)
-	}
-	if err = (&controller.ApplicationHealthDeploymentReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Notification: notificationClient,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthDeployment")
-		os.Exit(1)
-	}
-	if err = (&controller.ApplicationDeletionDeploymentReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Notification: notificationClient,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationDeletionDeployment")
+		setupLog.Error(err, "unable to create controller", "controller", "NotificationDeployment")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

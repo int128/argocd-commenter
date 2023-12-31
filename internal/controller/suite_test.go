@@ -113,40 +113,33 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&ApplicationDeletionDeploymentReconciler{
+		Client:       k8sManager.GetClient(),
+		Scheme:       k8sManager.GetScheme(),
+		Notification: nc,
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&ApplicationPhaseReconciler{
+		Client: k8sManager.GetClient(),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	err = (&ApplicationHealthReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	// comment controllers
-	err = (&ApplicationPhaseCommentReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		Notification: nc,
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-	err = (&ApplicationHealthCommentReconciler{
+	err = (&NotificationCommentReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
 		Notification: nc,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	// deployment controllers
-	err = (&ApplicationPhaseDeploymentReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		Notification: nc,
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-	err = (&ApplicationHealthDeploymentReconciler{
-		Client:       k8sManager.GetClient(),
-		Scheme:       k8sManager.GetScheme(),
-		Notification: nc,
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-	err = (&ApplicationDeletionDeploymentReconciler{
+	err = (&NotificationDeploymentReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),
 		Notification: nc,

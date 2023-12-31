@@ -1,0 +1,27 @@
+# permissions for end users to view notifications.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: notification-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: argocd-commenter
+    app.kubernetes.io/part-of: argocd-commenter
+    app.kubernetes.io/managed-by: kustomize
+  name: notification-viewer-role
+rules:
+- apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - notifications
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - argocdcommenter.int128.github.io
+  resources:
+  - notifications/status
+  verbs:
+  - get
