@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"slices"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -81,29 +82,27 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		logger.Info("created an ApplicationHealth")
 	}
 
-	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
-	if err != nil {
-		logger.Info("unable to determine Argo CD URL", "error", err)
-	}
-	comments := notification.NewCommentsOnOnHealthChanged(app, argocdURL)
-	if len(comments) == 0 {
-		logger.Info("no comment on this health event")
+	sourceRevisions := argocd.GetSourceRevisions(app)
+	if len(sourceRevisions) == 0 {
 		return ctrl.Result{}, nil
 	}
-	currentRevision := comments[0].Revision
+	currentRevision := sourceRevisions[0].Revision
 	if appHealth.Status.LastHealthyRevision == currentRevision {
 		logger.Info("current revision is already healthy", "revision", currentRevision)
 		return ctrl.Result{}, nil
 	}
 
-	for _, comment := range comments {
-		if err := r.Notification.CreateComment(ctx, comment, app); err != nil {
-			logger.Error(err, "unable to create a comment")
-			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-				"unable to create a comment by %s: %s", app.Status.Health.Status, err)
-		} else {
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
-		}
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	if err != nil {
+		logger.Info("unable to determine Argo CD URL", "error", err)
+	}
+
+	if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
+		logger.Error(err, "unable to create comments")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+			"unable to create a comment by %s: %s", app.Status.Health.Status, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
@@ -138,9 +137,5 @@ func (applicationHealthCommentFilter) Compare(applicationOld, applicationNew arg
 		return false
 	}
 
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		return true
-	}
-	return false
+	return slices.Contains(notification.HealthStatusesForComment, applicationNew.Status.Health.Status)
 }

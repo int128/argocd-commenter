@@ -68,12 +68,8 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnDeletion(app, argocdURL)
-	if ds == nil {
-		logger.Info("no deployment status on this event")
-		return ctrl.Result{}, nil
-	}
-	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
+
+	if err := r.Notification.CreateDeploymentStatusOnDeletion(ctx, app, argocdURL); err != nil {
 		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
 			"unable to create a deployment status: %s", err)

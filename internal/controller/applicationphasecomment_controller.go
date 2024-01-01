@@ -18,9 +18,9 @@ package controller
 
 import (
 	"context"
+	"slices"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -60,19 +60,13 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	comments := notification.NewCommentsOnOnPhaseChanged(app, argocdURL)
-	if len(comments) == 0 {
-		logger.Info("no comment on this phase event", "phase", phase)
-		return ctrl.Result{}, nil
-	}
-	for _, comment := range comments {
-		if err := r.Notification.CreateComment(ctx, comment, app); err != nil {
-			logger.Error(err, "unable to create a comment")
-			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-				"unable to create a comment by %s: %s", phase, err)
-		} else {
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", phase)
-		}
+
+	if err := r.Notification.CreateCommentsOnPhaseChanged(ctx, app, argocdURL); err != nil {
+		logger.Error(err, "unable to create a comment")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+			"unable to create a comment by %s: %s", phase, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", phase)
 	}
 	return ctrl.Result{}, nil
 }
@@ -98,9 +92,5 @@ func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argo
 		return false
 	}
 
-	switch phaseNew {
-	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
-		return true
-	}
-	return false
+	return slices.Contains(notification.SyncOperationPhasesForComment, phaseNew)
 }

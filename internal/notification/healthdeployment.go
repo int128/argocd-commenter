@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,42 +11,51 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
-func NewDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
+var HealthStatusesForDeploymentStatus = []health.HealthStatusCode{
+	health.HealthStatusHealthy,
+	health.HealthStatusDegraded,
+}
+
+func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
+	ds := generateDeploymentStatusOnHealthChanged(app, argocdURL)
+	if ds == nil {
+		return nil
+	}
+	if err := c.createDeploymentStatus(ctx, *ds); err != nil {
+		return fmt.Errorf("unable to create a deployment status: %w", err)
+	}
+	return nil
+}
+
+func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
 	deploymentURL := argocd.GetDeploymentURL(app)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	ds := generateHealthDeploymentStatus(app, argocdURL)
-	if ds == nil {
-		return nil
-	}
-	return &DeploymentStatus{
-		GitHubDeployment:       *deployment,
-		GitHubDeploymentStatus: *ds,
-	}
-}
 
-func generateHealthDeploymentStatus(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
-	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+	ds := DeploymentStatus{
+		GitHubDeployment: *deployment,
+		GitHubDeploymentStatus: github.DeploymentStatus{
+			LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+			Description: trimDescription(generateDeploymentStatusDescriptionOnHealthChanged(app)),
+		},
 	}
 	if len(app.Status.Summary.ExternalURLs) > 0 {
-		ds.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
+		ds.GitHubDeploymentStatus.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
 	}
-	ds.Description = trimDescription(generateHealthDeploymentStatusDescription(app))
 	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
-		ds.State = "success"
+		ds.GitHubDeploymentStatus.State = "success"
 		return &ds
 	case health.HealthStatusDegraded:
-		ds.State = "failure"
+		ds.GitHubDeploymentStatus.State = "failure"
 		return &ds
 	}
 	return nil
 }
 
-func generateHealthDeploymentStatusDescription(app argocdv1alpha1.Application) string {
+func generateDeploymentStatusDescriptionOnHealthChanged(app argocdv1alpha1.Application) string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("%s:\n%s\n",
 		app.Status.Health.Status,
@@ -62,22 +72,6 @@ func generateHealthDeploymentStatusDescription(app argocdv1alpha1.Application) s
 		}
 	}
 	return b.String()
-}
-
-func NewDeploymentStatusOnDeletion(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(app)
-	deployment := github.ParseDeploymentURL(deploymentURL)
-	if deployment == nil {
-		return nil
-	}
-	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
-		State:  "inactive",
-	}
-	return &DeploymentStatus{
-		GitHubDeployment:       *deployment,
-		GitHubDeploymentStatus: ds,
-	}
 }
 
 func trimDescription(s string) string {

@@ -18,10 +18,10 @@ package controller
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -89,12 +89,8 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnPhaseChanged(app, argocdURL)
-	if ds == nil {
-		logger.Info("no deployment status on this phase event", "phase", phase)
-		return ctrl.Result{}, nil
-	}
-	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
+
+	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, app, argocdURL); err != nil {
 		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
 			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
@@ -128,9 +124,5 @@ func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew a
 		return false
 	}
 
-	switch phaseNew {
-	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
-		return true
-	}
-	return false
+	return slices.Contains(notification.SyncOperationPhasesForDeploymentStatus, phaseNew)
 }

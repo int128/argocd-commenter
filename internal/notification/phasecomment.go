@@ -1,6 +1,8 @@
 package notification
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,17 +12,26 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
-func NewCommentsOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+var SyncOperationPhasesForComment = []synccommon.OperationPhase{
+	synccommon.OperationRunning,
+	synccommon.OperationSucceeded,
+	synccommon.OperationFailed,
+	synccommon.OperationError,
+}
+
+func (c client) CreateCommentsOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
+	var errs []error
 	sourceRevisions := argocd.GetSourceRevisions(app)
-	var comments []Comment
 	for _, sourceRevision := range sourceRevisions {
 		comment := generateCommentOnPhaseChanged(app, argocdURL, sourceRevision)
 		if comment == nil {
 			continue
 		}
-		comments = append(comments, *comment)
+		if err := c.createComment(ctx, *comment, app); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return comments
+	return errors.Join(errs...)
 }
 
 func generateCommentOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) *Comment {
@@ -56,13 +67,13 @@ func generateCommentBodyOnPhaseChanged(app argocdv1alpha1.Application, argocdURL
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,
-			generateCommentSyncResultResources(app.Status.OperationState.SyncResult),
+			generateCommentResourcesOnPhaseChanged(app.Status.OperationState.SyncResult),
 		)
 	}
 	return ""
 }
 
-func generateCommentSyncResultResources(syncResult *argocdv1alpha1.SyncOperationResult) string {
+func generateCommentResourcesOnPhaseChanged(syncResult *argocdv1alpha1.SyncOperationResult) string {
 	if syncResult == nil {
 		return ""
 	}

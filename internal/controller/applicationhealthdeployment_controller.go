@@ -18,10 +18,10 @@ package controller
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -99,12 +99,8 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
 	}
-	ds := notification.NewDeploymentStatusOnHealthChanged(app, argocdURL)
-	if ds == nil {
-		logger.Info("no deployment status on this health event")
-		return ctrl.Result{}, nil
-	}
-	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
+
+	if err := r.Notification.CreateDeploymentStatusOnHealthChanged(ctx, app, argocdURL); err != nil {
 		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
 			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
@@ -134,10 +130,5 @@ func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew 
 		return false
 	}
 
-	// Reconcile when the health status is changed to one:
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		return true
-	}
-	return false
+	return slices.Contains(notification.HealthStatusesForDeploymentStatus, applicationNew.Status.Health.Status)
 }

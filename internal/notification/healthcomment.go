@@ -1,6 +1,8 @@
 package notification
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,17 +12,24 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
-func NewCommentsOnOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+var HealthStatusesForComment = []health.HealthStatusCode{
+	health.HealthStatusHealthy,
+	health.HealthStatusDegraded,
+}
+
+func (c client) CreateCommentsOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
+	var errs []error
 	sourceRevisions := argocd.GetSourceRevisions(app)
-	var comments []Comment
 	for _, sourceRevision := range sourceRevisions {
 		comment := generateCommentOnHealthChanged(app, argocdURL, sourceRevision)
 		if comment == nil {
 			continue
 		}
-		comments = append(comments, *comment)
+		if err := c.createComment(ctx, *comment, app); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return comments
+	return errors.Join(errs...)
 }
 
 func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) *Comment {
@@ -57,13 +66,13 @@ func generateCommentBodyOnHealthChanged(app argocdv1alpha1.Application, argocdUR
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,
-			generateCommentResourcesHealth(app),
+			generateCommentResourcesOnHealthChanged(app),
 		)
 	}
 	return ""
 }
 
-func generateCommentResourcesHealth(app argocdv1alpha1.Application) string {
+func generateCommentResourcesOnHealthChanged(app argocdv1alpha1.Application) string {
 	var b strings.Builder
 	for _, r := range app.Status.Resources {
 		if r.Health == nil {
