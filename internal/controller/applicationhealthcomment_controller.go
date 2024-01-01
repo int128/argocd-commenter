@@ -81,11 +81,12 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		logger.Info("created an ApplicationHealth")
 	}
 
-	var currentRevision string
-	if sr := argocd.GetSourceRevisions(app); len(sr) > 0 {
-		currentRevision = sr[0].Revision
+	sourceRevisions := argocd.GetSourceRevisions(app)
+	if len(sourceRevisions) == 0 {
+		return ctrl.Result{}, nil
 	}
-	if appHealth.Status.LastHealthyRevision == currentRevision && currentRevision != "" {
+	currentRevision := sourceRevisions[0].Revision
+	if appHealth.Status.LastHealthyRevision == currentRevision {
 		logger.Info("current revision is already healthy", "revision", currentRevision)
 		return ctrl.Result{}, nil
 	}
