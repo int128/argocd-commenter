@@ -11,6 +11,11 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
+var HealthStatusesForDeploymentStatus = []health.HealthStatusCode{
+	health.HealthStatusHealthy,
+	health.HealthStatusDegraded,
+}
+
 func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
 	ds := generateDeploymentStatusOnHealthChanged(app, argocdURL)
 	if ds == nil {

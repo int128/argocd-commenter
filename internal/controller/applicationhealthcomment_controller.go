@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"slices"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -136,9 +137,5 @@ func (applicationHealthCommentFilter) Compare(applicationOld, applicationNew arg
 		return false
 	}
 
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		return true
-	}
-	return false
+	return slices.Contains(notification.HealthStatusesForComment, applicationNew.Status.Health.Status)
 }

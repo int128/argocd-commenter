@@ -18,10 +18,10 @@ package controller
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -130,10 +130,5 @@ func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew 
 		return false
 	}
 
-	// Reconcile when the health status is changed to one:
-	switch applicationNew.Status.Health.Status {
-	case health.HealthStatusHealthy, health.HealthStatusDegraded:
-		return true
-	}
-	return false
+	return slices.Contains(notification.HealthStatusesForDeploymentStatus, applicationNew.Status.Health.Status)
 }

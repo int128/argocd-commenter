@@ -12,6 +12,11 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
+var HealthStatusesForComment = []health.HealthStatusCode{
+	health.HealthStatusHealthy,
+	health.HealthStatusDegraded,
+}
+
 func (c client) CreateCommentsOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
 	var errs []error
 	sourceRevisions := argocd.GetSourceRevisions(app)

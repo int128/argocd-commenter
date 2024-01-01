@@ -18,9 +18,9 @@ package controller
 
 import (
 	"context"
+	"slices"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -92,9 +92,5 @@ func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argo
 		return false
 	}
 
-	switch phaseNew {
-	case synccommon.OperationRunning, synccommon.OperationSucceeded, synccommon.OperationFailed, synccommon.OperationError:
-		return true
-	}
-	return false
+	return slices.Contains(notification.SyncOperationPhasesForComment, phaseNew)
 }

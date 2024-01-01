@@ -12,6 +12,13 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
+var SyncOperationPhasesForComment = []synccommon.OperationPhase{
+	synccommon.OperationRunning,
+	synccommon.OperationSucceeded,
+	synccommon.OperationFailed,
+	synccommon.OperationError,
+}
+
 func (c client) CreateCommentsOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
 	var errs []error
 	sourceRevisions := argocd.GetSourceRevisions(app)

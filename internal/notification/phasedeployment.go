@@ -10,6 +10,13 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
+var SyncOperationPhasesForDeploymentStatus = []synccommon.OperationPhase{
+	synccommon.OperationRunning,
+	synccommon.OperationSucceeded,
+	synccommon.OperationFailed,
+	synccommon.OperationError,
+}
+
 func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
 	ds := generateDeploymentStatusOnPhaseChanged(app, argocdURL)
 	if ds == nil {
