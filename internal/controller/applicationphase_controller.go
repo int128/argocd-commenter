@@ -20,10 +20,11 @@ import (
 	"context"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/predicates"
+	"github.com/int128/argocd-commenter/internal/notification"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,11 +34,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseReconciler reconciles a ApplicationPhase object
+// ApplicationPhaseReconciler reconciles an Application object
 type ApplicationPhaseReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
+	Notification notification.Client
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
@@ -75,38 +77,54 @@ func (r *ApplicationPhaseReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Info("created an Notification")
 	}
 
-	switch argocd.GetOperationPhase(app) {
-	case synccommon.OperationRunning:
-		patch := client.MergeFrom(appNotification.DeepCopy())
-		appNotification.Status.State = argocdcommenterv1.NotificationStateSyncing
-		if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
-			logger.Error(err, "unable to patch ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		logger.Info("patched the Notification", "state", appNotification.Status.State)
-		return ctrl.Result{}, nil
-
-	case synccommon.OperationSucceeded:
-		patch := client.MergeFrom(appNotification.DeepCopy())
-		appNotification.Status.State = argocdcommenterv1.NotificationStateSynced
-		if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
-			logger.Error(err, "unable to patch ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		logger.Info("patched the Notification", "state", appNotification.Status.State)
-		return ctrl.Result{}, nil
-
-	case synccommon.OperationFailed:
-		patch := client.MergeFrom(appNotification.DeepCopy())
-		appNotification.Status.State = argocdcommenterv1.NotificationStateSyncFailed
-		if err := r.Client.Status().Patch(ctx, &appNotification, patch); err != nil {
-			logger.Error(err, "unable to patch ApplicationHealth")
-			return ctrl.Result{}, err
-		}
-		logger.Info("patched the Notification", "state", appNotification.Status.State)
-		return ctrl.Result{}, nil
-	}
+	r.notifyComment(ctx, app)
+	r.notifyDeployment(ctx, app)
 	return ctrl.Result{}, nil
+}
+
+func (r *ApplicationPhaseReconciler) notifyComment(ctx context.Context, app argocdv1alpha1.Application) {
+	logger := log.FromContext(ctx)
+
+	phase := argocd.GetOperationPhase(app)
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, app.Namespace)
+	if err != nil {
+		logger.Info("unable to determine Argo CD URL", "error", err)
+	}
+	comments := notification.NewCommentsOnOnPhaseChanged(app, argocdURL)
+	if len(comments) == 0 {
+		logger.Info("no comment on this phase event", "phase", phase)
+		return
+	}
+	for _, comment := range comments {
+		if err := r.Notification.CreateComment(ctx, comment, app); err != nil {
+			logger.Error(err, "unable to create a comment")
+			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+				"unable to create a comment by %s: %s", phase, err)
+		} else {
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", phase)
+		}
+	}
+}
+
+func (r *ApplicationPhaseReconciler) notifyDeployment(ctx context.Context, app argocdv1alpha1.Application) {
+	logger := log.FromContext(ctx)
+
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, app.Namespace)
+	if err != nil {
+		logger.Info("unable to determine Argo CD URL", "error", err)
+	}
+	ds := notification.NewDeploymentStatusOnPhaseChanged(app, argocdURL)
+	if ds == nil {
+		logger.Info("no deployment status on this phase event")
+		return
+	}
+	if err := r.Notification.CreateDeployment(ctx, *ds); err != nil {
+		logger.Error(err, "unable to create a deployment status")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
+			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -26,9 +26,6 @@ type NotificationSpec struct{}
 // NotificationStatus defines the observed state of Notification
 type NotificationStatus struct {
 	// +optional
-	State NotificationState `json:"state,omitempty"`
-
-	// +optional
 	CommentState NotificationState `json:"commentState,omitempty"`
 
 	// +optional
