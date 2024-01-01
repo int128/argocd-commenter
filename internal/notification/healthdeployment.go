@@ -28,30 +28,23 @@ func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, arg
 	if deployment == nil {
 		return nil
 	}
-	ds := generateGitHubHealthDeploymentStatus(app, argocdURL)
-	if ds == nil {
-		return nil
-	}
-	return &DeploymentStatus{
-		GitHubDeployment:       *deployment,
-		GitHubDeploymentStatus: *ds,
-	}
-}
 
-func generateGitHubHealthDeploymentStatus(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
-	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+	ds := DeploymentStatus{
+		GitHubDeployment: *deployment,
+		GitHubDeploymentStatus: github.DeploymentStatus{
+			LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+			Description: trimDescription(generateHealthDeploymentStatusDescription(app)),
+		},
 	}
 	if len(app.Status.Summary.ExternalURLs) > 0 {
-		ds.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
+		ds.GitHubDeploymentStatus.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
 	}
-	ds.Description = trimDescription(generateHealthDeploymentStatusDescription(app))
 	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
-		ds.State = "success"
+		ds.GitHubDeploymentStatus.State = "success"
 		return &ds
 	case health.HealthStatusDegraded:
-		ds.State = "failure"
+		ds.GitHubDeploymentStatus.State = "failure"
 		return &ds
 	}
 	return nil

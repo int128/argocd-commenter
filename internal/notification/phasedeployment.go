@@ -27,40 +27,34 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 	if deployment == nil {
 		return nil
 	}
-	ds := generateGitHubDeploymentStatusOnPhaseChanged(app, argocdURL)
-	if ds == nil {
-		return nil
-	}
-	return &DeploymentStatus{
-		GitHubDeployment:       *deployment,
-		GitHubDeploymentStatus: *ds,
-	}
-}
 
-func generateGitHubDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
 	phase := argocd.GetOperationPhase(app)
 	if phase == "" {
 		return nil
 	}
-	ds := github.DeploymentStatus{
-		LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
-		Description: trimDescription(fmt.Sprintf("%s:\n%s", phase, app.Status.OperationState.Message)),
+
+	ds := DeploymentStatus{
+		GitHubDeployment: *deployment,
+		GitHubDeploymentStatus: github.DeploymentStatus{
+			LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+			Description: trimDescription(fmt.Sprintf("%s:\n%s", phase, app.Status.OperationState.Message)),
+		},
 	}
 	if len(app.Status.Summary.ExternalURLs) > 0 {
-		ds.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
+		ds.GitHubDeploymentStatus.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
 	}
 	switch phase {
 	case synccommon.OperationRunning:
-		ds.State = "queued"
+		ds.GitHubDeploymentStatus.State = "queued"
 		return &ds
 	case synccommon.OperationSucceeded:
-		ds.State = "in_progress"
+		ds.GitHubDeploymentStatus.State = "in_progress"
 		return &ds
 	case synccommon.OperationFailed:
-		ds.State = "failure"
+		ds.GitHubDeploymentStatus.State = "failure"
 		return &ds
 	case synccommon.OperationError:
-		ds.State = "failure"
+		ds.GitHubDeploymentStatus.State = "failure"
 		return &ds
 	}
 	return nil

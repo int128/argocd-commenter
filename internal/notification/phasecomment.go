@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,26 +13,18 @@ import (
 )
 
 func (c client) CreateCommentsOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
-	comments := generateCommentsOnOnPhaseChanged(app, argocdURL)
-	for _, comment := range comments {
-		if err := c.createComment(ctx, comment, app); err != nil {
-			return fmt.Errorf("unable to create a comment: %w", err)
-		}
-	}
-	return nil
-}
-
-func generateCommentsOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+	var errs []error
 	sourceRevisions := argocd.GetSourceRevisions(app)
-	var comments []Comment
 	for _, sourceRevision := range sourceRevisions {
 		comment := generateCommentOnPhaseChanged(app, argocdURL, sourceRevision)
 		if comment == nil {
 			continue
 		}
-		comments = append(comments, *comment)
+		if err := c.createComment(ctx, *comment, app); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return comments
+	return errors.Join(errs...)
 }
 
 func generateCommentOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string, sourceRevision argocd.SourceRevision) *Comment {
