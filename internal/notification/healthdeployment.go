@@ -33,7 +33,7 @@ func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, arg
 		GitHubDeployment: *deployment,
 		GitHubDeploymentStatus: github.DeploymentStatus{
 			LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
-			Description: trimDescription(generateHealthDeploymentStatusDescription(app)),
+			Description: trimDescription(generateDeploymentStatusDescriptionOnHealthChanged(app)),
 		},
 	}
 	if len(app.Status.Summary.ExternalURLs) > 0 {
@@ -50,7 +50,7 @@ func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, arg
 	return nil
 }
 
-func generateHealthDeploymentStatusDescription(app argocdv1alpha1.Application) string {
+func generateDeploymentStatusDescriptionOnHealthChanged(app argocdv1alpha1.Application) string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("%s:\n%s\n",
 		app.Status.Health.Status,

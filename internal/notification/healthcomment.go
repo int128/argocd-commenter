@@ -61,13 +61,13 @@ func generateCommentBodyOnHealthChanged(app argocdv1alpha1.Application, argocdUR
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,
-			generateCommentResourcesHealth(app),
+			generateCommentResourcesOnHealthChanged(app),
 		)
 	}
 	return ""
 }
 
-func generateCommentResourcesHealth(app argocdv1alpha1.Application) string {
+func generateCommentResourcesOnHealthChanged(app argocdv1alpha1.Application) string {
 	var b strings.Builder
 	for _, r := range app.Status.Resources {
 		if r.Health == nil {
