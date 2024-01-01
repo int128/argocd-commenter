@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,13 +11,24 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
-func NewDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
+func (c client) CreateDeploymentStatusOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
+	ds := generateDeploymentStatusOnHealthChanged(app, argocdURL)
+	if ds == nil {
+		return nil
+	}
+	if err := c.createDeploymentStatus(ctx, *ds); err != nil {
+		return fmt.Errorf("unable to create a deployment status: %w", err)
+	}
+	return nil
+}
+
+func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
 	deploymentURL := argocd.GetDeploymentURL(app)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	ds := generateHealthDeploymentStatus(app, argocdURL)
+	ds := generateGitHubHealthDeploymentStatus(app, argocdURL)
 	if ds == nil {
 		return nil
 	}
@@ -26,7 +38,7 @@ func NewDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, argocdUR
 	}
 }
 
-func generateHealthDeploymentStatus(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
+func generateGitHubHealthDeploymentStatus(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
 	ds := github.DeploymentStatus{
 		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
 	}
@@ -62,22 +74,6 @@ func generateHealthDeploymentStatusDescription(app argocdv1alpha1.Application) s
 		}
 	}
 	return b.String()
-}
-
-func NewDeploymentStatusOnDeletion(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
-	deploymentURL := argocd.GetDeploymentURL(app)
-	deployment := github.ParseDeploymentURL(deploymentURL)
-	if deployment == nil {
-		return nil
-	}
-	ds := github.DeploymentStatus{
-		LogURL: fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
-		State:  "inactive",
-	}
-	return &DeploymentStatus{
-		GitHubDeployment:       *deployment,
-		GitHubDeploymentStatus: ds,
-	}
 }
 
 func trimDescription(s string) string {

@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -9,13 +10,24 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
-func NewDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
+func (c client) CreateDeploymentStatusOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
+	ds := generateDeploymentStatusOnPhaseChanged(app, argocdURL)
+	if ds == nil {
+		return nil
+	}
+	if err := c.createDeploymentStatus(ctx, *ds); err != nil {
+		return fmt.Errorf("unable to create a deployment status: %w", err)
+	}
+	return nil
+}
+
+func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *DeploymentStatus {
 	deploymentURL := argocd.GetDeploymentURL(app)
 	deployment := github.ParseDeploymentURL(deploymentURL)
 	if deployment == nil {
 		return nil
 	}
-	ds := generateDeploymentStatusOnPhaseChanged(app, argocdURL)
+	ds := generateGitHubDeploymentStatusOnPhaseChanged(app, argocdURL)
 	if ds == nil {
 		return nil
 	}
@@ -25,7 +37,7 @@ func NewDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL
 	}
 }
 
-func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
+func generateGitHubDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) *github.DeploymentStatus {
 	phase := argocd.GetOperationPhase(app)
 	if phase == "" {
 		return nil

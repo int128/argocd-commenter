@@ -11,8 +11,12 @@ import (
 )
 
 type Client interface {
-	CreateComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error
-	CreateDeployment(ctx context.Context, ds DeploymentStatus) error
+	CreateCommentsOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error
+	CreateCommentsOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error
+	CreateDeploymentStatusOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error
+	CreateDeploymentStatusOnHealthChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error
+	CreateDeploymentStatusOnDeletion(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error
+
 	CheckIfDeploymentIsAlreadyHealthy(ctx context.Context, deploymentURL string) (bool, error)
 }
 
@@ -34,7 +38,7 @@ type client struct {
 	ghc github.Client
 }
 
-func (c client) CreateComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error {
+func (c client) createComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error {
 	logger := logr.FromContextOrDiscard(ctx).WithValues(
 		"revision", comment.Revision,
 		"repository", comment.GitHubRepository,
@@ -48,14 +52,14 @@ func (c client) CreateComment(ctx context.Context, comment Comment, app argocdv1
 		logger.Info("no pull request related to the revision")
 		return nil
 	}
-	if err := c.createComment(ctx, comment.GitHubRepository, relatedPullNumbers, comment.Body); err != nil {
+	if err := c.createPullRequestComment(ctx, comment.GitHubRepository, relatedPullNumbers, comment.Body); err != nil {
 		return fmt.Errorf("unable to create comment(s) on revision %s: %w", comment.Revision, err)
 	}
 	logger.Info("created comment(s)", "pulls", relatedPullNumbers)
 	return nil
 }
 
-func (c client) createComment(ctx context.Context, repository github.Repository, pullNumbers []int, body string) error {
+func (c client) createPullRequestComment(ctx context.Context, repository github.Repository, pullNumbers []int, body string) error {
 	var errs []error
 	for _, pullNumber := range pullNumbers {
 		if err := c.ghc.CreateComment(ctx, repository, pullNumber, body); err != nil {
@@ -74,7 +78,7 @@ type DeploymentStatus struct {
 	GitHubDeploymentStatus github.DeploymentStatus
 }
 
-func (c client) CreateDeployment(ctx context.Context, ds DeploymentStatus) error {
+func (c client) createDeploymentStatus(ctx context.Context, ds DeploymentStatus) error {
 	logger := logr.FromContextOrDiscard(ctx).WithValues(
 		"deployment", ds.GitHubDeployment,
 		"state", ds.GitHubDeploymentStatus.State,

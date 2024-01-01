@@ -81,29 +81,26 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		logger.Info("created an ApplicationHealth")
 	}
 
-	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
-	if err != nil {
-		logger.Info("unable to determine Argo CD URL", "error", err)
+	var currentRevision string
+	if sr := argocd.GetSourceRevisions(app); len(sr) > 0 {
+		currentRevision = sr[0].Revision
 	}
-	comments := notification.NewCommentsOnOnHealthChanged(app, argocdURL)
-	if len(comments) == 0 {
-		logger.Info("no comment on this health event")
-		return ctrl.Result{}, nil
-	}
-	currentRevision := comments[0].Revision
-	if appHealth.Status.LastHealthyRevision == currentRevision {
+	if appHealth.Status.LastHealthyRevision == currentRevision && currentRevision != "" {
 		logger.Info("current revision is already healthy", "revision", currentRevision)
 		return ctrl.Result{}, nil
 	}
 
-	for _, comment := range comments {
-		if err := r.Notification.CreateComment(ctx, comment, app); err != nil {
-			logger.Error(err, "unable to create a comment")
-			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-				"unable to create a comment by %s: %s", app.Status.Health.Status, err)
-		} else {
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
-		}
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	if err != nil {
+		logger.Info("unable to determine Argo CD URL", "error", err)
+	}
+
+	if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
+		logger.Error(err, "unable to create comments")
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+			"unable to create a comment by %s: %s", app.Status.Health.Status, err)
+	} else {
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {

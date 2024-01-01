@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,7 +11,17 @@ import (
 	"github.com/int128/argocd-commenter/internal/github"
 )
 
-func NewCommentsOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
+func (c client) CreateCommentsOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
+	comments := generateCommentsOnOnPhaseChanged(app, argocdURL)
+	for _, comment := range comments {
+		if err := c.createComment(ctx, comment, app); err != nil {
+			return fmt.Errorf("unable to create a comment: %w", err)
+		}
+	}
+	return nil
+}
+
+func generateCommentsOnOnPhaseChanged(app argocdv1alpha1.Application, argocdURL string) []Comment {
 	sourceRevisions := argocd.GetSourceRevisions(app)
 	var comments []Comment
 	for _, sourceRevision := range sourceRevisions {
