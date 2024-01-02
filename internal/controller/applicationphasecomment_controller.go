@@ -22,7 +22,7 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/predicates"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -81,14 +81,12 @@ func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) e
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseComment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseCommentFilter{})).
+		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationSyncOperationPhaseForComment)).
 		Complete(r)
 }
 
-type applicationPhaseCommentFilter struct{}
-
-func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	phaseOld, phaseNew := argocd.GetSyncOperationPhase(applicationOld), argocd.GetSyncOperationPhase(applicationNew)
+func filterApplicationSyncOperationPhaseForComment(appOld, appNew argocdv1alpha1.Application) bool {
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
 	if phaseNew == "" {
 		return false
 	}

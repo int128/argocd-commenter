@@ -22,7 +22,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/predicates"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,16 +75,6 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationDeletionDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-deletion-deployment")
-	return ctrl.NewControllerManagedBy(mgr).
-		Named("applicationDeletionDeployment").
-		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationDeletionDeploymentFilter{})).
-		Complete(r)
-}
-
 func isApplicationDeleting(app argocdv1alpha1.Application) bool {
 	if !app.DeletionTimestamp.IsZero() {
 		return true
@@ -95,22 +85,30 @@ func isApplicationDeleting(app argocdv1alpha1.Application) bool {
 	return false
 }
 
-type applicationDeletionDeploymentFilter struct{}
+// SetupWithManager sets up the controller with the Manager.
+func (r *ApplicationDeletionDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("application-deletion-deployment")
+	return ctrl.NewControllerManagedBy(mgr).
+		Named("applicationDeletionDeployment").
+		For(&argocdv1alpha1.Application{}).
+		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationDeletionForDeploymentStatus)).
+		Complete(r)
+}
 
-func (applicationDeletionDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if argocd.GetDeploymentURL(applicationNew) == "" {
+func filterApplicationDeletionForDeploymentStatus(appOld, appNew argocdv1alpha1.Application) bool {
+	if argocd.GetDeploymentURL(appNew) == "" {
 		return false
 	}
 
 	// deletion timestamp has been set
-	if applicationOld.DeletionTimestamp != applicationNew.DeletionTimestamp &&
-		!applicationNew.DeletionTimestamp.IsZero() {
+	if appOld.DeletionTimestamp != appNew.DeletionTimestamp &&
+		!appNew.DeletionTimestamp.IsZero() {
 		return true
 	}
 
 	// health status has been changed to missing
-	if applicationOld.Status.Health.Status != applicationNew.Status.Health.Status &&
-		applicationNew.Status.Health.Status == health.HealthStatusMissing {
+	if appOld.Status.Health.Status != appNew.Status.Health.Status &&
+		appNew.Status.Health.Status == health.HealthStatusMissing {
 		return true
 	}
 

@@ -23,7 +23,7 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/predicates"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -106,21 +106,19 @@ func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseDeployment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationPhaseDeploymentFilter{})).
+		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationSyncOperationPhaseForDeploymentStatus)).
 		Complete(r)
 }
 
-type applicationPhaseDeploymentFilter struct{}
-
-func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	phaseOld, phaseNew := argocd.GetSyncOperationPhase(applicationOld), argocd.GetSyncOperationPhase(applicationNew)
+func filterApplicationSyncOperationPhaseForDeploymentStatus(appOld, appNew argocdv1alpha1.Application) bool {
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
 	if phaseNew == "" {
 		return false
 	}
 	if phaseOld == phaseNew {
 		return false
 	}
-	if argocd.GetDeploymentURL(applicationNew) == "" {
+	if argocd.GetDeploymentURL(appNew) == "" {
 		return false
 	}
 

@@ -24,7 +24,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/predicates"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -126,16 +126,15 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthComment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthCommentFilter{})).
+		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationHealthStatusForComment)).
 		Complete(r)
 }
 
-type applicationHealthCommentFilter struct{}
-
-func (applicationHealthCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
+func filterApplicationHealthStatusForComment(appOld, appNew argocdv1alpha1.Application) bool {
+	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
+	if healthOld == healthNew {
 		return false
 	}
 
-	return slices.Contains(notification.HealthStatusesForComment, applicationNew.Status.Health.Status)
+	return slices.Contains(notification.HealthStatusesForComment, healthNew)
 }
