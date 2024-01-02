@@ -121,11 +121,12 @@ func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manage
 }
 
 func filterApplicationHealthStatusForDeploymentStatus(appOld, appNew argocdv1alpha1.Application) bool {
-	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
-	if healthOld == healthNew {
+	if argocd.GetDeploymentURL(appNew) == "" {
 		return false
 	}
-	if argocd.GetDeploymentURL(appNew) == "" {
+
+	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
+	if healthOld == healthNew {
 		return false
 	}
 

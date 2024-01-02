@@ -100,15 +100,14 @@ func filterApplicationDeletionForDeploymentStatus(appOld, appNew argocdv1alpha1.
 		return false
 	}
 
-	// deletion timestamp has been set
-	if appOld.DeletionTimestamp != appNew.DeletionTimestamp &&
-		!appNew.DeletionTimestamp.IsZero() {
+	// DeletionTimestamp has been set
+	if appOld.DeletionTimestamp != appNew.DeletionTimestamp && !appNew.DeletionTimestamp.IsZero() {
 		return true
 	}
 
-	// health status has been changed to missing
-	if appOld.Status.Health.Status != appNew.Status.Health.Status &&
-		appNew.Status.Health.Status == health.HealthStatusMissing {
+	// The health status has been changed to missing
+	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
+	if healthOld != healthNew && healthNew == health.HealthStatusMissing {
 		return true
 	}
 

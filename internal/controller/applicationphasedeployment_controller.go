@@ -111,14 +111,15 @@ func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager
 }
 
 func filterApplicationSyncOperationPhaseForDeploymentStatus(appOld, appNew argocdv1alpha1.Application) bool {
+	if argocd.GetDeploymentURL(appNew) == "" {
+		return false
+	}
+
 	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
 	if phaseNew == "" {
 		return false
 	}
 	if phaseOld == phaseNew {
-		return false
-	}
-	if argocd.GetDeploymentURL(appNew) == "" {
 		return false
 	}
 
