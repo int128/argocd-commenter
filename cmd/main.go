@@ -114,7 +114,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// comment controller
 	if err = (&controller.ApplicationPhaseCommentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -123,6 +122,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseComment")
 		os.Exit(1)
 	}
+
 	if err = (&controller.ApplicationHealthCommentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -132,7 +132,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// deployment controller
 	if err = (&controller.ApplicationPhaseDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -141,6 +140,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationPhaseDeployment")
 		os.Exit(1)
 	}
+
 	if err = (&controller.ApplicationHealthDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -149,6 +149,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealthDeployment")
 		os.Exit(1)
 	}
+
 	if err = (&controller.ApplicationDeletionDeploymentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),

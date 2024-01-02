@@ -33,7 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseDeploymentReconciler reconciles a ApplicationPhaseDeployment object
+// ApplicationPhaseDeploymentReconciler reconciles an Application object.
+// It creates a deployment status when the sync operation phase is changed.
 type ApplicationPhaseDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
@@ -55,7 +56,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
-	phase := argocd.GetOperationPhase(app)
+	phase := argocd.GetSyncOperationPhase(app)
 	if phase == "" {
 		return ctrl.Result{}, nil
 	}
@@ -68,20 +69,19 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	if notification.IsNotFoundError(err) {
 		// Retry until the application is synced with a valid GitHub Deployment.
 		// https://github.com/int128/argocd-commenter/issues/762
-		lastOperationAt := argocd.GetLastOperationAt(app)
-		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
-			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+		lastOperationAt := argocd.GetLastOperationAt(app).Time
+		if time.Since(lastOperationAt) < requeueTimeoutWhenDeploymentNotFound {
 			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
 				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
 			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
 		}
-		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
-			"deployment %s not found, retry timeout", deploymentURL)
+			"deployment %s not found but retry timed out", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 	if deploymentIsAlreadyHealthy {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentAlreadyHealthy",
+			"skip on phase %s because deployment %s is already healthy", phase, deploymentURL)
 		return ctrl.Result{}, nil
 	}
 
@@ -91,11 +91,11 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, app, argocdURL); err != nil {
-		logger.Error(err, "unable to create a deployment status")
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
-			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
+			"unable to create a deployment status on phase %s: %s", phase, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
+			"created a deployment status on phase %s", phase)
 	}
 	return ctrl.Result{}, nil
 }
@@ -113,7 +113,7 @@ func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager
 type applicationPhaseDeploymentFilter struct{}
 
 func (applicationPhaseDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	phaseOld, phaseNew := argocd.GetOperationPhase(applicationOld), argocd.GetOperationPhase(applicationNew)
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(applicationOld), argocd.GetSyncOperationPhase(applicationNew)
 	if phaseNew == "" {
 		return false
 	}

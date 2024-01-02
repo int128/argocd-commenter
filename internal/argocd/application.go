@@ -44,7 +44,8 @@ func GetDeploymentURL(a argocdv1alpha1.Application) string {
 	return a.Annotations["argocd-commenter.int128.github.io/deployment-url"]
 }
 
-func GetOperationPhase(a argocdv1alpha1.Application) synccommon.OperationPhase {
+// GetSyncOperationPhase returns OperationState.Phase or empty string.
+func GetSyncOperationPhase(a argocdv1alpha1.Application) synccommon.OperationPhase {
 	if a.Status.OperationState == nil {
 		return ""
 	}

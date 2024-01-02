@@ -32,7 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationPhaseCommentReconciler reconciles an Application object
+// ApplicationPhaseCommentReconciler reconciles an Application object.
+// It creates a comment when the sync operation phase is changed.
 type ApplicationPhaseCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
@@ -54,7 +55,10 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
-	phase := argocd.GetOperationPhase(app)
+	phase := argocd.GetSyncOperationPhase(app)
+	if phase == "" {
+		return ctrl.Result{}, nil
+	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -62,11 +66,11 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	}
 
 	if err := r.Notification.CreateCommentsOnPhaseChanged(ctx, app, argocdURL); err != nil {
-		logger.Error(err, "unable to create a comment")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-			"unable to create a comment by %s: %s", phase, err)
+			"unable to create a comment on phase %s: %s", phase, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", phase)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
+			"created a comment on phase %s", phase)
 	}
 	return ctrl.Result{}, nil
 }
@@ -84,7 +88,7 @@ func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) e
 type applicationPhaseCommentFilter struct{}
 
 func (applicationPhaseCommentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	phaseOld, phaseNew := argocd.GetOperationPhase(applicationOld), argocd.GetOperationPhase(applicationNew)
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(applicationOld), argocd.GetSyncOperationPhase(applicationNew)
 	if phaseNew == "" {
 		return false
 	}

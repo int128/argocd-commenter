@@ -36,7 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationHealthCommentReconciler reconciles a change of Application object
+// ApplicationHealthCommentReconciler reconciles a change of Application object.
+// It creates a comment when the health status is changed.
 type ApplicationHealthCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
@@ -44,11 +45,11 @@ type ApplicationHealthCommentReconciler struct {
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -98,11 +99,11 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
-		logger.Error(err, "unable to create comments")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
 			"unable to create a comment by %s: %s", app.Status.Health.Status, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment", "created a comment by %s", app.Status.Health.Status)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
+			"created a comment by %s", app.Status.Health.Status)
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {
@@ -111,11 +112,10 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	patch := client.MergeFrom(appHealth.DeepCopy())
 	appHealth.Status.LastHealthyRevision = currentRevision
 	if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-		logger.Error(err, "unable to patch lastHealthyRevision of ApplicationHealth")
+		logger.Error(err, "unable to patch lastHealthyRevision")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	logger.Info("patched lastHealthyRevision of ApplicationHealth")
-	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdateLastHealthyRevision",
+	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdatedLastHealthyRevision",
 		"patched lastHealthyRevision to %s", currentRevision)
 	return ctrl.Result{}, nil
 }
