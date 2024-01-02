@@ -45,7 +45,8 @@ var (
 	requeueTimeoutWhenDeploymentNotFound = 10 * time.Minute
 )
 
-// ApplicationHealthDeploymentReconciler reconciles an Application object
+// ApplicationHealthDeploymentReconciler reconciles an Application object.
+// It creates a deployment status when the health status is changed.
 type ApplicationHealthDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
@@ -53,11 +54,11 @@ type ApplicationHealthDeploymentReconciler struct {
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -78,20 +79,19 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	if notification.IsNotFoundError(err) {
 		// Retry until the application is synced with a valid GitHub Deployment.
 		// https://github.com/int128/argocd-commenter/issues/762
-		lastOperationAt := argocd.GetLastOperationAt(app)
-		if time.Now().Before(lastOperationAt.Add(requeueTimeoutWhenDeploymentNotFound)) {
-			logger.Info("retry due to deployment not found error", "after", requeueIntervalWhenDeploymentNotFound, "error", err)
+		lastOperationAt := argocd.GetLastOperationAt(app).Time
+		if time.Since(lastOperationAt) < requeueTimeoutWhenDeploymentNotFound {
 			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
 				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
 			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
 		}
-		logger.Info("retry timeout because last operation is too old", "lastOperationAt", lastOperationAt)
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
-			"deployment %s not found, retry timeout", deploymentURL)
+			"deployment %s not found but retry timed out", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 	if deploymentIsAlreadyHealthy {
-		logger.Info("skip notification because the deployment is already healthy", "deployment", deploymentURL)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentAlreadyHealthy",
+			"skip on status %s because deployment %s is already healthy", app.Status.Health.Status, deploymentURL)
 		return ctrl.Result{}, nil
 	}
 
@@ -101,11 +101,11 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnHealthChanged(ctx, app, argocdURL); err != nil {
-		logger.Error(err, "unable to create a deployment status")
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
-			"unable to create a deployment status by %s: %s", app.Status.Health.Status, err)
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
+			"unable to create a deployment status on health status %s: %s", app.Status.Health.Status, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status by %s", app.Status.Health.Status)
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
+			"created a deployment status on health status %s", app.Status.Health.Status)
 	}
 	return ctrl.Result{}, nil
 }

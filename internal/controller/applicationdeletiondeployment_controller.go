@@ -32,7 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationDeletionDeploymentReconciler reconciles an Application object on deletion
+// ApplicationDeletionDeploymentReconciler reconciles an Application object.
+// It creates a deployment status when the Application is deleting.
 type ApplicationDeletionDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
@@ -40,7 +41,7 @@ type ApplicationDeletionDeploymentReconciler struct {
 	Notification notification.Client
 }
 
-//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list;patch
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;watch;list
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
@@ -58,11 +59,6 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	if !isApplicationDeleting(app) {
 		return ctrl.Result{}, nil
 	}
-	logger = logger.WithValues(
-		"health", app.Status.Health.Status,
-		"deletionTimestamp", app.DeletionTimestamp,
-	)
-	ctx = log.IntoContext(ctx, logger)
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
@@ -70,11 +66,11 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnDeletion(ctx, app, argocdURL); err != nil {
-		logger.Error(err, "unable to create a deployment status")
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
-			"unable to create a deployment status: %s", err)
+		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
+			"unable to create a deployment status on deletion: %s", err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment", "created a deployment status")
+		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
+			"created a deployment status on deletion")
 	}
 	return ctrl.Result{}, nil
 }

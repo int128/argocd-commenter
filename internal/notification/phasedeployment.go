@@ -35,7 +35,7 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 		return nil
 	}
 
-	phase := argocd.GetOperationPhase(app)
+	phase := argocd.GetSyncOperationPhase(app)
 	if phase == "" {
 		return nil
 	}
