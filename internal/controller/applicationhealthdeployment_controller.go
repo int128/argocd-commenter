@@ -101,7 +101,6 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnHealthChanged(ctx, app, argocdURL); err != nil {
-		logger.Error(err, "unable to create a deployment status")
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
 			"unable to create a deployment status on health status %s: %s", app.Status.Health.Status, err)
 	} else {
