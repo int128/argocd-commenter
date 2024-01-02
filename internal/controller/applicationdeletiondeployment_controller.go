@@ -22,7 +22,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,7 +91,7 @@ func (r *ApplicationDeletionDeploymentReconciler) SetupWithManager(mgr ctrl.Mana
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationDeletionDeployment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationDeletionForDeploymentStatus)).
+		WithEventFilter(eventfilter.ApplicationChanged(filterApplicationDeletionForDeploymentStatus)).
 		Complete(r)
 }
 

@@ -23,7 +23,7 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -106,7 +106,7 @@ func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseDeployment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationSyncOperationPhaseForDeploymentStatus)).
+		WithEventFilter(eventfilter.ApplicationChanged(filterApplicationSyncOperationPhaseForDeploymentStatus)).
 		Complete(r)
 }
 

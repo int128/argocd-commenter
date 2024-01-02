@@ -24,7 +24,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/health"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/eventfilters"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -126,7 +126,7 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthComment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(eventfilters.ApplicationChanged(filterApplicationHealthStatusForComment)).
+		WithEventFilter(eventfilter.ApplicationChanged(filterApplicationHealthStatusForComment)).
 		Complete(r)
 }
 
