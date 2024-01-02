@@ -100,10 +100,10 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 
 	if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-			"unable to create a comment by %s: %s", app.Status.Health.Status, err)
+			"unable to create a comment on health status %s: %s", app.Status.Health.Status, err)
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
-			"created a comment by %s", app.Status.Health.Status)
+			"created a comment on health status %s", app.Status.Health.Status)
 	}
 
 	if app.Status.Health.Status != health.HealthStatusHealthy {

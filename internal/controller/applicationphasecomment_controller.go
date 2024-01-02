@@ -67,10 +67,10 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 
 	if err := r.Notification.CreateCommentsOnPhaseChanged(ctx, app, argocdURL); err != nil {
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-			"unable to create a comment on phase %s: %s", phase, err)
+			"unable to create a comment on sync operation phase %s: %s", phase, err)
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
-			"created a comment on phase %s", phase)
+			"created a comment on sync operation phase %s", phase)
 	}
 	return ctrl.Result{}, nil
 }

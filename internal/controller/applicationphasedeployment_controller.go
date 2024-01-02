@@ -81,7 +81,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	}
 	if deploymentIsAlreadyHealthy {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentAlreadyHealthy",
-			"skip on phase %s because deployment %s is already healthy", phase, deploymentURL)
+			"skip on sync operation phase %s because deployment %s is already healthy", phase, deploymentURL)
 		return ctrl.Result{}, nil
 	}
 
@@ -92,10 +92,10 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 
 	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, app, argocdURL); err != nil {
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
-			"unable to create a deployment status on phase %s: %s", phase, err)
+			"unable to create a deployment status on sync operation phase %s: %s", phase, err)
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
-			"created a deployment status on phase %s", phase)
+			"created a deployment status on sync operation phase %s", phase)
 	}
 	return ctrl.Result{}, nil
 }

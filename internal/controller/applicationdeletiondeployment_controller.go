@@ -67,10 +67,10 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 
 	if err := r.Notification.CreateDeploymentStatusOnDeletion(ctx, app, argocdURL); err != nil {
 		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentError",
-			"unable to create a deployment status: %s", err)
+			"unable to create a deployment status on deletion: %s", err)
 	} else {
 		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeployment",
-			"created a deployment status")
+			"created a deployment status on deletion")
 	}
 	return ctrl.Result{}, nil
 }

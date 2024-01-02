@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ApplicationHealthReconciler reconciles an Application object
+// ApplicationHealthReconciler reconciles an ApplicationHealth object
 type ApplicationHealthReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
