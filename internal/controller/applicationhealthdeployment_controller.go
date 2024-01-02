@@ -23,7 +23,7 @@ import (
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/internal/argocd"
-	"github.com/int128/argocd-commenter/internal/controller/predicates"
+	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -116,19 +116,19 @@ func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manage
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthDeployment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(predicates.ApplicationUpdate(applicationHealthDeploymentFilter{})).
+		WithEventFilter(eventfilter.ApplicationChanged(filterApplicationHealthStatusForDeploymentStatus)).
 		Complete(r)
 }
 
-type applicationHealthDeploymentFilter struct{}
-
-func (applicationHealthDeploymentFilter) Compare(applicationOld, applicationNew argocdv1alpha1.Application) bool {
-	if applicationOld.Status.Health.Status == applicationNew.Status.Health.Status {
-		return false
-	}
-	if argocd.GetDeploymentURL(applicationNew) == "" {
+func filterApplicationHealthStatusForDeploymentStatus(appOld, appNew argocdv1alpha1.Application) bool {
+	if argocd.GetDeploymentURL(appNew) == "" {
 		return false
 	}
 
-	return slices.Contains(notification.HealthStatusesForDeploymentStatus, applicationNew.Status.Health.Status)
+	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
+	if healthOld == healthNew {
+		return false
+	}
+
+	return slices.Contains(notification.HealthStatusesForDeploymentStatus, healthNew)
 }
