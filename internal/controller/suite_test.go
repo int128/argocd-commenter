@@ -31,6 +31,7 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/oauth2"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -155,6 +156,17 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
+
+	By("setting up the Argo CD config")
+	Expect(k8sClient.Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      "argocd-cm",
+			Namespace: "default",
+		},
+		Data: map[string]string{
+			"url": "https://argocd.example.com",
+		},
+	})).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
