@@ -52,6 +52,16 @@ func GetSyncOperationPhase(a argocdv1alpha1.Application) synccommon.OperationPha
 	return a.Status.OperationState.Phase
 }
 
+func GetSyncOperationFinishedAt(a argocdv1alpha1.Application) metav1.Time {
+	if a.Status.OperationState == nil {
+		return metav1.Time{}
+	}
+	if a.Status.OperationState.FinishedAt == nil {
+		return metav1.Time{}
+	}
+	return *a.Status.OperationState.FinishedAt
+}
+
 // GetLastOperationAt returns OperationState.FinishedAt, OperationState.StartedAt or zero Time.
 func GetLastOperationAt(a argocdv1alpha1.Application) metav1.Time {
 	if a.Status.OperationState == nil {

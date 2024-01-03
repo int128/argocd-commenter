@@ -38,8 +38,20 @@ spec:
             description: ApplicationHealthStatus defines the observed state of ApplicationHealth
             properties:
               lastHealthyRevision:
-                description: Last revision when the application is healthy.
-                type: string
+                properties:
+                  phase:
+                    description: Represents resource health status
+                    type: string
+                  revision:
+                    type: string
+                type: object
+              lastSyncOperation:
+                properties:
+                  phase:
+                    type: string
+                  revision:
+                    type: string
+                type: object
             type: object
         type: object
     served: true

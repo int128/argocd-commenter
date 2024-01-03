@@ -17,6 +17,8 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/argoproj/gitops-engine/pkg/health"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,9 +31,24 @@ type ApplicationHealthSpec struct {
 
 // ApplicationHealthStatus defines the observed state of ApplicationHealth
 type ApplicationHealthStatus struct {
-	// Last revision when the application is healthy.
 	// +optional
-	LastHealthyRevision string `json:"lastHealthyRevision,omitempty"`
+	LastSyncOperation LastSyncOperation `json:"lastSyncOperation,omitempty"`
+	// +optional
+	LastHealth LastHealth `json:"lastHealthyRevision,omitempty"`
+}
+
+type LastSyncOperation struct {
+	// +optional
+	Revision string `json:"revision,omitempty"`
+	// +optional
+	Phase synccommon.OperationPhase `json:"phase,omitempty"`
+}
+
+type LastHealth struct {
+	// +optional
+	Revision string `json:"revision,omitempty"`
+	// +optional
+	Status health.HealthStatusCode `json:"phase,omitempty"`
 }
 
 //+kubebuilder:object:root=true
