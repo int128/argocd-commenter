@@ -45,7 +45,7 @@ func generateCommentOnPhaseChanged(app argocdv1alpha1.Application, argocdURL str
 	}
 	return &Comment{
 		GitHubRepository: *repository,
-		Revision:         sourceRevision.Revision,
+		SourceRevision:   sourceRevision,
 		Body:             body,
 	}
 }
