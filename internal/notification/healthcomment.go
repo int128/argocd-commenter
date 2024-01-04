@@ -43,7 +43,7 @@ func generateCommentOnHealthChanged(app argocdv1alpha1.Application, argocdURL st
 	}
 	return &Comment{
 		GitHubRepository: *repository,
-		Revision:         sourceRevision.Revision,
+		SourceRevision:   sourceRevision,
 		Body:             body,
 	}
 }

@@ -2,12 +2,13 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/go-logr/logr"
+	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/github"
-	"k8s.io/apimachinery/pkg/util/errors"
 )
 
 type Client interface {
@@ -30,7 +31,7 @@ func IsNotFoundError(err error) bool {
 
 type Comment struct {
 	GitHubRepository github.Repository
-	Revision         string
+	SourceRevision   argocd.SourceRevision
 	Body             string
 }
 
@@ -40,35 +41,29 @@ type client struct {
 
 func (c client) createComment(ctx context.Context, comment Comment, app argocdv1alpha1.Application) error {
 	logger := logr.FromContextOrDiscard(ctx).WithValues(
-		"revision", comment.Revision,
+		"revision", comment.SourceRevision.Revision,
 		"repository", comment.GitHubRepository,
 	)
-	pulls, err := c.ghc.ListPullRequests(ctx, comment.GitHubRepository, comment.Revision)
+	pulls, err := c.ghc.ListPullRequests(ctx, comment.GitHubRepository, comment.SourceRevision.Revision)
 	if err != nil {
-		return fmt.Errorf("unable to list pull requests of revision %s: %w", comment.Revision, err)
+		return fmt.Errorf("unable to list pull requests of revision %s: %w", comment.SourceRevision.Revision, err)
 	}
-	relatedPullNumbers := filterPullRequestsRelatedToEvent(pulls, app)
-	if len(relatedPullNumbers) == 0 {
+	relatedPulls := filterPullRequestsRelatedToEvent(pulls, comment.SourceRevision, app)
+	if len(relatedPulls) == 0 {
 		logger.Info("no pull request related to the revision")
 		return nil
 	}
-	if err := c.createPullRequestComment(ctx, comment.GitHubRepository, relatedPullNumbers, comment.Body); err != nil {
-		return fmt.Errorf("unable to create comment(s) on revision %s: %w", comment.Revision, err)
-	}
-	logger.Info("created comment(s)", "pulls", relatedPullNumbers)
-	return nil
-}
 
-func (c client) createPullRequestComment(ctx context.Context, repository github.Repository, pullNumbers []int, body string) error {
 	var errs []error
-	for _, pullNumber := range pullNumbers {
-		if err := c.ghc.CreateComment(ctx, repository, pullNumber, body); err != nil {
+	for _, pull := range relatedPulls {
+		if err := c.ghc.CreateComment(ctx, comment.GitHubRepository, pull.Number, comment.Body); err != nil {
 			errs = append(errs, err)
 			continue
 		}
+		logger.Info("created a comment", "pullNumber", pull.Number)
 	}
 	if len(errs) > 0 {
-		return errors.NewAggregate(errs)
+		return fmt.Errorf("unable to create comment(s) on revision %s: %w", comment.SourceRevision.Revision, errors.Join(errs...))
 	}
 	return nil
 }
