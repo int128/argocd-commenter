@@ -23,12 +23,14 @@ func filterPullRequestsRelatedToEvent(pulls []github.PullRequest, sourceRevision
 }
 
 func isPullRequestRelatedToEvent(pull github.PullRequest, sourceRevision argocd.SourceRevision, manifestGeneratePaths []string) bool {
+	absSourcePath := path.Join("/", sourceRevision.Source.Path)
 	for _, file := range pull.Files {
-		if strings.HasPrefix(file, sourceRevision.Source.Path) {
+		absPullFile := path.Join("/", file)
+		if strings.HasPrefix(absPullFile, absSourcePath) {
 			return true
 		}
 		for _, manifestGeneratePath := range manifestGeneratePaths {
-			if strings.HasPrefix(file, manifestGeneratePath) {
+			if strings.HasPrefix(absPullFile, manifestGeneratePath) {
 				return true
 			}
 		}
@@ -44,28 +46,20 @@ func getManifestGeneratePaths(app argocdv1alpha1.Application) []string {
 	if app.Annotations == nil {
 		return nil
 	}
-	var canonicalPaths []string
+	var absPaths []string
 	manifestGeneratePaths := strings.Split(app.Annotations["argocd.argoproj.io/manifest-generate-paths"], ";")
 	for _, manifestGeneratePath := range manifestGeneratePaths {
 		if manifestGeneratePath == "" {
 			return nil
 		}
-
 		if path.IsAbs(manifestGeneratePath) {
-			// remove leading slash
-			canonicalPath := manifestGeneratePath[1:]
-			canonicalPaths = append(canonicalPaths, canonicalPath)
+			absPaths = append(absPaths, path.Clean(manifestGeneratePath))
 			continue
 		}
 
 		for _, source := range app.Spec.GetSources() {
-			canonicalPath := path.Join(source.Path, manifestGeneratePath)
-			if path.IsAbs(canonicalPath) {
-				// remove leading slash
-				canonicalPath = canonicalPath[1:]
-			}
-			canonicalPaths = append(canonicalPaths, canonicalPath)
+			absPaths = append(absPaths, path.Join("/", source.Path, manifestGeneratePath))
 		}
 	}
-	return slices.Compact(canonicalPaths)
+	return slices.Compact(absPaths)
 }
