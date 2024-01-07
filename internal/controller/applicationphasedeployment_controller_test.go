@@ -30,7 +30,7 @@ var _ = Describe("Application phase controller", func() {
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
 				Source: &argocdv1alpha1.ApplicationSource{
-					RepoURL:        "https://github.com/int128/manifests.git",
+					RepoURL:        "https://github.com/test/phase-deployment.git",
 					Path:           "test",
 					TargetRevision: "main",
 				},
@@ -46,14 +46,14 @@ var _ = Describe("Application phase controller", func() {
 	Context("When an application is synced", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/deployments/999100/statuses":  githubMock.ListDeploymentStatus(999100),
-				"POST /api/v3/repos/int128/manifests/deployments/999100/statuses": githubMock.CreateDeploymentStatus(999100),
+				"GET /api/v3/repos/test/phase-deployment/deployments/999100/statuses":  githubMock.ListDeploymentStatus(999100),
+				"POST /api/v3/repos/test/phase-deployment/deployments/999100/statuses": githubMock.CreateDeploymentStatus(999100),
 			})
 			githubMock.DeploymentStatuses.SetResponse(999100, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999100",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/999100",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -96,14 +96,14 @@ var _ = Describe("Application phase controller", func() {
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/deployments/999101/statuses":  githubMock.ListDeploymentStatus(999101),
-				"POST /api/v3/repos/int128/manifests/deployments/999101/statuses": githubMock.CreateDeploymentStatus(999101),
+				"GET /api/v3/repos/test/phase-deployment/deployments/999101/statuses":  githubMock.ListDeploymentStatus(999101),
+				"POST /api/v3/repos/test/phase-deployment/deployments/999101/statuses": githubMock.CreateDeploymentStatus(999101),
 			})
 			githubMock.DeploymentStatuses.SetResponse(999101, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999101",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/999101",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -132,14 +132,14 @@ var _ = Describe("Application phase controller", func() {
 	Context("When an application was synced before the deployment annotation is updated", func() {
 		It("Should skip the notification", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/deployments/999102/statuses":  githubMock.ListDeploymentStatus(999102),
-				"POST /api/v3/repos/int128/manifests/deployments/999102/statuses": githubMock.CreateDeploymentStatus(999102),
+				"GET /api/v3/repos/test/phase-deployment/deployments/999102/statuses":  githubMock.ListDeploymentStatus(999102),
+				"POST /api/v3/repos/test/phase-deployment/deployments/999102/statuses": githubMock.CreateDeploymentStatus(999102),
 			})
 			githubMock.DeploymentStatuses.SetResponse(999102, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/999999",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -159,7 +159,7 @@ var _ = Describe("Application phase controller", func() {
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999102",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/999102",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			// this test depends on requeueIntervalWhenDeploymentNotFound and takes longer time

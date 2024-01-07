@@ -29,7 +29,7 @@ var _ = Describe("Application phase controller", func() {
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
 				Source: &argocdv1alpha1.ApplicationSource{
-					RepoURL:        "https://github.com/int128/manifests.git",
+					RepoURL:        "https://github.com/test/phase-comment.git",
 					Path:           "test",
 					TargetRevision: "main",
 				},
@@ -45,9 +45,9 @@ var _ = Describe("Application phase controller", func() {
 	Context("When an application is synced", func() {
 		It("Should notify a comment", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100/pulls": githubmock.ListPullRequestsWithCommit(100),
-				"GET /api/v3/repos/int128/manifests/pulls/100/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/int128/manifests/issues/100/comments":                                   githubMock.CreateComment(100),
+				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100/pulls": githubmock.ListPullRequestsWithCommit(100),
+				"GET /api/v3/repos/test/phase-comment/pulls/100/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/phase-comment/issues/100/comments":                                   githubMock.CreateComment(100),
 			})
 
 			By("Updating the application to running")
@@ -75,9 +75,9 @@ var _ = Describe("Application phase controller", func() {
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a comment", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-				"GET /api/v3/repos/int128/manifests/pulls/101/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/int128/manifests/issues/101/comments":                                   githubMock.CreateComment(101),
+				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+				"GET /api/v3/repos/test/phase-comment/pulls/101/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/phase-comment/issues/101/comments":                                   githubMock.CreateComment(101),
 			})
 
 			By("Updating the application to running")

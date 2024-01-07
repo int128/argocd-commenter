@@ -29,7 +29,7 @@ var _ = Describe("Application health comment controller", func() {
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
 				Source: &argocdv1alpha1.ApplicationSource{
-					RepoURL:        "https://github.com/int128/manifests.git",
+					RepoURL:        "https://github.com/test/health-comment.git",
 					Path:           "test",
 					TargetRevision: "main",
 				},
@@ -45,9 +45,9 @@ var _ = Describe("Application health comment controller", func() {
 	Context("When an application is healthy", func() {
 		It("Should notify a comment once", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200/pulls": githubmock.ListPullRequestsWithCommit(200),
-				"GET /api/v3/repos/int128/manifests/pulls/200/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/int128/manifests/issues/200/comments":                                   githubMock.CreateComment(200),
+				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200/pulls": githubmock.ListPullRequestsWithCommit(200),
+				"GET /api/v3/repos/test/health-comment/pulls/200/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/health-comment/issues/200/comments":                                   githubMock.CreateComment(200),
 			})
 
 			By("Updating the application to progressing")
@@ -85,9 +85,9 @@ var _ = Describe("Application health comment controller", func() {
 	Context("When an application is degraded and then healthy", func() {
 		It("Should notify a comment for degraded and healthy", func(ctx context.Context) {
 			githubMock.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa201/pulls": githubmock.ListPullRequestsWithCommit(201),
-				"GET /api/v3/repos/int128/manifests/pulls/201/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/int128/manifests/issues/201/comments":                                   githubMock.CreateComment(201),
+				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa201/pulls": githubmock.ListPullRequestsWithCommit(201),
+				"GET /api/v3/repos/test/health-comment/pulls/201/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/health-comment/issues/201/comments":                                   githubMock.CreateComment(201),
 			})
 
 			By("Updating the application to progressing")
