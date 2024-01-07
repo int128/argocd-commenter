@@ -25,6 +25,7 @@ import (
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	"github.com/int128/argocd-commenter/internal/github"
 	"github.com/int128/argocd-commenter/internal/notification"
 	. "github.com/onsi/ginkgo/v2"
@@ -47,8 +48,8 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient  client.Client
-	githubMock GithubMock
+	k8sClient    client.Client
+	githubServer githubmock.Server
 )
 
 func TestControllers(t *testing.T) {
@@ -97,7 +98,7 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	githubMockServer := httptest.NewServer(githubMock.NewHandler())
+	githubMockServer := httptest.NewServer(&githubServer)
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, githubMockServer.Client())
 	GinkgoT().Setenv("GITHUB_TOKEN", "dummy-github-token")
 	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubMockServer.URL)

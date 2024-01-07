@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +29,7 @@ var _ = Describe("Application phase controller", func() {
 			Spec: argocdv1alpha1.ApplicationSpec{
 				Project: "default",
 				Source: &argocdv1alpha1.ApplicationSource{
-					RepoURL:        "https://github.com/int128/manifests.git",
+					RepoURL:        "https://github.com/test/phase-comment.git",
 					Path:           "test",
 					TargetRevision: "main",
 				},
@@ -42,30 +44,13 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment", func(ctx context.Context) {
-			By("Updating the application to running")
-			app.Status = argocdv1alpha1.ApplicationStatus{
-				OperationState: &argocdv1alpha1.OperationState{
-					Phase:     synccommon.OperationRunning,
-					StartedAt: metav1.Now(),
-					Operation: argocdv1alpha1.Operation{
-						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100",
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(100) }).Should(Equal(1))
+			var comment githubmock.Comment
+			githubServer.AddHandlers(map[string]http.Handler{
+				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+				"GET /api/v3/repos/test/phase-comment/pulls/101/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/phase-comment/issues/101/comments":                                   comment.CreateEndpoint(),
+			})
 
-			By("Updating the application to succeeded")
-			app.Status.OperationState.Phase = synccommon.OperationSucceeded
-			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(100) }).Should(Equal(2))
-		}, SpecTimeout(3*time.Second))
-	})
-
-	Context("When an application sync operation is failed", func() {
-		It("Should notify a comment", func(ctx context.Context) {
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
@@ -79,12 +64,43 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(101) }).Should(Equal(1))
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
+
+			By("Updating the application to succeeded")
+			app.Status.OperationState.Phase = synccommon.OperationSucceeded
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(2))
+		}, SpecTimeout(3*time.Second))
+	})
+
+	Context("When an application sync operation is failed", func() {
+		It("Should notify a comment", func(ctx context.Context) {
+			var comment githubmock.Comment
+			githubServer.AddHandlers(map[string]http.Handler{
+				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102/pulls": githubmock.ListPullRequestsWithCommit(102),
+				"GET /api/v3/repos/test/phase-comment/pulls/102/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/phase-comment/issues/102/comments":                                   comment.CreateEndpoint(),
+			})
+
+			By("Updating the application to running")
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				OperationState: &argocdv1alpha1.OperationState{
+					Phase:     synccommon.OperationRunning,
+					StartedAt: metav1.Now(),
+					Operation: argocdv1alpha1.Operation{
+						Sync: &argocdv1alpha1.SyncOperation{
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
 
 			By("Updating the application to failed")
 			app.Status.OperationState.Phase = synccommon.OperationFailed
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubMock.Comments.CountBy(101) }).Should(Equal(2))
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
 	})
 })
