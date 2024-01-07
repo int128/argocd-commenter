@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -44,6 +45,10 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999100/statuses":  githubMock.ListDeploymentStatus(999100),
+				"POST /api/v3/repos/int128/manifests/deployments/999100/statuses": githubMock.CreateDeploymentStatus(999100),
+			})
 			githubMock.DeploymentStatuses.SetResponse(999100, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -90,6 +95,10 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999101/statuses":  githubMock.ListDeploymentStatus(999101),
+				"POST /api/v3/repos/int128/manifests/deployments/999101/statuses": githubMock.CreateDeploymentStatus(999101),
+			})
 			githubMock.DeploymentStatuses.SetResponse(999101, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -122,6 +131,10 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application was synced before the deployment annotation is updated", func() {
 		It("Should skip the notification", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999102/statuses":  githubMock.ListDeploymentStatus(999102),
+				"POST /api/v3/repos/int128/manifests/deployments/999102/statuses": githubMock.CreateDeploymentStatus(999102),
+			})
 			githubMock.DeploymentStatuses.SetResponse(999102, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")

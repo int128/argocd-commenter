@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,6 +44,12 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100/pulls": githubmock.ListPullRequestsWithCommit(100),
+				"GET /api/v3/repos/int128/manifests/pulls/100/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/int128/manifests/issues/100/comments":                                   githubMock.CreateComment(100),
+			})
+
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
@@ -66,6 +74,12 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a comment", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+				"GET /api/v3/repos/int128/manifests/pulls/101/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/int128/manifests/issues/101/comments":                                   githubMock.CreateComment(101),
+			})
+
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -60,6 +61,10 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When an application is healthy", func() {
 		It("Should notify a deployment status once", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999300/statuses":  githubMock.ListDeploymentStatus(999300),
+				"POST /api/v3/repos/int128/manifests/deployments/999300/statuses": githubMock.CreateDeploymentStatus(999300),
+			})
 			githubMock.DeploymentStatuses.SetResponse(999300, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
@@ -91,11 +96,16 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When the deployment annotation is updated and then the application becomes healthy", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999301/statuses":  githubMock.ListDeploymentStatus(999301),
+				"POST /api/v3/repos/int128/manifests/deployments/999301/statuses": githubMock.CreateDeploymentStatus(999301),
+				"GET /api/v3/repos/int128/manifests/deployments/999991/statuses":  http.NotFound,
+			})
 			githubMock.DeploymentStatuses.SetResponse(999301, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999991",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -123,11 +133,18 @@ var _ = Describe("Application health deployment controller", func() {
 
 	Context("When an application became healthy before the deployment annotation is updated", func() {
 		It("Should notify a deployment status when the deployment annotation is valid", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999302/statuses":  githubMock.ListDeploymentStatus(999302),
+				"POST /api/v3/repos/int128/manifests/deployments/999302/statuses": githubMock.CreateDeploymentStatus(999302),
+				"GET /api/v3/repos/int128/manifests/deployments/999303/statuses":  githubMock.ListDeploymentStatus(999303),
+				"POST /api/v3/repos/int128/manifests/deployments/999303/statuses": githubMock.CreateDeploymentStatus(999303),
+				"GET /api/v3/repos/int128/manifests/deployments/999992/statuses":  http.NotFound,
+			})
 			githubMock.DeploymentStatuses.SetResponse(999302, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999992",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -167,9 +184,13 @@ var _ = Describe("Application health deployment controller", func() {
 		}, SpecTimeout(3*time.Second))
 
 		It("Should retry a deployment status until timeout", func(ctx context.Context) {
+			githubMock.AddHandlers(map[string]http.HandlerFunc{
+				"GET /api/v3/repos/int128/manifests/deployments/999994/statuses": http.NotFound,
+			})
+
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999999",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/int128/manifests/deployments/999994",
 			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
