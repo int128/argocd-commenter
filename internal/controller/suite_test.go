@@ -48,8 +48,8 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient  client.Client
-	githubMock githubmock.Server
+	k8sClient    client.Client
+	githubServer githubmock.Server
 )
 
 func TestControllers(t *testing.T) {
@@ -98,7 +98,7 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	githubMockServer := httptest.NewServer(&githubMock)
+	githubMockServer := httptest.NewServer(&githubServer)
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, githubMockServer.Client())
 	GinkgoT().Setenv("GITHUB_TOKEN", "dummy-github-token")
 	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubMockServer.URL)
