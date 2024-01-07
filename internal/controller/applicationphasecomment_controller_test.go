@@ -46,9 +46,9 @@ var _ = Describe("Application phase controller", func() {
 		It("Should notify a comment", func(ctx context.Context) {
 			var comment githubmock.Comment
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100/pulls": githubmock.ListPullRequestsWithCommit(100),
-				"GET /api/v3/repos/test/phase-comment/pulls/100/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/phase-comment/issues/100/comments":                                   comment.CreateEndpoint(),
+				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+				"GET /api/v3/repos/test/phase-comment/pulls/101/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/phase-comment/issues/101/comments":                                   comment.CreateEndpoint(),
 			})
 
 			By("Updating the application to running")
@@ -58,7 +58,7 @@ var _ = Describe("Application phase controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa100",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
 						},
 					},
 				},
@@ -77,9 +77,9 @@ var _ = Describe("Application phase controller", func() {
 		It("Should notify a comment", func(ctx context.Context) {
 			var comment githubmock.Comment
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-				"GET /api/v3/repos/test/phase-comment/pulls/101/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/phase-comment/issues/101/comments":                                   comment.CreateEndpoint(),
+				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102/pulls": githubmock.ListPullRequestsWithCommit(102),
+				"GET /api/v3/repos/test/phase-comment/pulls/102/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/phase-comment/issues/102/comments":                                   comment.CreateEndpoint(),
 			})
 
 			By("Updating the application to running")
@@ -89,7 +89,7 @@ var _ = Describe("Application phase controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102",
 						},
 					},
 				},

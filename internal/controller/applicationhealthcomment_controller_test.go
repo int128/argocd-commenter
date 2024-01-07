@@ -46,9 +46,9 @@ var _ = Describe("Application health comment controller", func() {
 		It("Should notify a comment once", func(ctx context.Context) {
 			var comment githubmock.Comment
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200/pulls": githubmock.ListPullRequestsWithCommit(200),
-				"GET /api/v3/repos/test/health-comment/pulls/200/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/health-comment/issues/200/comments":                                   comment.CreateEndpoint(),
+				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+				"GET /api/v3/repos/test/health-comment/pulls/101/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/health-comment/issues/101/comments":                                   comment.CreateEndpoint(),
 			})
 
 			By("Updating the application to progressing")
@@ -60,7 +60,7 @@ var _ = Describe("Application health comment controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
 						},
 					},
 				},
@@ -87,9 +87,9 @@ var _ = Describe("Application health comment controller", func() {
 		It("Should notify a comment for degraded and healthy", func(ctx context.Context) {
 			var comment githubmock.Comment
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa201/pulls": githubmock.ListPullRequestsWithCommit(201),
-				"GET /api/v3/repos/test/health-comment/pulls/201/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/health-comment/issues/201/comments":                                   comment.CreateEndpoint(),
+				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102/pulls": githubmock.ListPullRequestsWithCommit(102),
+				"GET /api/v3/repos/test/health-comment/pulls/102/files":                                        githubmock.ListFiles(),
+				"POST /api/v3/repos/test/health-comment/issues/102/comments":                                   comment.CreateEndpoint(),
 			})
 
 			By("Updating the application to progressing")
@@ -101,7 +101,7 @@ var _ = Describe("Application health comment controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa201",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102",
 						},
 					},
 				},

@@ -63,13 +63,13 @@ var _ = Describe("Application health deployment controller", func() {
 		It("Should notify a deployment status once", func(ctx context.Context) {
 			var deploymentStatus githubmock.DeploymentStatus
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-deployment/deployments/999300/statuses":  deploymentStatus.ListEndpoint(),
-				"POST /api/v3/repos/test/health-deployment/deployments/999300/statuses": deploymentStatus.CreateEndpoint(),
+				"GET /api/v3/repos/test/health-deployment/deployments/101/statuses":  deploymentStatus.ListEndpoint(),
+				"POST /api/v3/repos/test/health-deployment/deployments/101/statuses": deploymentStatus.CreateEndpoint(),
 			})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999300",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/101",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -98,13 +98,13 @@ var _ = Describe("Application health deployment controller", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
 			var deploymentStatus githubmock.DeploymentStatus
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-deployment/deployments/999301/statuses":  deploymentStatus.ListEndpoint(),
-				"POST /api/v3/repos/test/health-deployment/deployments/999301/statuses": deploymentStatus.CreateEndpoint(),
+				"GET /api/v3/repos/test/health-deployment/deployments/102/statuses":  deploymentStatus.ListEndpoint(),
+				"POST /api/v3/repos/test/health-deployment/deployments/102/statuses": deploymentStatus.CreateEndpoint(),
 			})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999991",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -114,7 +114,7 @@ var _ = Describe("Application health deployment controller", func() {
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999301",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/102",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Consistently(func() int { return deploymentStatus.CreateCount() }, "100ms").Should(BeZero())
@@ -134,15 +134,15 @@ var _ = Describe("Application health deployment controller", func() {
 		It("Should notify a deployment status when the deployment annotation is valid", func(ctx context.Context) {
 			var deploymentStatusOld, deploymentStatusNew githubmock.DeploymentStatus
 			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-deployment/deployments/999302/statuses":  deploymentStatusOld.ListEndpoint(),
-				"POST /api/v3/repos/test/health-deployment/deployments/999302/statuses": deploymentStatusOld.CreateEndpoint(),
-				"GET /api/v3/repos/test/health-deployment/deployments/999303/statuses":  deploymentStatusNew.ListEndpoint(),
-				"POST /api/v3/repos/test/health-deployment/deployments/999303/statuses": deploymentStatusNew.CreateEndpoint(),
+				"GET /api/v3/repos/test/health-deployment/deployments/103/statuses":  deploymentStatusOld.ListEndpoint(),
+				"POST /api/v3/repos/test/health-deployment/deployments/103/statuses": deploymentStatusOld.CreateEndpoint(),
+				"GET /api/v3/repos/test/health-deployment/deployments/104/statuses":  deploymentStatusNew.ListEndpoint(),
+				"POST /api/v3/repos/test/health-deployment/deployments/104/statuses": deploymentStatusNew.CreateEndpoint(),
 			})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999992",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -153,7 +153,7 @@ var _ = Describe("Application health deployment controller", func() {
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999302",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/103",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Eventually(func() int { return deploymentStatusOld.CreateCount() }).Should(Equal(1))
@@ -172,7 +172,7 @@ var _ = Describe("Application health deployment controller", func() {
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999303",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/104",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Eventually(func() int { return deploymentStatusNew.CreateCount() }).Should(Equal(1))
@@ -182,7 +182,7 @@ var _ = Describe("Application health deployment controller", func() {
 		It("Should retry a deployment status until timeout", func(ctx context.Context) {
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999994",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/health-deployment/deployments/999",
 			}
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
