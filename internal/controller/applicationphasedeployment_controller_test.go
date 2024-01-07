@@ -8,7 +8,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
-	"github.com/google/go-github/v57/github"
+	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,11 +45,11 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
-			githubServer.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/test/phase-deployment/deployments/999100/statuses":  githubServer.ListDeploymentStatus(999100),
-				"POST /api/v3/repos/test/phase-deployment/deployments/999100/statuses": githubServer.CreateDeploymentStatus(999100),
+			var deploymentStatus githubmock.DeploymentStatus
+			githubServer.AddHandlers(map[string]http.Handler{
+				"GET /api/v3/repos/test/phase-deployment/deployments/999100/statuses":  deploymentStatus.ListEndpoint(),
+				"POST /api/v3/repos/test/phase-deployment/deployments/999100/statuses": deploymentStatus.CreateEndpoint(),
 			})
-			githubServer.DeploymentStatuses.SetResponse(999100, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
@@ -70,17 +70,17 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.DeploymentStatuses.CountBy(999100) }).Should(Equal(1))
+			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(1))
 
 			By("Updating the application to succeeded")
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.DeploymentStatuses.CountBy(999100) }).Should(Equal(2))
+			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(2))
 
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.DeploymentStatuses.CountBy(999100) }).Should(Equal(3))
+			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(3))
 
 			By("Updating the application to running")
 			app.Status.OperationState.Phase = synccommon.OperationRunning
@@ -89,17 +89,17 @@ var _ = Describe("Application phase controller", func() {
 			By("Updating the application to succeeded")
 			app.Status.OperationState.Phase = synccommon.OperationSucceeded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Consistently(func() int { return githubServer.DeploymentStatuses.CountBy(999100) }, "100ms").Should(Equal(3))
+			Consistently(func() int { return deploymentStatus.CreateCount() }, "100ms").Should(Equal(3))
 		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
-			githubServer.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/test/phase-deployment/deployments/999101/statuses":  githubServer.ListDeploymentStatus(999101),
-				"POST /api/v3/repos/test/phase-deployment/deployments/999101/statuses": githubServer.CreateDeploymentStatus(999101),
+			var deploymentStatus githubmock.DeploymentStatus
+			githubServer.AddHandlers(map[string]http.Handler{
+				"GET /api/v3/repos/test/phase-deployment/deployments/999101/statuses":  deploymentStatus.ListEndpoint(),
+				"POST /api/v3/repos/test/phase-deployment/deployments/999101/statuses": deploymentStatus.CreateEndpoint(),
 			})
-			githubServer.DeploymentStatuses.SetResponse(999101, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
@@ -120,22 +120,22 @@ var _ = Describe("Application phase controller", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.DeploymentStatuses.CountBy(999101) }).Should(Equal(1))
+			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(1))
 
 			By("Updating the application to failed")
 			app.Status.OperationState.Phase = synccommon.OperationFailed
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.DeploymentStatuses.CountBy(999101) }).Should(Equal(2))
+			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application was synced before the deployment annotation is updated", func() {
 		It("Should skip the notification", func(ctx context.Context) {
-			githubServer.AddHandlers(map[string]http.HandlerFunc{
-				"GET /api/v3/repos/test/phase-deployment/deployments/999102/statuses":  githubServer.ListDeploymentStatus(999102),
-				"POST /api/v3/repos/test/phase-deployment/deployments/999102/statuses": githubServer.CreateDeploymentStatus(999102),
+			var deploymentStatus githubmock.DeploymentStatus
+			githubServer.AddHandlers(map[string]http.Handler{
+				"GET /api/v3/repos/test/phase-deployment/deployments/999102/statuses":  deploymentStatus.ListEndpoint(),
+				"POST /api/v3/repos/test/phase-deployment/deployments/999102/statuses": deploymentStatus.CreateEndpoint(),
 			})
-			githubServer.DeploymentStatuses.SetResponse(999102, []*github.DeploymentStatus{})
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
@@ -163,7 +163,7 @@ var _ = Describe("Application phase controller", func() {
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			// this test depends on requeueIntervalWhenDeploymentNotFound and takes longer time
-			Eventually(func() int { return githubServer.DeploymentStatuses.CountBy(999102) }, 3*time.Second).Should(Equal(1))
+			Eventually(func() int { return deploymentStatus.CreateCount() }, 3*time.Second).Should(Equal(1))
 		}, SpecTimeout(5*time.Second))
 	})
 })

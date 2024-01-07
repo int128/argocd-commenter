@@ -44,10 +44,11 @@ var _ = Describe("Application health comment controller", func() {
 
 	Context("When an application is healthy", func() {
 		It("Should notify a comment once", func(ctx context.Context) {
-			githubServer.AddHandlers(map[string]http.HandlerFunc{
+			var comment githubmock.Comment
+			githubServer.AddHandlers(map[string]http.Handler{
 				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa200/pulls": githubmock.ListPullRequestsWithCommit(200),
 				"GET /api/v3/repos/test/health-comment/pulls/200/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/health-comment/issues/200/comments":                                   githubServer.CreateComment(200),
+				"POST /api/v3/repos/test/health-comment/issues/200/comments":                                   comment.CreateEndpoint(),
 			})
 
 			By("Updating the application to progressing")
@@ -69,7 +70,7 @@ var _ = Describe("Application health comment controller", func() {
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.Comments.CountBy(200) }).Should(Equal(1))
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
 
 			By("Updating the application to progressing")
 			app.Status.Health.Status = health.HealthStatusProgressing
@@ -78,16 +79,17 @@ var _ = Describe("Application health comment controller", func() {
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Consistently(func() int { return githubServer.Comments.CountBy(200) }, 100*time.Millisecond).Should(Equal(1))
+			Consistently(func() int { return comment.CreateCount() }, 100*time.Millisecond).Should(Equal(1))
 		}, SpecTimeout(3*time.Second))
 	})
 
 	Context("When an application is degraded and then healthy", func() {
 		It("Should notify a comment for degraded and healthy", func(ctx context.Context) {
-			githubServer.AddHandlers(map[string]http.HandlerFunc{
+			var comment githubmock.Comment
+			githubServer.AddHandlers(map[string]http.Handler{
 				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa201/pulls": githubmock.ListPullRequestsWithCommit(201),
 				"GET /api/v3/repos/test/health-comment/pulls/201/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/health-comment/issues/201/comments":                                   githubServer.CreateComment(201),
+				"POST /api/v3/repos/test/health-comment/issues/201/comments":                                   comment.CreateEndpoint(),
 			})
 
 			By("Updating the application to progressing")
@@ -109,12 +111,12 @@ var _ = Describe("Application health comment controller", func() {
 			By("Updating the application to degraded")
 			app.Status.Health.Status = health.HealthStatusDegraded
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.Comments.CountBy(201) }).Should(Equal(1))
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
 
 			By("Updating the application to healthy")
 			app.Status.Health.Status = health.HealthStatusHealthy
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return githubServer.Comments.CountBy(201) }).Should(Equal(2))
+			Eventually(func() int { return comment.CreateCount() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
 	})
 })
