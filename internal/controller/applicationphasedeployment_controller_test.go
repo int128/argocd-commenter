@@ -14,17 +14,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Application phase controller", func() {
+var _ = Describe("Deployment status on sync operation phase changed", func() {
 	var app argocdv1alpha1.Application
+	var deploymentStatus githubmock.DeploymentStatus
 
 	BeforeEach(func(ctx context.Context) {
+		By("Setting up a deployment status endpoint")
+		deploymentStatus = githubmock.DeploymentStatus{}
+		githubServer.AddHandlers(map[string]http.Handler{
+			"GET /api/v3/repos/test/phase-deployment/deployments/101/statuses":  deploymentStatus.ListEndpoint(),
+			"POST /api/v3/repos/test/phase-deployment/deployments/101/statuses": deploymentStatus.CreateEndpoint(),
+		})
+
+		By("Creating an application")
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
 				Kind:       "Application",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "fixture-",
+				GenerateName: "fixture-deployment-status-phase-",
 				Namespace:    "default",
 			},
 			Spec: argocdv1alpha1.ApplicationSpec{
@@ -45,12 +54,6 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
-			var deploymentStatus githubmock.DeploymentStatus
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-deployment/deployments/101/statuses":  deploymentStatus.ListEndpoint(),
-				"POST /api/v3/repos/test/phase-deployment/deployments/101/statuses": deploymentStatus.CreateEndpoint(),
-			})
-
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/101",
@@ -95,15 +98,9 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a deployment status", func(ctx context.Context) {
-			var deploymentStatus githubmock.DeploymentStatus
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-deployment/deployments/102/statuses":  deploymentStatus.ListEndpoint(),
-				"POST /api/v3/repos/test/phase-deployment/deployments/102/statuses": deploymentStatus.CreateEndpoint(),
-			})
-
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/102",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/101",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
@@ -131,12 +128,6 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application was synced before the deployment annotation is updated", func() {
 		It("Should skip the notification", func(ctx context.Context) {
-			var deploymentStatus githubmock.DeploymentStatus
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-deployment/deployments/103/statuses":  deploymentStatus.ListEndpoint(),
-				"POST /api/v3/repos/test/phase-deployment/deployments/103/statuses": deploymentStatus.CreateEndpoint(),
-			})
-
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/999",
@@ -159,7 +150,7 @@ var _ = Describe("Application phase controller", func() {
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
-				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/103",
+				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/test/phase-deployment/deployments/101",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			// this test depends on requeueIntervalWhenDeploymentNotFound and takes longer time

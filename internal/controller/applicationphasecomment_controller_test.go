@@ -13,17 +13,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Application phase controller", func() {
+var _ = Describe("Comment on sync operation phase changed", func() {
 	var app argocdv1alpha1.Application
+	var comment githubmock.Comment
 
 	BeforeEach(func(ctx context.Context) {
+		By("Setting up a comment endpoint")
+		comment = githubmock.Comment{}
+		githubServer.AddHandlers(map[string]http.Handler{
+			"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+			"GET /api/v3/repos/test/phase-comment/pulls/101/files":                                        githubmock.ListFiles(),
+			"POST /api/v3/repos/test/phase-comment/issues/101/comments":                                   comment.CreateEndpoint(),
+		})
+
+		By("Creating an application")
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
 				Kind:       "Application",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "fixture-",
+				GenerateName: "fixture-phase-comment-",
 				Namespace:    "default",
 			},
 			Spec: argocdv1alpha1.ApplicationSpec{
@@ -44,13 +54,6 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment", func(ctx context.Context) {
-			var comment githubmock.Comment
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-				"GET /api/v3/repos/test/phase-comment/pulls/101/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/phase-comment/issues/101/comments":                                   comment.CreateEndpoint(),
-			})
-
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
@@ -75,13 +78,6 @@ var _ = Describe("Application phase controller", func() {
 
 	Context("When an application sync operation is failed", func() {
 		It("Should notify a comment", func(ctx context.Context) {
-			var comment githubmock.Comment
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/phase-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102/pulls": githubmock.ListPullRequestsWithCommit(102),
-				"GET /api/v3/repos/test/phase-comment/pulls/102/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/phase-comment/issues/102/comments":                                   comment.CreateEndpoint(),
-			})
-
 			By("Updating the application to running")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
@@ -89,7 +85,7 @@ var _ = Describe("Application phase controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
 						},
 					},
 				},

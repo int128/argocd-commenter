@@ -13,17 +13,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Application health comment controller", func() {
+var _ = Describe("Comment on health status changed", func() {
 	var app argocdv1alpha1.Application
+	var comment githubmock.Comment
 
 	BeforeEach(func(ctx context.Context) {
+		By("Setting up a comment endpoint")
+		comment = githubmock.Comment{}
+		githubServer.AddHandlers(map[string]http.Handler{
+			"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
+			"GET /api/v3/repos/test/health-comment/pulls/101/files":                                        githubmock.ListFiles(),
+			"POST /api/v3/repos/test/health-comment/issues/101/comments":                                   comment.CreateEndpoint(),
+		})
+
+		By("Creating an application")
 		app = argocdv1alpha1.Application{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "argoproj.io/v1alpha1",
 				Kind:       "Application",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "fixture-",
+				GenerateName: "fixture-health-comment-",
 				Namespace:    "default",
 			},
 			Spec: argocdv1alpha1.ApplicationSpec{
@@ -44,13 +54,6 @@ var _ = Describe("Application health comment controller", func() {
 
 	Context("When an application is healthy", func() {
 		It("Should notify a comment once", func(ctx context.Context) {
-			var comment githubmock.Comment
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-				"GET /api/v3/repos/test/health-comment/pulls/101/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/health-comment/issues/101/comments":                                   comment.CreateEndpoint(),
-			})
-
 			By("Updating the application to progressing")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
@@ -85,13 +88,6 @@ var _ = Describe("Application health comment controller", func() {
 
 	Context("When an application is degraded and then healthy", func() {
 		It("Should notify a comment for degraded and healthy", func(ctx context.Context) {
-			var comment githubmock.Comment
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/test/health-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102/pulls": githubmock.ListPullRequestsWithCommit(102),
-				"GET /api/v3/repos/test/health-comment/pulls/102/files":                                        githubmock.ListFiles(),
-				"POST /api/v3/repos/test/health-comment/issues/102/comments":                                   comment.CreateEndpoint(),
-			})
-
 			By("Updating the application to progressing")
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				Health: argocdv1alpha1.HealthStatus{
@@ -101,7 +97,7 @@ var _ = Describe("Application health comment controller", func() {
 					StartedAt: metav1.Now(),
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
-							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa102",
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
 						},
 					},
 				},

@@ -31,7 +31,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -64,7 +63,7 @@ var _ = BeforeSuite(func() {
 			o.TimeEncoder = zapcore.RFC3339NanoTimeEncoder
 		}))
 
-	By("find the CRD of Argo CD Application resource in Go module")
+	By("Finding the CRD of Argo CD Application resource from Go module")
 	crdPaths, err := filepath.Glob(filepath.Join(
 		build.Default.GOPATH, "pkg", "mod",
 		"github.com", "argoproj", "argo-cd", "v2@*", "manifests", "crds", "application-crd.yaml",
@@ -72,7 +71,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crdPaths).NotTo(BeEmpty())
 
-	By("bootstrapping test environment")
+	By("Bootstrapping test environment")
 	crdPaths = append(crdPaths, filepath.Join("..", "..", "config", "crd", "bases"))
 	testEnv := &envtest.Environment{
 		CRDDirectoryPaths:     crdPaths,
@@ -82,7 +81,7 @@ var _ = BeforeSuite(func() {
 	ctx, cancel := context.WithCancel(context.TODO())
 	DeferCleanup(func() {
 		cancel()
-		By("tearing down the test environment")
+		By("Tearing down the test environment")
 		Expect(testEnv.Stop()).Should(Succeed())
 	})
 
@@ -98,14 +97,27 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	githubMockServer := httptest.NewServer(&githubServer)
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, githubMockServer.Client())
+	By("Creating argocd-cm")
+	Expect(k8sClient.Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      "argocd-cm",
+			Namespace: "default",
+		},
+		// https://argo-cd.readthedocs.io/en/stable/operator-manual/argocd-cm-yaml/
+		Data: map[string]string{
+			"url": "https://argocd.example.com",
+		},
+	})).Should(Succeed())
+
+	By("Setting up GitHub mock server")
+	githubTestServer := httptest.NewServer(&githubServer)
 	GinkgoT().Setenv("GITHUB_TOKEN", "dummy-github-token")
-	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubMockServer.URL)
+	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubTestServer.URL)
 	ghc, err := github.NewClient(ctx)
 	Expect(err).NotTo(HaveOccurred())
 	nc := notification.NewClient(ghc)
 
+	By("Setting up the controller manager")
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
@@ -158,20 +170,10 @@ var _ = BeforeSuite(func() {
 
 	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
 
-	By("setting up the Argo CD config")
-	Expect(k8sClient.Create(ctx, &corev1.ConfigMap{
-		ObjectMeta: ctrl.ObjectMeta{
-			Name:      "argocd-cm",
-			Namespace: "default",
-		},
-		Data: map[string]string{
-			"url": "https://argocd.example.com",
-		},
-	})).Should(Succeed())
-
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(ctx)
+		By("Starting the controller manager")
+		err := k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 })
