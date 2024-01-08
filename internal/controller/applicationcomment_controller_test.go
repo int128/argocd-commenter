@@ -164,9 +164,10 @@ var _ = Describe("Comment", func() {
 			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
 
 			By("Updating the application to retrying")
+			startedAt := metav1.Now()
 			app.Status.OperationState = &argocdv1alpha1.OperationState{
 				Phase:      synccommon.OperationRunning,
-				StartedAt:  metav1.Now(),
+				StartedAt:  startedAt,
 				RetryCount: 1,
 				Operation: argocdv1alpha1.Operation{
 					Sync: &argocdv1alpha1.SyncOperation{
@@ -178,7 +179,17 @@ var _ = Describe("Comment", func() {
 			Consistently(func() int { return comment.CreateCount() }, 100*time.Millisecond).Should(Equal(1))
 
 			By("Updating the application to failed")
-			app.Status.OperationState.Phase = synccommon.OperationFailed
+			finishedAt := metav1.Now()
+			app.Status.OperationState = &argocdv1alpha1.OperationState{
+				Phase:      synccommon.OperationFailed,
+				StartedAt:  startedAt,
+				FinishedAt: &finishedAt,
+				Operation: argocdv1alpha1.Operation{
+					Sync: &argocdv1alpha1.SyncOperation{
+						Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
+					},
+				},
+			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Eventually(func() int { return comment.CreateCount() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
