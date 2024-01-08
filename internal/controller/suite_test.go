@@ -63,7 +63,7 @@ var _ = BeforeSuite(func() {
 			o.TimeEncoder = zapcore.RFC3339NanoTimeEncoder
 		}))
 
-	By("Finding the CRD of Argo CD Application resource from Go module")
+	By("Finding the Argo CD Application CRD")
 	crdPaths, err := filepath.Glob(filepath.Join(
 		build.Default.GOPATH, "pkg", "mod",
 		"github.com", "argoproj", "argo-cd", "v2@*", "manifests", "crds", "application-crd.yaml",
@@ -97,6 +97,10 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+
 	By("Creating argocd-cm")
 	Expect(k8sClient.Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: ctrl.ObjectMeta{
@@ -109,19 +113,19 @@ var _ = BeforeSuite(func() {
 		},
 	})).Should(Succeed())
 
-	By("Setting up GitHub mock server")
-	githubTestServer := httptest.NewServer(&githubServer)
+	By("Setting up the GitHub mock server")
+	githubMockServer := httptest.NewServer(&githubServer)
+	DeferCleanup(func() {
+		By("Shutting down the GitHub mock server")
+		githubMockServer.Close()
+	})
 	GinkgoT().Setenv("GITHUB_TOKEN", "dummy-github-token")
-	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubTestServer.URL)
+	GinkgoT().Setenv("GITHUB_ENTERPRISE_URL", githubMockServer.URL)
 	ghc, err := github.NewClient(ctx)
 	Expect(err).NotTo(HaveOccurred())
 	nc := notification.NewClient(ghc)
 
 	By("Setting up the controller manager")
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
-
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
