@@ -8,6 +8,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	"github.com/google/go-github/v58/github"
 	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,14 +19,17 @@ import (
 
 var _ = Describe("Deployment status", func() {
 	var app argocdv1alpha1.Application
-	var deploymentStatus githubmock.DeploymentStatus
+	var listDeploymentStatus githubmock.ListDeploymentStatus
+	var createDeploymentStatus githubmock.CreateDeploymentStatus
 
 	BeforeEach(func(ctx context.Context) {
 		By("Setting up a deployment status endpoint")
-		deploymentStatus = githubmock.DeploymentStatus{}
+		listDeploymentStatus.Reset()
+		createDeploymentStatus.Reset()
+		listDeploymentStatus.Response = []*github.DeploymentStatus{}
 		githubServer.Route(map[string]http.Handler{
-			"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  deploymentStatus.List(),
-			"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": deploymentStatus.Create(),
+			"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  &listDeploymentStatus,
+			"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": &createDeploymentStatus,
 		})
 
 		By("Creating an application")
@@ -71,7 +75,7 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(1))
+			Eventually(func() int { return createDeploymentStatus.Count() }).Should(Equal(1))
 
 			By("Updating the application to succeeded")
 			finishedAt := metav1.Now()
@@ -86,7 +90,7 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(2))
+			Eventually(func() int { return createDeploymentStatus.Count() }).Should(Equal(2))
 		})
 
 		Context("When the application is healthy", func() {
@@ -102,7 +106,7 @@ var _ = Describe("Deployment status", func() {
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(3))
+				Eventually(func() int { return createDeploymentStatus.Count() }).Should(Equal(3))
 			}, SpecTimeout(3*time.Second))
 
 			It("Should not create any deployment status after healthy", func(ctx context.Context) {
@@ -117,7 +121,12 @@ var _ = Describe("Deployment status", func() {
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(3))
+				Eventually(func() int { return createDeploymentStatus.Count() }).Should(Equal(3))
+
+				// The controller depends on the deployment status to deduplicate the health status.
+				listDeploymentStatus.Response = []*github.DeploymentStatus{
+					{State: github.String("success")},
+				}
 
 				By("Updating the application to progressing")
 				app.Status.Health = argocdv1alpha1.HealthStatus{
@@ -130,7 +139,7 @@ var _ = Describe("Deployment status", func() {
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Consistently(func() int { return deploymentStatus.CreateCount() }, "100ms").Should(Equal(3))
+				Consistently(func() int { return createDeploymentStatus.Count() }, "100ms").Should(Equal(3))
 
 				By("Updating the application to running")
 				startedAt := metav1.Now()
@@ -158,7 +167,7 @@ var _ = Describe("Deployment status", func() {
 					},
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Consistently(func() int { return deploymentStatus.CreateCount() }, "100ms").Should(Equal(3))
+				Consistently(func() int { return createDeploymentStatus.Count() }, "100ms").Should(Equal(3))
 			}, SpecTimeout(3*time.Second))
 		})
 	})
@@ -176,7 +185,7 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(1))
+			Eventually(func() int { return createDeploymentStatus.Count() }).Should(Equal(1))
 
 			By("Updating the application to retrying")
 			startedAt := metav1.Now()
@@ -191,7 +200,7 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Consistently(func() int { return deploymentStatus.CreateCount() }, 100*time.Millisecond).Should(Equal(1))
+			Consistently(func() int { return createDeploymentStatus.Count() }, 100*time.Millisecond).Should(Equal(1))
 
 			By("Updating the application to failed")
 			finishedAt := metav1.Now()
@@ -206,7 +215,7 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return deploymentStatus.CreateCount() }).Should(Equal(2))
+			Eventually(func() int { return createDeploymentStatus.Count() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
 	})
 })
@@ -247,10 +256,12 @@ var _ = Describe("Deployment status", func() {
 
 		It("Should finally create a deployment status", func(ctx context.Context) {
 			By("Setting up a deployment status endpoint")
-			var deploymentStatus githubmock.DeploymentStatus
+			var listDeploymentStatus githubmock.ListDeploymentStatus
+			var createDeploymentStatus githubmock.CreateDeploymentStatus
+			listDeploymentStatus.Response = []*github.DeploymentStatus{}
 			githubServer.Route(map[string]http.Handler{
-				"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  deploymentStatus.List(),
-				"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": deploymentStatus.Create(),
+				"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  &listDeploymentStatus,
+				"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": &createDeploymentStatus,
 			})
 
 			By("Updating the application to running")
@@ -265,14 +276,14 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Consistently(func() int { return deploymentStatus.CreateCount() }, 100*time.Millisecond).Should(Equal(0))
+			Consistently(func() int { return createDeploymentStatus.Count() }, 100*time.Millisecond).Should(Equal(0))
 
 			By("Updating the deployment annotation")
 			app.Annotations = map[string]string{
 				"argocd-commenter.int128.github.io/deployment-url": "https://api.github.com/repos/owner/repo-deployment/deployments/101",
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return deploymentStatus.CreateCount() },
+			Eventually(func() int { return createDeploymentStatus.Count() },
 				// This depends on requeueIntervalWhenDeploymentNotFound and takes longer time
 				2*requeueIntervalWhenDeploymentNotFound,
 			).Should(Equal(1))
@@ -290,7 +301,7 @@ var _ = Describe("Deployment status", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return deploymentStatus.CreateCount() }, 3*time.Second).Should(Equal(2))
+			Eventually(func() int { return createDeploymentStatus.Count() }, 3*time.Second).Should(Equal(2))
 		}, SpecTimeout(5*time.Second))
 
 		It("Should retry to create a deployment status until timeout", func(ctx context.Context) {
