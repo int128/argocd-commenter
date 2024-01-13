@@ -21,10 +21,10 @@ var _ = Describe("Comment", func() {
 	BeforeEach(func(ctx context.Context) {
 		By("Setting up a comment endpoint")
 		comment = githubmock.Comment{}
-		githubServer.AddHandlers(map[string]http.Handler{
+		githubServer.Route(map[string]http.Handler{
 			"GET /api/v3/repos/owner/repo-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-			"GET /api/v3/repos/owner/repo-comment/pulls/101/files":                                        githubmock.ListFiles(),
-			"POST /api/v3/repos/owner/repo-comment/issues/101/comments":                                   comment.CreateEndpoint(),
+			"GET /api/v3/repos/owner/repo-comment/pulls/101/files":                                        githubmock.ListPullRequestFiles(),
+			"POST /api/v3/repos/owner/repo-comment/issues/101/comments":                                   comment.Create(),
 		})
 
 		By("Creating an application")

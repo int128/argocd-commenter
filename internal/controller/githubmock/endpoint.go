@@ -20,7 +20,7 @@ func ListPullRequestsWithCommit(number int) http.HandlerFunc {
 	}
 }
 
-func ListFiles() http.HandlerFunc {
+func ListPullRequestFiles() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("content-type", "application/json")
 		w.WriteHeader(200)
@@ -36,7 +36,7 @@ func (e *Comment) CreateCount() int {
 	return int(e.createCounter.Load())
 }
 
-func (e *Comment) CreateEndpoint() http.HandlerFunc {
+func (e *Comment) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("content-type", "application/json")
 		w.WriteHeader(200)
@@ -57,7 +57,7 @@ func (e *DeploymentStatus) CreateCount() int {
 	return int(e.createCounter.Load())
 }
 
-func (e *DeploymentStatus) CreateEndpoint() http.HandlerFunc {
+func (e *DeploymentStatus) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("content-type", "application/json")
 		w.WriteHeader(200)
@@ -69,8 +69,8 @@ func (e *DeploymentStatus) CreateEndpoint() http.HandlerFunc {
 	}
 }
 
-func (e *DeploymentStatus) ListEndpoint() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (e *DeploymentStatus) List() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if e.NotFound {
 			http.NotFound(w, r)
 			return
@@ -82,5 +82,5 @@ func (e *DeploymentStatus) ListEndpoint() http.Handler {
 			return
 		}
 		Expect(json.NewEncoder(w).Encode(e.resp)).Should(Succeed())
-	})
+	}
 }

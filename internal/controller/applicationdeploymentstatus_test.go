@@ -23,9 +23,9 @@ var _ = Describe("Deployment status", func() {
 	BeforeEach(func(ctx context.Context) {
 		By("Setting up a deployment status endpoint")
 		deploymentStatus = githubmock.DeploymentStatus{}
-		githubServer.AddHandlers(map[string]http.Handler{
-			"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  deploymentStatus.ListEndpoint(),
-			"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": deploymentStatus.CreateEndpoint(),
+		githubServer.Route(map[string]http.Handler{
+			"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  deploymentStatus.List(),
+			"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": deploymentStatus.Create(),
 		})
 
 		By("Creating an application")
@@ -248,9 +248,9 @@ var _ = Describe("Deployment status", func() {
 		It("Should finally create a deployment status", func(ctx context.Context) {
 			By("Setting up a deployment status endpoint")
 			var deploymentStatus githubmock.DeploymentStatus
-			githubServer.AddHandlers(map[string]http.Handler{
-				"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  deploymentStatus.ListEndpoint(),
-				"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": deploymentStatus.CreateEndpoint(),
+			githubServer.Route(map[string]http.Handler{
+				"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  deploymentStatus.List(),
+				"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": deploymentStatus.Create(),
 			})
 
 			By("Updating the application to running")
