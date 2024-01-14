@@ -2,7 +2,6 @@ package githubmock
 
 import (
 	"fmt"
-	"maps"
 	"net/http"
 	"sync"
 
@@ -32,11 +31,11 @@ func (sv *Server) getHandler(methodURI string) http.Handler {
 	return sv.routes[methodURI]
 }
 
-func (sv *Server) Route(routes map[string]http.Handler) {
+func (sv *Server) Handle(methodURI string, handler http.Handler) {
 	sv.mu.Lock()
 	defer sv.mu.Unlock()
 	if sv.routes == nil {
 		sv.routes = make(map[string]http.Handler)
 	}
-	maps.Copy(sv.routes, routes)
+	sv.routes[methodURI] = handler
 }

@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -19,18 +18,21 @@ import (
 
 var _ = Describe("Deployment status", func() {
 	var app argocdv1alpha1.Application
-	var listDeploymentStatus githubmock.ListDeploymentStatus
-	var createDeploymentStatus githubmock.CreateDeploymentStatus
+	var listDeploymentStatus *githubmock.ListDeploymentStatus
+	var createDeploymentStatus *githubmock.CreateDeploymentStatus
 
 	BeforeEach(func(ctx context.Context) {
 		By("Setting up a deployment status endpoint")
-		listDeploymentStatus.Reset()
-		createDeploymentStatus.Reset()
-		listDeploymentStatus.Response = []*github.DeploymentStatus{}
-		githubServer.Route(map[string]http.Handler{
-			"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  &listDeploymentStatus,
-			"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": &createDeploymentStatus,
-		})
+		listDeploymentStatus = &githubmock.ListDeploymentStatus{Response: []*github.DeploymentStatus{}}
+		createDeploymentStatus = &githubmock.CreateDeploymentStatus{}
+		githubServer.Handle(
+			"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses",
+			listDeploymentStatus,
+		)
+		githubServer.Handle(
+			"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses",
+			createDeploymentStatus,
+		)
 
 		By("Creating an application")
 		app = argocdv1alpha1.Application{
@@ -256,13 +258,16 @@ var _ = Describe("Deployment status", func() {
 
 		It("Should finally create a deployment status", func(ctx context.Context) {
 			By("Setting up a deployment status endpoint")
-			var listDeploymentStatus githubmock.ListDeploymentStatus
-			var createDeploymentStatus githubmock.CreateDeploymentStatus
-			listDeploymentStatus.Response = []*github.DeploymentStatus{}
-			githubServer.Route(map[string]http.Handler{
-				"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses":  &listDeploymentStatus,
-				"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses": &createDeploymentStatus,
-			})
+			listDeploymentStatus := &githubmock.ListDeploymentStatus{Response: []*github.DeploymentStatus{}}
+			createDeploymentStatus := &githubmock.CreateDeploymentStatus{}
+			githubServer.Handle(
+				"GET /api/v3/repos/owner/repo-deployment/deployments/101/statuses",
+				listDeploymentStatus,
+			)
+			githubServer.Handle(
+				"POST /api/v3/repos/owner/repo-deployment/deployments/101/statuses",
+				createDeploymentStatus,
+			)
 
 			By("Updating the application to running")
 			startedAt := metav1.Now()

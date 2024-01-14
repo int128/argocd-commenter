@@ -26,54 +26,46 @@ func ListPullRequestFiles() http.HandlerFunc {
 	}
 }
 
-type counter struct {
+type recorder struct {
 	counter atomic.Int32
 }
 
-func (e *counter) Count() int {
+func (e *recorder) Count() int {
 	return int(e.counter.Load())
 }
 
-func (e *counter) Reset() {
-	e.counter.Store(0)
-}
-
 type CreateComment struct {
-	counter
+	recorder
 }
 
 func (e *CreateComment) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("content-type", "application/json")
-	w.WriteHeader(200)
-	e.counter.counter.Add(1)
+	e.counter.Add(1)
 	var req github.IssueComment
 	Expect(json.NewDecoder(r.Body).Decode(&req)).Should(Succeed())
 	GinkgoWriter.Println("GITHUB", "created comment", req)
+	w.Header().Add("content-type", "application/json")
+	w.WriteHeader(200)
 }
 
 type ListDeploymentStatus struct {
 	Response []*github.DeploymentStatus
 }
 
-func (e *ListDeploymentStatus) Reset() {
-	e.Response = nil
-}
-
-func (e *ListDeploymentStatus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (e *ListDeploymentStatus) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(200)
 	Expect(json.NewEncoder(w).Encode(e.Response)).Should(Succeed())
 }
 
 type CreateDeploymentStatus struct {
-	counter
+	recorder
 }
 
 func (e *CreateDeploymentStatus) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("content-type", "application/json")
-	w.WriteHeader(200)
-	e.counter.counter.Add(1)
+	e.counter.Add(1)
 	var req github.DeploymentStatusRequest
 	Expect(json.NewDecoder(r.Body).Decode(&req)).Should(Succeed())
 	GinkgoWriter.Println("GITHUB", "created deployment status", req)
+	w.Header().Add("content-type", "application/json")
+	w.WriteHeader(200)
 }

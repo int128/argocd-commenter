@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -20,12 +19,19 @@ var _ = Describe("Comment", func() {
 
 	BeforeEach(func(ctx context.Context) {
 		By("Setting up a comment endpoint")
-		createComment.Reset()
-		githubServer.Route(map[string]http.Handler{
-			"GET /api/v3/repos/owner/repo-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-			"GET /api/v3/repos/owner/repo-comment/pulls/101/files":                                        githubmock.ListPullRequestFiles(),
-			"POST /api/v3/repos/owner/repo-comment/issues/101/comments":                                   &createComment,
-		})
+		createComment = githubmock.CreateComment{}
+		githubServer.Handle(
+			"GET /api/v3/repos/owner/repo-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls",
+			githubmock.ListPullRequestsWithCommit(101),
+		)
+		githubServer.Handle(
+			"GET /api/v3/repos/owner/repo-comment/pulls/101/files",
+			githubmock.ListPullRequestFiles(),
+		)
+		githubServer.Handle(
+			"POST /api/v3/repos/owner/repo-comment/issues/101/comments",
+			&createComment,
+		)
 
 		By("Creating an application")
 		app = argocdv1alpha1.Application{
