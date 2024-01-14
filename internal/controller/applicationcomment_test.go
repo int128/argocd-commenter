@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
@@ -16,16 +15,23 @@ import (
 
 var _ = Describe("Comment", func() {
 	var app argocdv1alpha1.Application
-	var comment githubmock.Comment
+	var createComment githubmock.CreateComment
 
 	BeforeEach(func(ctx context.Context) {
 		By("Setting up a comment endpoint")
-		comment = githubmock.Comment{}
-		githubServer.AddHandlers(map[string]http.Handler{
-			"GET /api/v3/repos/owner/repo-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls": githubmock.ListPullRequestsWithCommit(101),
-			"GET /api/v3/repos/owner/repo-comment/pulls/101/files":                                        githubmock.ListFiles(),
-			"POST /api/v3/repos/owner/repo-comment/issues/101/comments":                                   comment.CreateEndpoint(),
-		})
+		createComment = githubmock.CreateComment{}
+		githubServer.Handle(
+			"GET /api/v3/repos/owner/repo-comment/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101/pulls",
+			githubmock.ListPullRequestsWithCommit(101),
+		)
+		githubServer.Handle(
+			"GET /api/v3/repos/owner/repo-comment/pulls/101/files",
+			githubmock.ListPullRequestFiles(),
+		)
+		githubServer.Handle(
+			"POST /api/v3/repos/owner/repo-comment/issues/101/comments",
+			&createComment,
+		)
 
 		By("Creating an application")
 		app = argocdv1alpha1.Application{
@@ -67,7 +73,7 @@ var _ = Describe("Comment", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
+			Eventually(func() int { return createComment.Count() }).Should(Equal(1))
 
 			By("Updating the application to succeeded")
 			finishedAt := metav1.Now()
@@ -82,7 +88,7 @@ var _ = Describe("Comment", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return comment.CreateCount() }).Should(Equal(2))
+			Eventually(func() int { return createComment.Count() }).Should(Equal(2))
 		})
 
 		Context("When the application is healthy", func() {
@@ -98,7 +104,7 @@ var _ = Describe("Comment", func() {
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Eventually(func() int { return comment.CreateCount() }).Should(Equal(3))
+				Eventually(func() int { return createComment.Count() }).Should(Equal(3))
 			}, SpecTimeout(3*time.Second))
 
 			It("Should create healthy comment once", func(ctx context.Context) {
@@ -113,7 +119,7 @@ var _ = Describe("Comment", func() {
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Eventually(func() int { return comment.CreateCount() }).Should(Equal(3))
+				Eventually(func() int { return createComment.Count() }).Should(Equal(3))
 
 				By("Updating the application to progressing")
 				app.Status.Health = argocdv1alpha1.HealthStatus{
@@ -126,7 +132,7 @@ var _ = Describe("Comment", func() {
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Consistently(func() int { return comment.CreateCount() }, 100*time.Millisecond).Should(Equal(3))
+				Consistently(func() int { return createComment.Count() }, 100*time.Millisecond).Should(Equal(3))
 			}, SpecTimeout(3*time.Second))
 		})
 
@@ -143,7 +149,7 @@ var _ = Describe("Comment", func() {
 					Status: health.HealthStatusDegraded,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-				Eventually(func() int { return comment.CreateCount() }).Should(Equal(3))
+				Eventually(func() int { return createComment.Count() }).Should(Equal(3))
 			}, SpecTimeout(3*time.Second))
 		})
 	})
@@ -161,7 +167,7 @@ var _ = Describe("Comment", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return comment.CreateCount() }).Should(Equal(1))
+			Eventually(func() int { return createComment.Count() }).Should(Equal(1))
 
 			By("Updating the application to retrying")
 			startedAt := metav1.Now()
@@ -176,7 +182,7 @@ var _ = Describe("Comment", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Consistently(func() int { return comment.CreateCount() }, 100*time.Millisecond).Should(Equal(1))
+			Consistently(func() int { return createComment.Count() }, 100*time.Millisecond).Should(Equal(1))
 
 			By("Updating the application to failed")
 			finishedAt := metav1.Now()
@@ -191,7 +197,7 @@ var _ = Describe("Comment", func() {
 				},
 			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
-			Eventually(func() int { return comment.CreateCount() }).Should(Equal(2))
+			Eventually(func() int { return createComment.Count() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
 	})
 })

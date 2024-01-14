@@ -2,7 +2,6 @@ package githubmock
 
 import (
 	"fmt"
-	"maps"
 	"net/http"
 	"sync"
 
@@ -10,8 +9,8 @@ import (
 )
 
 type Server struct {
-	mu       sync.Mutex
-	handlers map[string]http.Handler
+	mu     sync.Mutex
+	routes map[string]http.Handler
 }
 
 func (sv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -29,14 +28,14 @@ func (sv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (sv *Server) getHandler(methodURI string) http.Handler {
 	sv.mu.Lock()
 	defer sv.mu.Unlock()
-	return sv.handlers[methodURI]
+	return sv.routes[methodURI]
 }
 
-func (sv *Server) AddHandlers(handlers map[string]http.Handler) {
+func (sv *Server) Handle(methodURI string, handler http.Handler) {
 	sv.mu.Lock()
 	defer sv.mu.Unlock()
-	if sv.handlers == nil {
-		sv.handlers = make(map[string]http.Handler)
+	if sv.routes == nil {
+		sv.routes = make(map[string]http.Handler)
 	}
-	maps.Copy(sv.handlers, handlers)
+	sv.routes[methodURI] = handler
 }
