@@ -19,10 +19,17 @@ package controller
 import (
 	"context"
 	"slices"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
+	"github.com/argoproj/gitops-engine/pkg/health"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
+	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
+	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/notification"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,7 +53,7 @@ type ApplicationHealthCommentReconciler struct {
 //+kubebuilder:rbac:groups=argocdcommenter.int128.github.io,resources=applicationhealths/status,verbs=get;update;patch
 
 func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
 	var app argocdv1alpha1.Application
 	if err := r.Get(ctx, req.NamespacedName, &app); err != nil {
@@ -55,7 +62,68 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	if !app.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
+	phase := argocd.GetSyncOperationPhase(app)
 
+	var appHealth argocdcommenterv1.ApplicationHealth
+	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
+		if !apierrors.IsNotFound(err) {
+			logger.Error(err, "unable to get the ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+		appHealth.ObjectMeta = metav1.ObjectMeta{
+			Namespace: req.Namespace,
+			Name:      req.Name,
+		}
+		if err := ctrl.SetControllerReference(&app, &appHealth, r.Scheme); err != nil {
+			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+		if err := r.Client.Create(ctx, &appHealth); err != nil {
+			logger.Error(err, "unable to create an ApplicationHealth")
+			return ctrl.Result{}, err
+		}
+		logger.Info("created an ApplicationHealth")
+	}
+
+	sourceRevisions := argocd.GetSourceRevisions(app)
+	if len(sourceRevisions) == 0 {
+		return ctrl.Result{}, nil
+	}
+	currentRevision := sourceRevisions[0].Revision
+
+	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
+	if err != nil {
+		logger.Info("unable to determine Argo CD URL", "error", err)
+	}
+
+	if phase == synccommon.OperationSucceeded &&
+		time.Since(argocd.GetSyncOperationFinishedAt(app).Time) > 1*time.Second &&
+		appHealth.Status.LastHealth.Status != health.HealthStatusHealthy &&
+		(currentRevision != appHealth.Status.LastHealth.Revision ||
+			app.Status.Health.Status != appHealth.Status.LastHealth.Status) {
+		if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
+			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+				"unable to create a comment on health status %s: %s", app.Status.Health.Status, err)
+		} else {
+			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
+				"created a comment on health status %s", app.Status.Health.Status)
+		}
+
+		patch := client.MergeFrom(appHealth.DeepCopy())
+		appHealth.Status.LastHealth = argocdcommenterv1.LastHealth{
+			Revision: currentRevision,
+			Status:   app.Status.Health.Status,
+		}
+		if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
+			logger.Error(err, "unable to patch lastHealth")
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+	}
+
+	if phase == synccommon.OperationSucceeded &&
+		time.Since(argocd.GetSyncOperationFinishedAt(app).Time) < 1*time.Second {
+		return ctrl.Result{RequeueAfter: 500 * time.Millisecond}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -65,7 +133,7 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthComment").
 		For(&argocdv1alpha1.Application{}).
-		WithEventFilter(eventfilter.ApplicationChanged(filterApplicationHealthStatusForComment)).
+		//WithEventFilter(eventfilter.ApplicationChanged(filterApplicationHealthStatusForComment)).
 		Complete(r)
 }
 

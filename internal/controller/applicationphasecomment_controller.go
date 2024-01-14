@@ -19,11 +19,8 @@ package controller
 import (
 	"context"
 	"slices"
-	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -110,39 +107,9 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 			Phase:    phase,
 		}
 		if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-			logger.Error(err, "unable to patch lastSyncedRevision")
+			logger.Error(err, "unable to patch lastSyncOperation")
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
-	}
-
-	if phase == synccommon.OperationSucceeded &&
-		time.Since(argocd.GetSyncOperationFinishedAt(app).Time) > 1*time.Second &&
-		(currentRevision != appHealth.Status.LastHealth.Revision ||
-			app.Status.Health.Status != appHealth.Status.LastHealth.Status) {
-		if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
-			r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
-				"unable to create a comment on health status %s: %s", app.Status.Health.Status, err)
-		} else {
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
-				"created a comment on health status %s", app.Status.Health.Status)
-		}
-
-		if app.Status.Health.Status == health.HealthStatusHealthy {
-			patch := client.MergeFrom(appHealth.DeepCopy())
-			appHealth.Status.LastHealth = argocdcommenterv1.LastHealth{
-				Revision: currentRevision,
-				Status:   app.Status.Health.Status,
-			}
-			if err := r.Client.Status().Patch(ctx, &appHealth, patch); err != nil {
-				logger.Error(err, "unable to patch lastHealthyRevision")
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-		}
-	}
-
-	if phase == synccommon.OperationSucceeded &&
-		time.Since(argocd.GetSyncOperationFinishedAt(app).Time) < 1*time.Second {
-		return ctrl.Result{RequeueAfter: 500 * time.Millisecond}, nil
 	}
 
 	return ctrl.Result{}, nil
