@@ -10,18 +10,11 @@ rules:
   - applicationhealths
   verbs:
   - create
-  - delete
   - get
   - list
   - patch
   - update
   - watch
-- apiGroups:
-  - argocdcommenter.int128.github.io
-  resources:
-  - applicationhealths/finalizers
-  verbs:
-  - update
 - apiGroups:
   - argocdcommenter.int128.github.io
   resources:

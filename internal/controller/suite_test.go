@@ -131,12 +131,6 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&ApplicationHealthReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-
 	err = (&ApplicationPhaseCommentReconciler{
 		Client:       k8sManager.GetClient(),
 		Scheme:       k8sManager.GetScheme(),

@@ -106,14 +106,6 @@ func main() {
 	}
 	notificationClient := notification.NewClient(ghc)
 
-	if err = (&controller.ApplicationHealthReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ApplicationHealth")
-		os.Exit(1)
-	}
-
 	if err = (&controller.ApplicationPhaseCommentReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
