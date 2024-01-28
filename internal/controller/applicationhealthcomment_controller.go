@@ -19,9 +19,11 @@ package controller
 import (
 	"context"
 	"slices"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
@@ -93,6 +95,13 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
+	phase := argocd.GetSyncOperationPhase(app)
+	syncOperationFinishedAt := argocd.GetSyncOperationFinishedAt(app)
+	if phase == synccommon.OperationSucceeded && syncOperationFinishedAt != nil && time.Since(syncOperationFinishedAt.Time) < 1000*time.Millisecond {
+		logger.Info("Requeue soon", "syncOperationFinishedAt", syncOperationFinishedAt)
+		return ctrl.Result{RequeueAfter: 1000 * time.Millisecond}, nil
+	}
+
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
@@ -131,10 +140,14 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func filterApplicationHealthStatusForComment(appOld, appNew argocdv1alpha1.Application) bool {
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
+	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
+		return true
+	}
+
 	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
 	if healthOld == healthNew {
 		return false
 	}
-
 	return slices.Contains(notification.HealthStatusesForComment, healthNew)
 }
