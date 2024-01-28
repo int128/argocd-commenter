@@ -8,15 +8,10 @@ layout:
 projectName: argocd-commenter
 repo: github.com/int128/argocd-commenter
 resources:
-- controller: true
-  domain: int128.github.io
-  group: argocdcommenter
-  kind: ApplicationHealthComment
-  version: v1
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
+  controller: false
   domain: int128.github.io
   group: argocdcommenter
   kind: ApplicationHealth
@@ -25,12 +20,17 @@ resources:
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationHealthDeployment
+  kind: ApplicationPhaseComment
   version: v1
 - controller: true
   domain: int128.github.io
   group: argocdcommenter
-  kind: ApplicationPhaseComment
+  kind: ApplicationHealthComment
+  version: v1
+- controller: true
+  domain: int128.github.io
+  group: argocdcommenter
+  kind: ApplicationHealthDeployment
   version: v1
 - controller: true
   domain: int128.github.io
