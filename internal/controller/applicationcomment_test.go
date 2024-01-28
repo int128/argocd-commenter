@@ -204,11 +204,11 @@ var _ = Describe("Comment", func() {
 	Context("When an application is synced", func() {
 		It("Should notify a comment for healthy after 1s", func(ctx context.Context) {
 			By("Updating the application to running")
+			startedAt := metav1.Now()
 			app.Status = argocdv1alpha1.ApplicationStatus{
 				OperationState: &argocdv1alpha1.OperationState{
-					Phase:      synccommon.OperationRunning,
-					StartedAt:  metav1.Now(),
-					FinishedAt: &metav1.Time{Time: time.Now()},
+					Phase:     synccommon.OperationRunning,
+					StartedAt: startedAt,
 					Operation: argocdv1alpha1.Operation{
 						Sync: &argocdv1alpha1.SyncOperation{
 							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
@@ -223,7 +223,17 @@ var _ = Describe("Comment", func() {
 			Eventually(func() int { return createComment.Count() }).Should(Equal(1))
 
 			By("Updating the application to succeeded")
-			app.Status.OperationState.Phase = synccommon.OperationSucceeded
+			finishedAt := metav1.Now()
+			app.Status.OperationState = &argocdv1alpha1.OperationState{
+				Phase:      synccommon.OperationSucceeded,
+				StartedAt:  startedAt,
+				FinishedAt: &finishedAt,
+				Operation: argocdv1alpha1.Operation{
+					Sync: &argocdv1alpha1.SyncOperation{
+						Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
+					},
+				},
+			}
 			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 			Eventually(func() int { return createComment.Count() }).Should(Equal(2))
 

@@ -38,6 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var (
+	requeueHealthAfterSyncOperationSucceeded = 3 * time.Second
+)
+
 // ApplicationHealthCommentReconciler reconciles a change of Application object.
 // It creates a comment when the health status is changed.
 type ApplicationHealthCommentReconciler struct {
@@ -96,10 +100,19 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	phase := argocd.GetSyncOperationPhase(app)
+	if phase != synccommon.OperationSucceeded {
+		return ctrl.Result{}, nil
+	}
 	syncOperationFinishedAt := argocd.GetSyncOperationFinishedAt(app)
-	if phase == synccommon.OperationSucceeded && syncOperationFinishedAt != nil && time.Since(syncOperationFinishedAt.Time) < 1000*time.Millisecond {
-		logger.Info("Requeue soon", "syncOperationFinishedAt", syncOperationFinishedAt)
-		return ctrl.Result{RequeueAfter: 1000 * time.Millisecond}, nil
+	if syncOperationFinishedAt == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// Do not evaluate the health status just after the sync operation.
+	if time.Since(syncOperationFinishedAt.Time) < requeueHealthAfterSyncOperationSucceeded {
+		logger.Info("Recheck the health status", "after", requeueHealthAfterSyncOperationSucceeded,
+			"syncOperationFinishedAt", syncOperationFinishedAt)
+		return ctrl.Result{RequeueAfter: requeueHealthAfterSyncOperationSucceeded}, nil
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
@@ -140,14 +153,17 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func filterApplicationHealthStatusForComment(appOld, appNew argocdv1alpha1.Application) bool {
+	// When the sync operation phase is changed to succeeded
 	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
 	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
 		return true
 	}
 
+	// When the health status is changed
 	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
-	if healthOld == healthNew {
-		return false
+	if healthOld != healthNew && slices.Contains(notification.HealthStatusesForComment, healthNew) {
+		return true
 	}
-	return slices.Contains(notification.HealthStatusesForComment, healthNew)
+
+	return false
 }

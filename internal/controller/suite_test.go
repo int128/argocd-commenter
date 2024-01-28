@@ -174,6 +174,8 @@ var _ = BeforeSuite(func() {
 
 	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
 
+	requeueHealthAfterSyncOperationSucceeded = 1 * time.Second
+
 	go func() {
 		defer GinkgoRecover()
 		By("Starting the controller manager")

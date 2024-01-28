@@ -22,6 +22,7 @@ import (
 	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -95,6 +96,22 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
+	phase := argocd.GetSyncOperationPhase(app)
+	if phase != synccommon.OperationSucceeded {
+		return ctrl.Result{}, nil
+	}
+	syncOperationFinishedAt := argocd.GetSyncOperationFinishedAt(app)
+	if syncOperationFinishedAt == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// Do not evaluate the health status just after the sync operation.
+	if time.Since(syncOperationFinishedAt.Time) < requeueHealthAfterSyncOperationSucceeded {
+		logger.Info("Recheck the health status", "after", requeueHealthAfterSyncOperationSucceeded,
+			"syncOperationFinishedAt", syncOperationFinishedAt)
+		return ctrl.Result{RequeueAfter: requeueHealthAfterSyncOperationSucceeded}, nil
+	}
+
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
@@ -125,10 +142,17 @@ func filterApplicationHealthStatusForDeploymentStatus(appOld, appNew argocdv1alp
 		return false
 	}
 
-	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
-	if healthOld == healthNew {
-		return false
+	// When the sync operation phase is changed to succeeded
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
+	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
+		return true
 	}
 
-	return slices.Contains(notification.HealthStatusesForDeploymentStatus, healthNew)
+	// When the health status is changed
+	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
+	if healthOld != healthNew && slices.Contains(notification.HealthStatusesForDeploymentStatus, healthNew) {
+		return true
+	}
+
+	return false
 }
