@@ -61,9 +61,15 @@ func generateCommentBodyOnPhaseChanged(app argocdv1alpha1.Application, argocdURL
 		return fmt.Sprintf(":warning: Syncing [%s](%s) to %s", app.Name, argocdApplicationURL, sourceRevision.Revision)
 	case synccommon.OperationSucceeded:
 		return fmt.Sprintf(":white_check_mark: Synced [%s](%s) to %s", app.Name, argocdApplicationURL, sourceRevision.Revision)
-	case synccommon.OperationFailed, synccommon.OperationError:
-		return fmt.Sprintf("## :x: Sync %s: [%s](%s)\nError while syncing to %s:\n%s",
-			phase,
+	case synccommon.OperationFailed:
+		return fmt.Sprintf("## :x: Failed to sync [%s](%s) to %s\n%s",
+			app.Name,
+			argocdApplicationURL,
+			sourceRevision.Revision,
+			generateCommentResourcesOnPhaseChanged(app.Status.OperationState.SyncResult),
+		)
+	case synccommon.OperationError:
+		return fmt.Sprintf("## :x: Sync error [%s](%s) at %s\n%s",
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,

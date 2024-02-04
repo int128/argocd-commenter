@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
@@ -44,7 +45,7 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 		GitHubDeployment: *deployment,
 		GitHubDeploymentStatus: github.DeploymentStatus{
 			LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
-			Description: trimDescription(fmt.Sprintf("%s:\n%s", phase, app.Status.OperationState.Message)),
+			Description: trimDescription(generateDeploymentStatusDescriptionOnPhaseChanged(app)),
 		},
 	}
 	if len(app.Status.Summary.ExternalURLs) > 0 {
@@ -65,4 +66,26 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 		return &ds
 	}
 	return nil
+}
+
+func generateDeploymentStatusDescriptionOnPhaseChanged(app argocdv1alpha1.Application) string {
+	phase := argocd.GetSyncOperationPhase(app)
+	if phase == "" {
+		return ""
+	}
+	syncResult := app.Status.OperationState.SyncResult
+	if syncResult == nil {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("%s:\n", phase))
+	for _, r := range syncResult.Resources {
+		namespacedName := r.Namespace + "/" + r.Name
+		switch r.Status {
+		case synccommon.ResultCodeSyncFailed:
+			b.WriteString(fmt.Sprintf("%s: %s\n", namespacedName, r.Message))
+		}
+	}
+	return b.String()
 }

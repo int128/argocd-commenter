@@ -52,16 +52,14 @@ func generateCommentBodyOnHealthChanged(app argocdv1alpha1.Application, argocdUR
 	argocdApplicationURL := fmt.Sprintf("%s/applications/%s", argocdURL, app.Name)
 	switch app.Status.Health.Status {
 	case health.HealthStatusHealthy:
-		return fmt.Sprintf("## %s %s: [%s](%s)\nDeployed %s",
-			":white_check_mark:",
+		return fmt.Sprintf(":white_check_mark: %s [%s](%s) at %s",
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
 			sourceRevision.Revision,
 		)
 	case health.HealthStatusDegraded:
-		return fmt.Sprintf("## %s %s: [%s](%s)\nError while deploying %s:\n%s",
-			":x:",
+		return fmt.Sprintf("## :x: %s [%s](%s) at %s:\n%s",
 			app.Status.Health.Status,
 			app.Name,
 			argocdApplicationURL,
