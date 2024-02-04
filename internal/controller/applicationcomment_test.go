@@ -203,7 +203,7 @@ var _ = Describe("Comment", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment for healthy after 1s", func(ctx context.Context) {
-			requeueToEvaluateHealthStatusAfterSyncOperation = 1 * time.Second
+			requeueTimeToEvaluateHealthStatusAfterSyncOperation = 1 * time.Second
 
 			By("Updating the application to running")
 			startedAt := metav1.Now()

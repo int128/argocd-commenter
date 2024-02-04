@@ -96,7 +96,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	// Evaluate the health status if the sync operation is succeeded.
+	// Evaluate the health status only if the sync operation is succeeded.
 	phase := argocd.GetSyncOperationPhase(app)
 	if phase != synccommon.OperationSucceeded {
 		return ctrl.Result{}, nil
@@ -106,11 +106,13 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	// Evaluate the health status enough after the sync operation.
-	if time.Since(syncOperationFinishedAt.Time) < requeueToEvaluateHealthStatusAfterSyncOperation {
-		logger.Info("Requeue to later evaluate the health status", "after", requeueToEvaluateHealthStatusAfterSyncOperation,
+	// If this controller is run just after the sync operation,
+	// it will evaluate the health status after a few seconds.
+	// https://github.com/int128/argocd-commenter/issues/1044
+	if time.Since(syncOperationFinishedAt.Time) < requeueTimeToEvaluateHealthStatusAfterSyncOperation {
+		logger.Info("Requeue later to evaluate the health status", "after", requeueTimeToEvaluateHealthStatusAfterSyncOperation,
 			"syncOperationFinishedAt", syncOperationFinishedAt)
-		return ctrl.Result{RequeueAfter: requeueToEvaluateHealthStatusAfterSyncOperation}, nil
+		return ctrl.Result{RequeueAfter: requeueTimeToEvaluateHealthStatusAfterSyncOperation}, nil
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
@@ -149,7 +151,8 @@ func filterApplicationHealthStatusForDeploymentStatus(appOld, appNew argocdv1alp
 		return true
 	}
 
-	// When the sync operation phase is changed to succeeded
+	// When an application is synced but the health status is not changed,
+	// the controller will evaluate the health status after sync.
 	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
 	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
 		return true

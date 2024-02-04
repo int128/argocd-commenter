@@ -54,7 +54,7 @@ var (
 var _ = BeforeEach(func() {
 	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
 
-	requeueToEvaluateHealthStatusAfterSyncOperation = 0
+	requeueTimeToEvaluateHealthStatusAfterSyncOperation = 0
 })
 
 func TestControllers(t *testing.T) {
