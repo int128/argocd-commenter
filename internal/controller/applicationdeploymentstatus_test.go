@@ -223,6 +223,10 @@ var _ = Describe("Deployment status", func() {
 })
 
 var _ = Describe("Deployment status", func() {
+	BeforeEach(func() {
+		requeueToEvaluateHealthStatusAfterSyncOperation = 0
+	})
+
 	Context("When an application was synced before the deployment annotation is updated", func() {
 		var app argocdv1alpha1.Application
 

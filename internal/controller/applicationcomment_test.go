@@ -203,6 +203,8 @@ var _ = Describe("Comment", func() {
 
 	Context("When an application is synced", func() {
 		It("Should notify a comment for healthy after 1s", func(ctx context.Context) {
+			requeueToEvaluateHealthStatusAfterSyncOperation = 1 * time.Second
+
 			By("Updating the application to running")
 			startedAt := metav1.Now()
 			app.Status = argocdv1alpha1.ApplicationStatus{
@@ -238,7 +240,7 @@ var _ = Describe("Comment", func() {
 			Eventually(func() int { return createComment.Count() }).Should(Equal(2))
 
 			By("It should create a comment for healthy")
-			Eventually(func() int { return createComment.Count() }).Should(Equal(3))
+			Eventually(func() int { return createComment.Count() }).WithTimeout(2 * time.Second).Should(Equal(3))
 		}, SpecTimeout(3*time.Second))
 	})
 })

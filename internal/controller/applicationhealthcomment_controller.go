@@ -39,7 +39,9 @@ import (
 )
 
 var (
-	requeueHealthAfterSyncOperationSucceeded = 3 * time.Second
+	// When an application is synced but the health status is not changed,
+	// the controller will evaluate the health status after this time.
+	requeueToEvaluateHealthStatusAfterSyncOperation = 3 * time.Second
 )
 
 // ApplicationHealthCommentReconciler reconciles a change of Application object.
@@ -99,6 +101,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
+	// Evaluate the health status if the sync operation is succeeded.
 	phase := argocd.GetSyncOperationPhase(app)
 	if phase != synccommon.OperationSucceeded {
 		return ctrl.Result{}, nil
@@ -108,11 +111,11 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
-	// Do not evaluate the health status just after the sync operation.
-	if time.Since(syncOperationFinishedAt.Time) < requeueHealthAfterSyncOperationSucceeded {
-		logger.Info("Recheck the health status", "after", requeueHealthAfterSyncOperationSucceeded,
+	// Evaluate the health status enough after the sync operation.
+	if time.Since(syncOperationFinishedAt.Time) < requeueToEvaluateHealthStatusAfterSyncOperation {
+		logger.Info("Requeue to later evaluate the health status", "after", requeueToEvaluateHealthStatusAfterSyncOperation,
 			"syncOperationFinishedAt", syncOperationFinishedAt)
-		return ctrl.Result{RequeueAfter: requeueHealthAfterSyncOperationSucceeded}, nil
+		return ctrl.Result{RequeueAfter: requeueToEvaluateHealthStatusAfterSyncOperation}, nil
 	}
 
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
@@ -153,15 +156,15 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func filterApplicationHealthStatusForComment(appOld, appNew argocdv1alpha1.Application) bool {
-	// When the sync operation phase is changed to succeeded
-	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
-	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
-		return true
-	}
-
 	// When the health status is changed
 	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
 	if healthOld != healthNew && slices.Contains(notification.HealthStatusesForComment, healthNew) {
+		return true
+	}
+
+	// When the sync operation phase is changed to succeeded
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
+	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
 		return true
 	}
 
