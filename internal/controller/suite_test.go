@@ -51,6 +51,12 @@ var (
 	githubServer githubmock.Server
 )
 
+var _ = BeforeEach(func() {
+	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
+
+	requeueTimeToEvaluateHealthStatusAfterSyncOperation = 0
+})
+
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
 
@@ -165,8 +171,6 @@ var _ = BeforeSuite(func() {
 		Notification: nc,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-
-	requeueIntervalWhenDeploymentNotFound = 1 * time.Second
 
 	go func() {
 		defer GinkgoRecover()

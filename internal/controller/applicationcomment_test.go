@@ -200,4 +200,47 @@ var _ = Describe("Comment", func() {
 			Eventually(func() int { return createComment.Count() }).Should(Equal(2))
 		}, SpecTimeout(3*time.Second))
 	})
+
+	Context("When an application is synced", func() {
+		It("Should notify a comment for healthy after 1s", func(ctx context.Context) {
+			requeueTimeToEvaluateHealthStatusAfterSyncOperation = 1 * time.Second
+
+			By("Updating the application to running")
+			startedAt := metav1.Now()
+			app.Status = argocdv1alpha1.ApplicationStatus{
+				OperationState: &argocdv1alpha1.OperationState{
+					Phase:     synccommon.OperationRunning,
+					StartedAt: startedAt,
+					Operation: argocdv1alpha1.Operation{
+						Sync: &argocdv1alpha1.SyncOperation{
+							Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
+						},
+					},
+				},
+				Health: argocdv1alpha1.HealthStatus{
+					Status: health.HealthStatusHealthy,
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return createComment.Count() }).Should(Equal(1))
+
+			By("Updating the application to succeeded")
+			finishedAt := metav1.Now()
+			app.Status.OperationState = &argocdv1alpha1.OperationState{
+				Phase:      synccommon.OperationSucceeded,
+				StartedAt:  startedAt,
+				FinishedAt: &finishedAt,
+				Operation: argocdv1alpha1.Operation{
+					Sync: &argocdv1alpha1.SyncOperation{
+						Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa101",
+					},
+				},
+			}
+			Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
+			Eventually(func() int { return createComment.Count() }).Should(Equal(2))
+
+			By("It should create a comment for healthy")
+			Eventually(func() int { return createComment.Count() }).WithTimeout(2 * time.Second).Should(Equal(3))
+		}, SpecTimeout(3*time.Second))
+	})
 })

@@ -19,9 +19,11 @@ package controller
 import (
 	"context"
 	"slices"
+	"time"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
+	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
@@ -34,6 +36,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+var (
+	// When an application is synced but the health status is not changed,
+	// the controller will evaluate the health status after this time.
+	requeueTimeToEvaluateHealthStatusAfterSyncOperation = 3 * time.Second
 )
 
 // ApplicationHealthCommentReconciler reconciles a change of Application object.
@@ -93,6 +101,25 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 
+	// Evaluate the health status only if the sync operation is succeeded.
+	phase := argocd.GetSyncOperationPhase(app)
+	if phase != synccommon.OperationSucceeded {
+		return ctrl.Result{}, nil
+	}
+	syncOperationFinishedAt := argocd.GetSyncOperationFinishedAt(app)
+	if syncOperationFinishedAt == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// If this controller is run just after the sync operation,
+	// it will evaluate the health status after a few seconds.
+	// https://github.com/int128/argocd-commenter/issues/1044
+	if time.Since(syncOperationFinishedAt.Time) < requeueTimeToEvaluateHealthStatusAfterSyncOperation {
+		logger.Info("Requeue later to evaluate the health status", "after", requeueTimeToEvaluateHealthStatusAfterSyncOperation,
+			"syncOperationFinishedAt", syncOperationFinishedAt)
+		return ctrl.Result{RequeueAfter: requeueTimeToEvaluateHealthStatusAfterSyncOperation}, nil
+	}
+
 	argocdURL, err := argocd.GetExternalURL(ctx, r.Client, req.Namespace)
 	if err != nil {
 		logger.Info("unable to determine Argo CD URL", "error", err)
@@ -131,10 +158,18 @@ func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func filterApplicationHealthStatusForComment(appOld, appNew argocdv1alpha1.Application) bool {
+	// When the health status is changed
 	healthOld, healthNew := appOld.Status.Health.Status, appNew.Status.Health.Status
-	if healthOld == healthNew {
-		return false
+	if healthOld != healthNew && slices.Contains(notification.HealthStatusesForComment, healthNew) {
+		return true
 	}
 
-	return slices.Contains(notification.HealthStatusesForComment, healthNew)
+	// When an application is synced but the health status is not changed,
+	// the controller will evaluate the health status after sync.
+	phaseOld, phaseNew := argocd.GetSyncOperationPhase(appOld), argocd.GetSyncOperationPhase(appNew)
+	if phaseOld != phaseNew && phaseNew == synccommon.OperationSucceeded {
+		return true
+	}
+
+	return false
 }
