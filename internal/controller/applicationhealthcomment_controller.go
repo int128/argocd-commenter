@@ -41,7 +41,7 @@ import (
 var (
 	// When an application is synced but the health status is not changed,
 	// the controller will evaluate the health status after this time.
-	requeueTimeToEvaluateHealthStatusAfterSyncOperation = 3 * time.Second
+	requeueTimeToEvaluateHealthStatusAfterSyncOperation = 30 * time.Second
 )
 
 // ApplicationHealthCommentReconciler reconciles a change of Application object.
