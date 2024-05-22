@@ -635,10 +635,10 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/apache/arrow/go/v10 v10.0.1/go.mod h1:YvhnlEePVnBS4+0z3fhPfUy7W1Ikj0Ih0vcRo/gZ1M0=
 github.com/apache/arrow/go/v11 v11.0.0/go.mod h1:Eg5OsL5H+e299f7u5ssuXsuHQVEGC4xei5aX110hRiI=
 github.com/apache/thrift v0.16.0/go.mod h1:PHK3hniurgQaNMZYaCLEqXKsYK8upmhPbmdP2FXSqgU=
-github.com/argoproj/argo-cd/v2 v2.11.0 h1:YgPAC5eWNQ1ODm1r3hU9m9JhGrb+6iXPWViGbiHBB6c=
-github.com/argoproj/argo-cd/v2 v2.11.0/go.mod h1:2NlC8/jZ/Nc6yOdHnlJesdvUNhoeKktAyz3l/53lepQ=
-github.com/argoproj/gitops-engine v0.7.1-0.20240124052710-5fd9f449e757 h1:5fKAhTQcTBom0vin56cz/UTPx2GMuvdb+lJRAUOPbHA=
-github.com/argoproj/gitops-engine v0.7.1-0.20240124052710-5fd9f449e757/go.mod h1:gWE8uROi7hIkWGNAVM+8FWkMfo0vZ03SLx/aFw/DBzg=
+github.com/argoproj/argo-cd/v2 v2.11.1 h1:G82nKQOQOze6/MSE/6aku08JxMsTbLcOhLLnVH/HCUo=
+github.com/argoproj/argo-cd/v2 v2.11.1/go.mod h1:IU2irseUGGxrjnuzcX50Z6yqXIPBZ46SlYOch/uRP4Q=
+github.com/argoproj/gitops-engine v0.7.1-0.20240416142647-fbecbb86e412 h1:je2wJpWtaoS55mA5MBPCeDnKMeF42pkxO9Oa5KbWrdg=
+github.com/argoproj/gitops-engine v0.7.1-0.20240416142647-fbecbb86e412/go.mod h1:gWE8uROi7hIkWGNAVM+8FWkMfo0vZ03SLx/aFw/DBzg=
 github.com/argoproj/pkg v0.13.7-0.20230627120311-a4dd357b057e h1:kuLQvJqwwRMQTheT4MFyKVM8Txncu21CHT4yBWUl1Mk=
 github.com/argoproj/pkg v0.13.7-0.20230627120311-a4dd357b057e/go.mod h1:xBN5PLx2MoK63dmPfMo/PGBvd77K1Y0m/rzZOe4cs1s=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
@@ -852,8 +852,9 @@ github.com/golang/protobuf v1.4.3/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/golang/protobuf v1.5.1/go.mod h1:DopwsBzvsk0Fs44TXzsVbJyPhcCPeIwnvohx4u74HPM=
 github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
-github.com/golang/protobuf v1.5.3 h1:KhyjKVUg7Usr/dYsdSqoFveMYd5ko72D+zANwlG1mmg=
 github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
+github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
+github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/golang/snappy v0.0.3/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
