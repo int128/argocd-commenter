@@ -3,8 +3,8 @@ module github.com/int128/argocd-commenter
 go 1.21.6
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.11.0
-	github.com/argoproj/gitops-engine v0.7.1-0.20240124052710-5fd9f449e757
+	github.com/argoproj/argo-cd/v2 v2.11.1
+	github.com/argoproj/gitops-engine v0.7.1-0.20240416142647-fbecbb86e412
 	github.com/go-logr/logr v1.4.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v62 v62.0.0
@@ -63,7 +63,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-github/v53 v53.2.0 // indirect
