@@ -1,6 +1,6 @@
 # Build the manager binary
 ARG go_version
-FROM --platform=$BUILDPLATFORM golang:${go_version} as builder
+FROM --platform=$BUILDPLATFORM golang:${go_version} AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -15,7 +15,8 @@ COPY cmd/main.go cmd/main.go
 COPY api/ api/
 COPY internal/ internal/
 
-ARG TARGETOS TARGETARCH
+ARG TARGETOS
+ARG TARGETARCH
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
