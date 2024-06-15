@@ -14,10 +14,10 @@ require (
 	github.com/onsi/gomega v1.33.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/oauth2 v0.21.0
-	k8s.io/api v0.26.11
-	k8s.io/apimachinery v0.26.11
-	k8s.io/client-go v0.26.11
-	sigs.k8s.io/controller-runtime v0.14.7
+	k8s.io/api v0.28.0
+	k8s.io/apimachinery v0.28.0
+	k8s.io/client-go v0.28.0
+	sigs.k8s.io/controller-runtime v0.16.0
 )
 
 require (
