@@ -1,4 +1,2 @@
 resources:
-  - app1.yaml
-  - app2.yaml
-  - app3.yaml
+  - fixtures.yaml
