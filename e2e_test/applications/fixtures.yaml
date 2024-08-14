@@ -19,7 +19,7 @@ spec:
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
-      project: default
+      project: e2e-test
       source:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
         targetRevision: FIXTURE_BASE_BRANCH
