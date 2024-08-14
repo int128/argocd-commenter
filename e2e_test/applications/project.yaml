@@ -7,6 +7,5 @@ spec:
   sourceRepos:
     - https://github.com/int128/argocd-commenter-e2e-test
   destinations:
-    - name: in-cluster
-      server: https://kubernetes.default.svc
+    - server: https://kubernetes.default.svc
       namespace: '*'
