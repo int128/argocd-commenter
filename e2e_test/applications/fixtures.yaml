@@ -11,7 +11,7 @@ spec:
     - git:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
         revision: FIXTURE_BASE_BRANCH
-        files:
+        directories:
           - path: "*"
   template:
     metadata:
