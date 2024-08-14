@@ -16,6 +16,8 @@ spec:
         files:
           - path: "*"
   template:
+    metadata:
+      name: "{{ .path.basename }}"
     spec:
       project: default
       source:
