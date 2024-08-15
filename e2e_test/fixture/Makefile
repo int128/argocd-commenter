@@ -14,24 +14,24 @@ setup-fixture-branch:
 # Test#1
 # It updates an image tag of Deployment.
 # It will cause the rolling update, that is, Progressing state.
-update-manifest-app1:
+deploy-app1:
 	git checkout "$(FIXTURE_BRANCH)"
 	sed -i -e 's/echoserver:1.8/echoserver:1.9/g' app1/deployment/echoserver.yaml
-	bash update-manifest.sh app1
+	bash deploy.sh app1
 
 # Test#2
 # It updates the label to invalid value.
 # It will cause this error:
 # one or more objects failed to apply, reason: Deployment.apps "echoserver" is invalid: spec.selector: Invalid value: v1.LabelSelector
-update-manifest-app2:
+deploy-app2:
 	git checkout "$(FIXTURE_BRANCH)"
 	sed -i -e 's/app: echoserver/app: echoserver-test2/g' app2/deployment/echoserver.yaml
-	bash update-manifest.sh app2
+	bash deploy.sh app2
 
 # Test#3
 # It updates an image tag of CronJob template.
 # Application will not transit to Progressing state.
-update-manifest-app3:
+deploy-app3:
 	git checkout "$(FIXTURE_BRANCH)"
 	sed -i -e 's/busybox:1.28/busybox:1.30/g' app3/cronjob/echoserver.yaml
-	bash update-manifest.sh app3
+	bash deploy.sh app3

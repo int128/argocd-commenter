@@ -37,7 +37,7 @@ wait-for-apps:
 
 # fixture
 deploy-app1:
-	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app1
+	$(MAKE) -C $(FIXTURE_DIR) deploy-app1
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BRANCH)`" app1
 
 restart-app1:
@@ -45,11 +45,11 @@ restart-app1:
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BRANCH)`" app1
 
 deploy-app2:
-	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app2
+	$(MAKE) -C $(FIXTURE_DIR) deploy-app2
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BRANCH)`" -sync OutOfSync -operation Failed app2
 
 deploy-app3:
-	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app3
+	$(MAKE) -C $(FIXTURE_DIR) deploy-app3
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BRANCH)`" app3
 
 logs-controller:
