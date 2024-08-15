@@ -34,8 +34,8 @@ type ApplicationHealthStatus struct {
 	LastHealthyRevision string `json:"lastHealthyRevision,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // ApplicationHealth is the Schema for the applicationhealths API
 type ApplicationHealth struct {
@@ -46,7 +46,7 @@ type ApplicationHealth struct {
 	Status ApplicationHealthStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ApplicationHealthList contains a list of ApplicationHealth
 type ApplicationHealthList struct {
