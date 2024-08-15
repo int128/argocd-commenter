@@ -54,6 +54,7 @@ deploy-app3:
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
-logs-argocd:
+logs-argocd-application-controller:
 	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-application-controller --all-containers --tail=-1
+logs-argocd-applicationset-controller:
 	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-applicationset-controller --all-containers --tail=-1

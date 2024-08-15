@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: e2e-test
+  name: e2e-test-project
   namespace: argocd
 spec:
   sourceRepos:
     - https://github.com/int128/argocd-commenter-e2e-test
   destinations:
     - server: https://kubernetes.default.svc
-      namespace: '*'
+      namespace: "*"
   clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
+    - group: "*"
+      kind: "*"

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: fixtures
+  name: e2e-test-set
   namespace: argocd
 spec:
   goTemplate: true
@@ -12,8 +12,8 @@ spec:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
         revision: FIXTURE_BASE_BRANCH
         files:
-          - path: "*/metadata.json"
-        requeueAfterSeconds: 5 # To reduce time until the deploymentURL is updated
+          - path: "*/metadata.yaml"
+        requeueAfterSeconds: 5 # To update the deploymentURL within e2e-test
   template:
     metadata:
       name: "{{ .path.basename }}"
@@ -22,7 +22,7 @@ spec:
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
-      project: e2e-test
+      project: e2e-test-project
       source:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
         targetRevision: FIXTURE_BASE_BRANCH
@@ -34,4 +34,4 @@ spec:
         automated:
           prune: true
         retry:
-          limit: 1 # To reduce time until SyncFailed
+          limit: 1 # To transition to SyncFailed shortly
