@@ -20,5 +20,5 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
-- guestbook_editor_role.yaml
-- guestbook_viewer_role.yaml
+- applicationhealth_editor_role.yaml
+- applicationhealth_viewer_role.yaml
