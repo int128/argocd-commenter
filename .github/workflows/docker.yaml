@@ -53,7 +53,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # set up the test environment
+      # Set up the test environment
       - uses: actions/create-github-app-token@v1
         id: e2e-test-token
         with:
@@ -89,7 +89,7 @@ jobs:
 
       - run: make -C e2e_test wait-for-apps
 
-      # test
+      # Run the test
       - uses: int128/deployment-action@v1
         id: deployment-app1
         with:
@@ -105,7 +105,6 @@ jobs:
 
       - run: make -C e2e_test deploy-app1
         env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
@@ -113,18 +112,18 @@ jobs:
 
       - run: make -C e2e_test deploy-app2
         env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
       - run: make -C e2e_test deploy-app3
         env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
           GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
-      # show logs
-      - run: make -C e2e_test logs-argocd
-        if: always()
+      # Show logs
       - run: make -C e2e_test logs-controller
+        if: always()
+      - run: make -C e2e_test logs-argocd-application-controller
+        if: always()
+      - run: make -C e2e_test logs-argocd-applicationset-controller
         if: always()
