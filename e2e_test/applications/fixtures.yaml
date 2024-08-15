@@ -13,6 +13,7 @@ spec:
         revision: FIXTURE_BASE_BRANCH
         files:
           - path: "*/metadata.json"
+        requeueAfterSeconds: 5 # To reduce time until the deploymentURL is updated
   template:
     metadata:
       name: "{{ .path.basename }}"
@@ -33,4 +34,4 @@ spec:
         automated:
           prune: true
         retry:
-          limit: 1 # To reduce time
+          limit: 1 # To reduce time until SyncFailed
