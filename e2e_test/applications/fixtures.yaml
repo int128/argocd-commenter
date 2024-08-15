@@ -11,11 +11,13 @@ spec:
     - git:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
         revision: FIXTURE_BASE_BRANCH
-        directories:
-          - path: "*"
+        files:
+          - path: "*/metadata.json"
   template:
     metadata:
       name: "{{ .path.basename }}"
+      annotations:
+        argocd-commenter.int128.github.io/deployment-url: "{{ .deploymentURL }}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
