@@ -10,7 +10,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
-        revision: FIXTURE_BASE_BRANCH
+        revision: FIXTURE_BRANCH
         files:
           - path: "*/metadata.yaml"
         requeueAfterSeconds: 5 # To update the deploymentURL within e2e-test
@@ -25,7 +25,7 @@ spec:
       project: e2e-test-project
       source:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
-        targetRevision: FIXTURE_BASE_BRANCH
+        targetRevision: FIXTURE_BRANCH
         path: "{{ .path.basename }}"
       destination:
         server: https://kubernetes.default.svc

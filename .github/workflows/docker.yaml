@@ -105,7 +105,6 @@ jobs:
 
       - run: make -C e2e_test deploy-app1
         env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
           GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
@@ -113,13 +112,11 @@ jobs:
 
       - run: make -C e2e_test deploy-app2
         env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
           GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
       - run: make -C e2e_test deploy-app3
         env:
-          PULL_REQUEST_BODY: "e2e-test ${{ github.repository }}#${{ github.event.pull_request.number }}"
           DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
           GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
 
