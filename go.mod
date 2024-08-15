@@ -2,7 +2,7 @@ module github.com/int128/argocd-commenter
 
 go 1.22.0
 
-toolchain go1.22.4
+toolchain go1.23.0
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.12.0
