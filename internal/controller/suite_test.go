@@ -30,6 +30,8 @@ import (
 	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	"github.com/int128/argocd-commenter/internal/github"
 	"github.com/int128/argocd-commenter/internal/notification"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
