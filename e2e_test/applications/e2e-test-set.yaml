@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: e2e-test-set
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/int128/argocd-commenter-e2e-test
+        revision: FIXTURE_BASE_BRANCH
+        files:
+          - path: "*/metadata.yaml"
+        requeueAfterSeconds: 5 # To update the deploymentURL within e2e-test
+  template:
+    metadata:
+      name: "{{ .path.basename }}"
+      annotations:
+        argocd-commenter.int128.github.io/deployment-url: "{{ .deploymentURL }}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: e2e-test-project
+      source:
+        repoURL: https://github.com/int128/argocd-commenter-e2e-test
+        targetRevision: FIXTURE_BASE_BRANCH
+        path: "{{ .path.basename }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+        retry:
+          limit: 1 # To transition to SyncFailed shortly

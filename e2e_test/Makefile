@@ -37,7 +37,6 @@ wait-for-apps:
 
 # fixture
 deploy-app1:
-	kubectl -n argocd annotate application app1 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app1
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
 
@@ -46,16 +45,16 @@ restart-app1:
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app1
 
 deploy-app2:
-	kubectl -n argocd annotate application app2 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app2
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" -sync OutOfSync -operation Failed app2
 
 deploy-app3:
-	kubectl -n argocd annotate application app3 'argocd-commenter.int128.github.io/deployment-url=$(DEPLOYMENT_URL)'
 	$(MAKE) -C $(FIXTURE_DIR) update-manifest-app3
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BASE_BRANCH)`" app3
 
 logs-controller:
 	-kubectl -n argocd-commenter-system logs -l control-plane=controller-manager --all-containers --tail=-1
-logs-argocd:
+logs-argocd-application-controller:
 	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-application-controller --all-containers --tail=-1
+logs-argocd-applicationset-controller:
+	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-applicationset-controller --all-containers --tail=-1
