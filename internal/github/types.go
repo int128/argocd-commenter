@@ -10,7 +10,8 @@ import (
 
 type Client interface {
 	ListPullRequests(ctx context.Context, r Repository, revision string) ([]PullRequest, error)
-	CreateComment(ctx context.Context, r Repository, pullNumber int, body string) error
+	CreatePullRequestComment(ctx context.Context, r Repository, pullNumber int, body string) error
+	CreateCommitComment(ctx context.Context, r Repository, sha, body string) error
 	CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error
 	FindLatestDeploymentStatus(ctx context.Context, d Deployment) (*DeploymentStatus, error)
 }

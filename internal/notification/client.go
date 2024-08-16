@@ -50,20 +50,24 @@ func (c client) createComment(ctx context.Context, comment Comment, app argocdv1
 	}
 	relatedPulls := filterPullRequestsRelatedToEvent(pulls, comment.SourceRevision, app)
 	if len(relatedPulls) == 0 {
-		logger.Info("no pull request related to the revision")
+		logger.Info("No pull request related to the revision")
+		if err := c.ghc.CreateCommitComment(ctx, comment.GitHubRepository, comment.SourceRevision.Revision, comment.Body); err != nil {
+			return fmt.Errorf("unable to create a comment on revision %s: %w", comment.SourceRevision.Revision, err)
+		}
+		logger.Info("Created a comment to the commit")
 		return nil
 	}
 
 	var errs []error
 	for _, pull := range relatedPulls {
-		if err := c.ghc.CreateComment(ctx, comment.GitHubRepository, pull.Number, comment.Body); err != nil {
+		if err := c.ghc.CreatePullRequestComment(ctx, comment.GitHubRepository, pull.Number, comment.Body); err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		logger.Info("created a comment", "pullNumber", pull.Number)
+		logger.Info("Created a comment to the pull request", "pullNumber", pull.Number)
 	}
-	if len(errs) > 0 {
-		return fmt.Errorf("unable to create comment(s) on revision %s: %w", comment.SourceRevision.Revision, errors.Join(errs...))
+	if err := errors.Join(errs...); err != nil {
+		return fmt.Errorf("unable to create comment(s) on revision %s: %w", comment.SourceRevision.Revision, err)
 	}
 	return nil
 }
