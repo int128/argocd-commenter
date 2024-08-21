@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 	"github.com/gregjones/httpcache"
 	"github.com/int128/oauth2-github-app"
 	"golang.org/x/oauth2"
