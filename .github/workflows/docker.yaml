@@ -52,6 +52,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       # Set up the test environment
       - uses: actions/create-github-app-token@v1

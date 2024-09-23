@@ -10,6 +10,9 @@ on:
 jobs:
   manifest:
     uses: int128/kubebuilder-workflows/.github/workflows/manifest.yaml@v1
+    permissions:
+      contents: read
+      pull-requests: write
     with:
       kustomization: |
         config/default/kustomization.yaml

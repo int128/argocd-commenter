@@ -5,24 +5,12 @@ on:
     tags:
       - v*
   pull_request:
-    branches:
-      - main
     paths:
       - config/**
       - .github/workflows/release.yaml
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - run: kustomize edit set image controller='ghcr.io/${{ github.repository }}:${{ github.ref_name }}'
-        working-directory: config/manager
-      - run: kustomize build config/default > /tmp/argocd-commenter.yaml
-      - run: cat /tmp/argocd-commenter.yaml
-
-      - if: github.ref_type == 'tag'
-        run: gh release upload '${{ github.ref_name }}' /tmp/argocd-commenter.yaml --clobber
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  manifest:
+    uses: int128/kubebuilder-workflows/.github/workflows/release.yaml@v1
+    permissions:
+      contents: write
