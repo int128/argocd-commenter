@@ -5,7 +5,7 @@
     "github>int128/go-renovate-config#v1.6.1",
     "github>int128/go-renovate-config:go-directive#v1.6.1",
     "github>int128/go-renovate-config:github-actions#v1.6.1",
-    "github>int128/go-renovate-config:kubernetes#v1.6.1",
+    "github>int128/go-renovate-config:kubebuilder#v1.7.2",
     "github>int128/go-renovate-config:kustomization-github-releases#v1.6.1",
   ],
   "packageRules": [
