@@ -27,18 +27,7 @@ on:
       - '!**/*.md'
 
 jobs:
-  go-version:
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    outputs:
-      go-version: ${{ steps.go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: go-version
-        run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: go-version
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -47,6 +36,9 @@ jobs:
     outputs:
       image-uri: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
     steps:
+      - uses: actions/checkout@v4
+      - id: go-version
+        run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
       - uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ghcr.io
@@ -71,7 +63,7 @@ jobs:
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
           build-args: |
-            go_version=${{ needs.go-version.outputs.go-version }}
+            go_version=${{ steps.go-version.outputs.go-version }}
           platforms: |
             linux/amd64
             linux/arm64
