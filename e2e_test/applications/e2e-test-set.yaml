@@ -12,7 +12,7 @@ spec:
         repoURL: https://github.com/int128/argocd-commenter-e2e-test
         revision: FIXTURE_BRANCH
         files:
-          - path: "*/metadata.yaml"
+          - path: "*/metadata.json"
         requeueAfterSeconds: 5 # To update the deploymentURL within e2e-test
   template:
     metadata:
