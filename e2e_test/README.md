@@ -7,21 +7,24 @@ Here is a diagram of the test environment.
 ```mermaid
 graph LR
   subgraph Local Cluster
-    app1[Application app1]
-    app2[Application app2]
-    appN[Application appN]
     argo[Argo CD]
+    set[ApplicationSet]
+    set -. owner .-> app1[Application app1]
+    set -. owner .-> app2[Application app2]
+    set -. owner .-> app3[Application app3]
   end
-  subgraph GitHub Repository<br>int128/argocd-commenter-e2e-test
-    ref[Branch e2e-test/GITHUB_RUN_NUMBER/main]
+  subgraph GitHub Repository
+    subgraph Branch
+      dir1[Directory app1]
+      dir2[Directory app2]
+      dir3[Directory app3]
+    end
   end
-  app1 -.source.-> ref
-  app2 -.source.-> ref
-  appN -.source.-> ref
-  kubectl --create--> argo
-  kubectl --create--> app1
-  kubectl --create--> app2
-  kubectl --create--> appN
+  app1 -. source .-> dir1
+  app2 -. source .-> dir2
+  app3 -. source .-> dir3
+  kubectl -- create --> set
+  kubectl -- create --> argo
 ```
 
 ## Local development
