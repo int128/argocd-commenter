@@ -3,5 +3,5 @@ resources:
   # https://github.com/argoproj/argo-cd
   - https://raw.githubusercontent.com/argoproj/argo-cd/v2.13.1/manifests/install.yaml
   - namespace/argocd.yaml
-patchesStrategicMerge:
-  - configmap/argocd-cm.yaml
+patches:
+  - path: configmap/argocd-cm.yaml
