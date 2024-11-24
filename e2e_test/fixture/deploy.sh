@@ -9,8 +9,11 @@ app="$1"
 head_branch="e2e-test/$GITHUB_RUN_NUMBER/deploy-$app"
 base_branch="e2e-test/$GITHUB_RUN_NUMBER/main"
 
+cat > "$app/metadata.json" <<EOF
+{"deploymentURL": "${DEPLOYMENT_URL}"}
+EOF
+
 # Commit the changes
-echo "deploymentURL: $DEPLOYMENT_URL" > "$app/metadata.yaml"
 git checkout -b "$head_branch"
 git add .
 git commit -m "e2e-test: Update $app"
