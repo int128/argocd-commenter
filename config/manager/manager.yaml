@@ -20,11 +20,13 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
+      app.kubernetes.io/name: kubebuilder-updates
   replicas: 1
   template:
     metadata:
       labels:
         control-plane: controller-manager
+        app.kubernetes.io/name: kubebuilder-updates
     spec:
       # TODO(user): Uncomment the following code to configure the nodeAffinity expression
       # according to the platforms which are supported by your solution.
@@ -47,7 +49,12 @@ spec:
       #             values:
       #               - linux
       securityContext:
+        # Projects are configured by default to adhere to the "restricted" Pod Security Standards.
+        # This ensures that deployments meet the highest security requirements for Kubernetes.
+        # For more details, see: https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - command:
         - /manager
@@ -56,6 +63,7 @@ spec:
           - --health-probe-bind-address=:8081
         image: controller:latest
         name: manager
+        ports: []
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -80,5 +88,7 @@ spec:
           requests:
             cpu: 50m
             memory: 128Mi
+        volumeMounts: []
+      volumes: []
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

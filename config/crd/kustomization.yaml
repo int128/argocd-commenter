@@ -11,10 +11,6 @@ patches:
 #- path: patches/webhook_in_applicationhealths.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
-# [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
-# patches here are for enabling the CA injection for each CRD
-# +kubebuilder:scaffold:crdkustomizecainjectionpatch
-
 # [WEBHOOK] To enable webhook, uncomment the following section
 # the following config is for teaching kustomize how to do kustomization for CRDs.
 #configurations:
