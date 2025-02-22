@@ -1,4 +1,4 @@
-# This rule is not used by the project kubebuilder-updates itself.
+# This rule is not used by the project argocd-commenter itself.
 # It is provided to allow the cluster admin to help manage permissions for users.
 #
 # Grants permissions to create, update, and delete resources within the webapp.int128.github.io.

@@ -15,4 +15,4 @@ spec:
     targetPort: 8443
   selector:
     control-plane: controller-manager
-    app.kubernetes.io/name: kubebuilder-updates
+    app.kubernetes.io/name: argocd-commenter
