@@ -7,6 +7,7 @@ on:
       - Dockerfile
       - go.*
       - api/**
+      - cmd/**
       - internal/**
       - e2e_test/**
       - '!**/*_test.go'
@@ -20,6 +21,7 @@ on:
       - .github/workflows/docker.yaml
       - Dockerfile
       - go.*
+      - cmd/**
       - api/**
       - internal/**
       - e2e_test/**
