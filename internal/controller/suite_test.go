@@ -78,19 +78,19 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crdPaths).NotTo(BeEmpty())
 
-	err = argocdv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = argocdcommenterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	// +kubebuilder:scaffold:scheme
-
 	By("bootstrapping test environment")
+	crdPaths = append(crdPaths, filepath.Join("..", "..", "config", "crd", "bases"))
 	testEnv := &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     crdPaths,
 		ErrorIfCRDPathMissing: true,
 	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	DeferCleanup(func() {
+		cancel()
+		By("Tearing down the test environment")
+		Expect(testEnv.Stop()).Should(Succeed())
+	})
 
 	// Retrieve the first found binary directory to allow running tests from IDEs
 	if getFirstFoundEnvTestBinaryDir() != "" {
@@ -102,12 +102,13 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	ctx, cancel := context.WithCancel(context.TODO())
-	DeferCleanup(func() {
-		cancel()
-		By("Tearing down the test environment")
-		Expect(testEnv.Stop()).Should(Succeed())
-	})
+	err = argocdv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = argocdcommenterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
