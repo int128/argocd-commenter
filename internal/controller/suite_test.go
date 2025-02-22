@@ -78,7 +78,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crdPaths).NotTo(BeEmpty())
 
-	By("bootstrapping test environment")
+	By("Bootstrapping test environment")
 	crdPaths = append(crdPaths, filepath.Join("..", "..", "config", "crd", "bases"))
 	testEnv := &envtest.Environment{
 		CRDDirectoryPaths:     crdPaths,
