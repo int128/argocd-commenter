@@ -1,6 +1,8 @@
 package argocd
 
 import (
+	"strings"
+
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +36,22 @@ func GetSourceRevisions(app argocdv1alpha1.Application) []SourceRevision {
 		}
 	}
 	return sourceRevisions
+}
+
+// GetApplicationExternalURL returns the external URL if presents.
+func GetApplicationExternalURL(app argocdv1alpha1.Application) string {
+	if len(app.Status.Summary.ExternalURLs) == 0 {
+		return ""
+	}
+	externalURL := app.Status.Summary.ExternalURLs[0]
+	parts := strings.SplitN(externalURL, "|", 2)
+	if len(parts) == 2 {
+		// Assign the second part to EnvironmentURL as url.
+		// https://argo-cd.readthedocs.io/en/stable/user-guide/external-url/
+		// This is hidden supported functionality: https://github.com/argoproj/argo-cd/blob/f0b03071fc00fd81433d2c16861c193992d5a093/common/common.go#L186
+		return parts[1]
+	}
+	return externalURL
 }
 
 // GetDeploymentURL returns the deployment URL in annotations

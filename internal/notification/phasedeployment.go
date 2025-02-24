@@ -44,21 +44,10 @@ func generateDeploymentStatusOnPhaseChanged(app argocdv1alpha1.Application, argo
 	ds := DeploymentStatus{
 		GitHubDeployment: *deployment,
 		GitHubDeploymentStatus: github.DeploymentStatus{
-			LogURL:      fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
-			Description: trimDescription(generateDeploymentStatusDescriptionOnPhaseChanged(app)),
+			LogURL:         fmt.Sprintf("%s/applications/%s", argocdURL, app.Name),
+			Description:    trimDescription(generateDeploymentStatusDescriptionOnPhaseChanged(app)),
+			EnvironmentURL: argocd.GetApplicationExternalURL(app),
 		},
-	}
-	if len(app.Status.Summary.ExternalURLs) > 0 {
-		// Split the first element of ExternalURLs by `|`
-		parts := strings.SplitN(app.Status.Summary.ExternalURLs[0], "|", 2)
-		if len(parts) == 2 {
-			// Assign the second part to EnvironmentURL as url
-			// https://argo-cd.readthedocs.io/en/stable/user-guide/external-url/
-			// this is hidden supported functionality https://github.com/argoproj/argo-cd/blob/f0b03071fc00fd81433d2c16861c193992d5a093/common/common.go#L186
-			ds.GitHubDeploymentStatus.EnvironmentURL = parts[1]
-		} else {
-			ds.GitHubDeploymentStatus.EnvironmentURL = app.Status.Summary.ExternalURLs[0]
-		}
 	}
 	switch phase {
 	case synccommon.OperationRunning:
