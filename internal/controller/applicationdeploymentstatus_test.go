@@ -127,7 +127,7 @@ var _ = Describe("Deployment status", func() {
 
 				// The controller depends on the deployment status to deduplicate the health status.
 				listDeploymentStatus.Response = []*github.DeploymentStatus{
-					{State: github.String("success")},
+					{State: github.Ptr("success")},
 				}
 
 				By("Updating the application to progressing")

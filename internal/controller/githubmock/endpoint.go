@@ -14,7 +14,7 @@ func ListPullRequestsWithCommit(number int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("content-type", "application/json")
 		w.WriteHeader(200)
-		Expect(json.NewEncoder(w).Encode([]*github.PullRequest{{Number: github.Int(number)}})).Should(Succeed())
+		Expect(json.NewEncoder(w).Encode([]*github.PullRequest{{Number: github.Ptr(number)}})).Should(Succeed())
 	}
 }
 
@@ -22,7 +22,7 @@ func ListPullRequestFiles() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("content-type", "application/json")
 		w.WriteHeader(200)
-		Expect(json.NewEncoder(w).Encode([]*github.CommitFile{{Filename: github.String("test/deployment.yaml")}})).Should(Succeed())
+		Expect(json.NewEncoder(w).Encode([]*github.CommitFile{{Filename: github.Ptr("test/deployment.yaml")}})).Should(Succeed())
 	}
 }
 
