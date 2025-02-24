@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v69/github"
 )
 
 type Deployment struct {
@@ -42,14 +42,14 @@ type DeploymentStatus struct {
 
 func (c *client) CreateDeploymentStatus(ctx context.Context, d Deployment, ds DeploymentStatus) error {
 	r := github.DeploymentStatusRequest{
-		State:       github.String(ds.State),
-		Description: github.String(ds.Description),
+		State:       github.Ptr(ds.State),
+		Description: github.Ptr(ds.Description),
 	}
 	if ds.LogURL != "" {
-		r.LogURL = github.String(ds.LogURL)
+		r.LogURL = github.Ptr(ds.LogURL)
 	}
 	if ds.EnvironmentURL != "" {
-		r.EnvironmentURL = github.String(ds.EnvironmentURL)
+		r.EnvironmentURL = github.Ptr(ds.EnvironmentURL)
 	}
 	_, _, err := c.rest.Repositories.CreateDeploymentStatus(ctx, d.Repository.Owner, d.Repository.Name, d.Id, &r)
 	if err != nil {

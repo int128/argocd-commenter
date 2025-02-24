@@ -7,7 +7,7 @@ import (
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v69/github"
 	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -127,7 +127,7 @@ var _ = Describe("Deployment status", func() {
 
 				// The controller depends on the deployment status to deduplicate the health status.
 				listDeploymentStatus.Response = []*github.DeploymentStatus{
-					{State: github.String("success")},
+					{State: github.Ptr("success")},
 				}
 
 				By("Updating the application to progressing")
