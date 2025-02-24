@@ -23,6 +23,8 @@ delete-cluster:
 	-rm $(KUBECONFIG)
 
 deploy-argocd: cluster
+	# To avoid the error "ensure CRDs are installed first"
+	-kustomize build argocd | kubectl apply -f -
 	kustomize build argocd | kubectl apply -f -
 	kustomize build applications | sed -e "s|FIXTURE_BRANCH|$(FIXTURE_BRANCH)|g" | kubectl apply -f -
 
