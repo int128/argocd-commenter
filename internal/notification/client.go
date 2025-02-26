@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/go-logr/logr"
@@ -51,10 +52,13 @@ func (c client) createComment(ctx context.Context, comment Comment, app argocdv1
 	relatedPulls := filterPullRequestsRelatedToEvent(pulls, comment.SourceRevision, app)
 	if len(relatedPulls) == 0 {
 		logger.Info("No pull request related to the revision")
-		if err := c.ghc.CreateCommitComment(ctx, comment.GitHubRepository, comment.SourceRevision.Revision, comment.Body); err != nil {
-			return fmt.Errorf("unable to create a comment on revision %s: %w", comment.SourceRevision.Revision, err)
+		// This may cause a secondary rate limit error of GitHub API.
+		if os.Getenv("FEATURE_CREATE_COMMIT_COMMENT") == "true" {
+			if err := c.ghc.CreateCommitComment(ctx, comment.GitHubRepository, comment.SourceRevision.Revision, comment.Body); err != nil {
+				return fmt.Errorf("unable to create a comment on revision %s: %w", comment.SourceRevision.Revision, err)
+			}
+			logger.Info("Created a comment to the commit")
 		}
-		logger.Info("Created a comment to the commit")
 		return nil
 	}
 
