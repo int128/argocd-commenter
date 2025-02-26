@@ -36,7 +36,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image-uri: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+      image-uri: ghcr.io/${{ github.repository }}:${{ github.ref_name }}@${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - id: go-version
@@ -69,6 +69,14 @@ jobs:
           platforms: |
             linux/amd64
             linux/arm64
+
+  release:
+    needs: build
+    uses: int128/kubebuilder-workflows/.github/workflows/release.yaml@e4ad31a438f188f70bde87827a8dbe466e623dea # v1.5.0
+    permissions:
+      contents: write
+    with:
+      controller-image: ${{ needs.build.outputs.image-uri }}
 
   e2e-test:
     runs-on: ubuntu-latest
