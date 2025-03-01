@@ -36,7 +36,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      image-uri: ghcr.io/${{ github.repository }}:${{ github.ref_name }}@${{ steps.build.outputs.digest }}
+      image-uri: ${{ steps.build-metadata.outputs.image-uri }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - id: go-version
@@ -69,6 +69,10 @@ jobs:
           platforms: |
             linux/amd64
             linux/arm64
+      - uses: int128/docker-build-metadata-action@ae6fdd3db4146513d4db274b2f84058a0401a0ce # v0.1.0
+        id: build-metadata
+        with:
+          metadata: ${{ steps.build.outputs.metadata }}
 
   release:
     needs: build
