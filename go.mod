@@ -3,8 +3,8 @@ module github.com/int128/argocd-commenter
 go 1.24.1
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.14.3
-	github.com/argoproj/gitops-engine v0.7.1-0.20250207220447-65db274b8d73
+	github.com/argoproj/argo-cd/v2 v2.14.4
+	github.com/argoproj/gitops-engine v0.7.1-0.20250304190342-43fce7ce19f1
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v69 v69.2.0
@@ -47,6 +47,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
