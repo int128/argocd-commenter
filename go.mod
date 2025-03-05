@@ -1,6 +1,6 @@
 module github.com/int128/argocd-commenter
 
-go 1.24.0
+go 1.24.1
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.14.3
