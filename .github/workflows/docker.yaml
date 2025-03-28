@@ -93,7 +93,7 @@ jobs:
           cache-dependency-path: go.sum
 
       # Set up the test environment
-      - uses: actions/create-github-app-token@af35edadc00be37caa72ed9f3e6d5f7801bfdf09 # v1.11.7
+      - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
         id: e2e-test-token
         with:
           app-id: ${{ secrets.E2E_SETUP_GITHUB_APP_ID }}
