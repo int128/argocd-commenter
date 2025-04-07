@@ -7,18 +7,27 @@
     "github>int128/go-renovate-config:github-actions#v1.7.2",
     "github>int128/go-renovate-config:kubebuilder#v1.7.2",
     "github>int128/go-renovate-config:kustomization-github-releases#v1.7.2",
-    "helpers:pinGitHubActionDigests",
+    "helpers:pinGitHubActionDigests"
   ],
   "packageRules": [
     {
       "description": "Ignore replaced Go packages in github.com/argoproj/argo-cd/v2",
       "matchPackageNames": [
-        "github.com/argoproj/gitops-engine",
+        "github.com/argoproj/gitops-engine"
       ],
       "matchPackagePrefixes": [
-        "k8s.io/",
+        "k8s.io/"
       ],
-      "enabled": false,
+      "enabled": false
     },
-  ],
+    {
+      "matchPackagePrefixes": [
+        "github.com/google/go-github/v"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": true
+    }
+  ]
 }
