@@ -129,15 +129,15 @@ jobs:
       - run: make -C e2e_test wait-for-apps
 
       # Run the test
-      - uses: int128/deployment-action@756f2543d85ed5fd599d4d19bbe02ff2ffda5ce8 # v1.45.0
+      - uses: int128/deployment-action@b1366df7f35a477f2c41fe1c588dbbf6b4a6bedd # v1.46.0
         id: deployment-app1
         with:
           environment-suffix: /app1
-      - uses: int128/deployment-action@756f2543d85ed5fd599d4d19bbe02ff2ffda5ce8 # v1.45.0
+      - uses: int128/deployment-action@b1366df7f35a477f2c41fe1c588dbbf6b4a6bedd # v1.46.0
         id: deployment-app2
         with:
           environment-suffix: /app2
-      - uses: int128/deployment-action@756f2543d85ed5fd599d4d19bbe02ff2ffda5ce8 # v1.45.0
+      - uses: int128/deployment-action@b1366df7f35a477f2c41fe1c588dbbf6b4a6bedd # v1.46.0
         id: deployment-app3
         with:
           environment-suffix: /app3
