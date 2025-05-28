@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/argoproj/argo-cd/v2 v2.14.3
 	github.com/argoproj/gitops-engine v0.7.1-0.20250207220447-65db274b8d73
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v72 v72.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
