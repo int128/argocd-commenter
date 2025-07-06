@@ -60,3 +60,5 @@ logs-argocd-application-controller:
 	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-application-controller --all-containers --tail=-1
 logs-argocd-applicationset-controller:
 	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-applicationset-controller --all-containers --tail=-1
+logs-argocd-repo-server:
+	-kubectl -n argocd logs -l app.kubernetes.io/name=argocd-repo-server --all-containers --tail=-1
