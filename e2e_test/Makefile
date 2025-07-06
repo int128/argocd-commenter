@@ -36,6 +36,7 @@ deploy-controller: cluster
 
 wait-for-apps:
 	kubectl -n argocd rollout status deployment -l app.kubernetes.io/part-of=argocd
+	# applicationset-controller must start up after repo-server
 	kubectl -n argocd rollout restart deployment -l app.kubernetes.io/name=argocd-applicationset-controller
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BRANCH)`" app1 app2 app3
 
