@@ -73,7 +73,7 @@ var _ = BeforeSuite(func() {
 	By("Finding the Argo CD Application CRD")
 	crdPaths, err := filepath.Glob(filepath.Join(
 		build.Default.GOPATH, "pkg", "mod",
-		"github.com", "argoproj", "argo-cd", "v2@*", "manifests", "crds", "application-crd.yaml",
+		"github.com", "argoproj", "argo-cd", "v3@*", "manifests", "crds", "application-crd.yaml",
 	))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crdPaths).NotTo(BeEmpty())
