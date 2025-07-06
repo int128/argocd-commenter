@@ -7,6 +7,7 @@
     "github>int128/go-renovate-config:github-actions#v1.7.2",
     "github>int128/go-renovate-config:kubebuilder#v1.7.2",
     "github>int128/go-renovate-config:kustomization-github-releases#v1.7.2",
+    "github>aquaproj/aqua-renovate-config#2.8.2",
     "helpers:pinGitHubActionDigests"
   ],
   "packageRules": [
