@@ -166,3 +166,5 @@ jobs:
         if: always()
       - run: make -C e2e_test logs-argocd-applicationset-controller
         if: always()
+      - run: make -C e2e_test logs-argocd-repo-server
+        if: always()
