@@ -35,6 +35,7 @@ deploy-controller: cluster
 	kubectl -n argocd-commenter-system rollout status deployment argocd-commenter-controller-manager
 
 wait-for-apps:
+	kubectl -n argocd rollout restart deployment -l app.kubernetes.io/name=argocd-applicationset-controller
 	kubectl -n argocd rollout status deployment -l app.kubernetes.io/part-of=argocd
 	go run ./waitforapp -revision "`git -C $(FIXTURE_DIR) rev-parse $(FIXTURE_BRANCH)`" app1 app2 app3
 
