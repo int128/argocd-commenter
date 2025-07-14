@@ -39,10 +39,18 @@ type ApplicationHealthStatus struct {
 
 // ApplicationHealth is the Schema for the applicationhealths API
 type ApplicationHealth struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
 
+	// metadata is a standard object metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+
+	// spec defines the desired state of ApplicationHealth
+	// +required
 	Spec   ApplicationHealthSpec   `json:"spec,omitempty"`
+
+	// status defines the observed state of ApplicationHealth
+	// +optional
 	Status ApplicationHealthStatus `json:"status,omitempty"`
 }
 
