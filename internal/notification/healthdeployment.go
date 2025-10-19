@@ -56,9 +56,6 @@ func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, arg
 func generateDeploymentStatusDescriptionOnHealthChanged(app argocdv1alpha1.Application) string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("%s:\n", app.Status.Health.Status))
-	if app.Status.Health.Message != "" {
-		b.WriteString(fmt.Sprintf("%s\n", app.Status.Health.Message))
-	}
 	for _, r := range app.Status.Resources {
 		if r.Health == nil {
 			continue
