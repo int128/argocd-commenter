@@ -1,4 +1,4 @@
-# argocd-commenter [![docker](https://github.com/int128/argocd-commenter/actions/workflows/docker.yaml/badge.svg)](https://github.com/int128/argocd-commenter/actions/workflows/docker.yaml)
+# argocd-commenter [![build](https://github.com/int128/argocd-commenter/actions/workflows/build.yaml/badge.svg)](https://github.com/int128/argocd-commenter/actions/workflows/build.yaml)
 
 This is a Kubernetes Controller to notify a change of Argo CD Application status.
 
@@ -93,7 +93,7 @@ When the Application status is changed, argocd-commenter will create a deploymen
 
 ![image](https://user-images.githubusercontent.com/321266/139166278-e74f6d1b-c722-430f-850c-2f7135e251d6.png)
 
-See the [e2e test](https://github.com/int128/argocd-commenter/blob/main/.github/workflows/docker.yaml) for details.
+See the [e2e test](https://github.com/int128/argocd-commenter/blob/main/.github/workflows/build.yaml) for details.
 
 ### Sequence diagram
 
