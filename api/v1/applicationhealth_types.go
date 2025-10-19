@@ -47,7 +47,7 @@ type ApplicationHealth struct {
 
 	// spec defines the desired state of ApplicationHealth
 	// +required
-	Spec   ApplicationHealthSpec   `json:"spec,omitempty"`
+	Spec ApplicationHealthSpec `json:"spec,omitempty"`
 
 	// status defines the observed state of ApplicationHealth
 	// +optional
