@@ -29,7 +29,7 @@ on:
       - '!**/*.md'
 
 jobs:
-  build:
+  container:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -74,8 +74,8 @@ jobs:
         with:
           metadata: ${{ steps.build.outputs.metadata }}
 
-  release:
-    needs: build
+  manifest:
+    needs: container
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -85,7 +85,7 @@ jobs:
       - run: kustomize edit set image controller="$controller_image"
         working-directory: config/manager
         env:
-          controller_image: ${{ needs.build.outputs.image-uri }}
+          controller_image: ${{ needs.container.outputs.image-uri }}
       - run: kustomize build config/default > "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
       - run: cat "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
       - if: github.ref_type == 'tag'
