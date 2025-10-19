@@ -1,9 +1,9 @@
-name: docker
+name: build
 
 on:
   pull_request:
     paths:
-      - .github/workflows/docker.yaml
+      - .github/workflows/build.yaml
       - Dockerfile
       - go.*
       - api/**
@@ -18,7 +18,7 @@ on:
     tags:
       - v*
     paths:
-      - .github/workflows/docker.yaml
+      - .github/workflows/build.yaml
       - Dockerfile
       - go.*
       - cmd/**
@@ -76,11 +76,22 @@ jobs:
 
   release:
     needs: build
-    uses: int128/kubebuilder-workflows/.github/workflows/release.yaml@e4ad31a438f188f70bde87827a8dbe466e623dea # v1.5.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
-    with:
-      controller-image: ${{ needs.build.outputs.image-uri }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: kustomize edit set image controller="$controller_image"
+        working-directory: config/manager
+        env:
+          controller_image: ${{ needs.build.outputs.image-uri }}
+      - run: kustomize build config/default > "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
+      - run: cat "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
+      - if: github.ref_type == 'tag'
+        run: gh release upload "$GITHUB_REF_NAME" "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   e2e-test:
     runs-on: ubuntu-latest

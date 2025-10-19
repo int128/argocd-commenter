@@ -8,12 +8,49 @@ on:
       - .github/workflows/manifest.yaml
 
 jobs:
-  manifest:
-    uses: int128/kubebuilder-workflows/.github/workflows/manifest.yaml@e6411bdb370db1900260cf86e13c20980c3eaa82 # v1
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
-    with:
-      kustomization: |
-        config/default/kustomization.yaml
-        e2e_test/**/kustomization.yaml
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.head_ref }}
+          path: head
+      - uses: int128/kustomize-action@b5d955eaf39fd3e02589771d3e695e7550d7f756 # v1.157.0
+        id: kustomize-head
+        with:
+          base-directory: head
+          write-individual-files: true
+          kustomization: |
+            config/default/kustomization.yaml
+            e2e_test/**/kustomization.yaml
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.base_ref }}
+          path: base
+      - uses: int128/kustomize-action@b5d955eaf39fd3e02589771d3e695e7550d7f756 # v1.157.0
+        id: kustomize-base
+        with:
+          base-directory: base
+          write-individual-files: true
+          ignore-kustomize-error: true
+          kustomization: |
+            config/default/kustomization.yaml
+            e2e_test/**/kustomization.yaml
+
+      - uses: int128/diff-action@db6cce01542cb26e181798736eea1e71f5d36706 # v1.51.0
+        id: diff
+        with:
+          base: ${{ steps.kustomize-base.outputs.directory }}
+          head: ${{ steps.kustomize-head.outputs.directory }}
+          comment: false
+      - uses: int128/comment-action@a20dbdebd79ab886a1e7a20d16bfa7dbaa732e5a # v1.33.0
+        with:
+          update-if-exists: replace
+          post: |
+            ## kustomize diff
+            ${{ steps.diff.outputs.comment-body }}
