@@ -94,13 +94,13 @@ var _ = Describe("Comment", func() {
 		Context("When the application is healthy", func() {
 			It("Should create comments", func(ctx context.Context) {
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to healthy")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
@@ -109,26 +109,26 @@ var _ = Describe("Comment", func() {
 
 			It("Should create healthy comment once", func(ctx context.Context) {
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to healthy")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 				Eventually(func() int { return createComment.Count() }).Should(Equal(3))
 
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to healthy")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
@@ -139,13 +139,13 @@ var _ = Describe("Comment", func() {
 		Context("When the application is degraded", func() {
 			It("Should create comments", func(ctx context.Context) {
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to degraded")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusDegraded,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
@@ -217,7 +217,7 @@ var _ = Describe("Comment", func() {
 						},
 					},
 				},
-				Health: argocdv1alpha1.HealthStatus{
+				Health: argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				},
 			}

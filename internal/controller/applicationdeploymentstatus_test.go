@@ -98,13 +98,13 @@ var _ = Describe("Deployment status", func() {
 		Context("When the application is healthy", func() {
 			It("Should create deployment statuses", func(ctx context.Context) {
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to healthy")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
@@ -113,13 +113,13 @@ var _ = Describe("Deployment status", func() {
 
 			It("Should not create any deployment status after healthy", func(ctx context.Context) {
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to healthy")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
@@ -131,13 +131,13 @@ var _ = Describe("Deployment status", func() {
 				}
 
 				By("Updating the application to progressing")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusProgressing,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
 
 				By("Updating the application to healthy")
-				app.Status.Health = argocdv1alpha1.HealthStatus{
+				app.Status.Health = argocdv1alpha1.AppHealthStatus{
 					Status: health.HealthStatusHealthy,
 				}
 				Expect(k8sClient.Update(ctx, &app)).Should(Succeed())
