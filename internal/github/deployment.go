@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/google/go-github/v73/github"
+	"github.com/google/go-github/v75/github"
 )
 
 type Deployment struct {

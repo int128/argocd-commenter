@@ -38,19 +38,19 @@ jobs:
     outputs:
       image-uri: ${{ steps.build-metadata.outputs.image-uri }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - id: go-version
         run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
-      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      - uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+      - uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-      - uses: int128/docker-build-cache-config-action@338206c80bf9eeb2b9694b7b4fc8c247c317e2a8 # v1.38.0
+      - uses: int128/docker-build-cache-config-action@b3744816a5ba1ad9885b634d530b35ca90ece622 # v1.39.0
         id: cache
         with:
           image: ghcr.io/${{ github.repository }}/cache
@@ -86,24 +86,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: aquaproj/aqua-installer@d1fe50798dbadd4eb5b98957290ca175f6b4870f # v4.0.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: aquaproj/aqua-installer@ea518c135a02fc11ff8024364510c181a5c6b342 # v4.0.3
         with:
-          aqua_version: v2.53.3
+          aqua_version: v2.55.0
           working_directory: e2e_test
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
       # Set up the test environment
-      - uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+      - uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
         id: e2e-test-token
         with:
           app-id: ${{ secrets.E2E_SETUP_GITHUB_APP_ID }}
           private-key: ${{ secrets.E2E_SETUP_GITHUB_APP_PRIVATE_KEY }}
           repositories: argocd-commenter-e2e-test
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           token: ${{ steps.e2e-test-token.outputs.token }}
           repository: int128/argocd-commenter-e2e-test
@@ -113,7 +113,7 @@ jobs:
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
-      - uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+      - uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
@@ -133,15 +133,15 @@ jobs:
       - run: make -C e2e_test wait-for-apps
 
       # Run the test
-      - uses: int128/deployment-action@2a79f0e37aee532b98292dc9cbf3dbc63ce01569 # v1.47.0
+      - uses: int128/deployment-action@1a6e6edcd54dfae277252383ee75efaf515a15fd # v1.48.0
         id: deployment-app1
         with:
           environment-suffix: /app1
-      - uses: int128/deployment-action@2a79f0e37aee532b98292dc9cbf3dbc63ce01569 # v1.47.0
+      - uses: int128/deployment-action@1a6e6edcd54dfae277252383ee75efaf515a15fd # v1.48.0
         id: deployment-app2
         with:
           environment-suffix: /app2
-      - uses: int128/deployment-action@2a79f0e37aee532b98292dc9cbf3dbc63ce01569 # v1.47.0
+      - uses: int128/deployment-action@1a6e6edcd54dfae277252383ee75efaf515a15fd # v1.48.0
         id: deployment-app3
         with:
           environment-suffix: /app3
