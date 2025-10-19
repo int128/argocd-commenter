@@ -71,7 +71,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	var appHealth argocdcommenterv1.ApplicationHealth
-	if err := r.Client.Get(ctx, req.NamespacedName, &appHealth); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, &appHealth); err != nil {
 		if !apierrors.IsNotFound(err) {
 			logger.Error(err, "unable to get the ApplicationHealth")
 			return ctrl.Result{}, err
@@ -84,7 +84,7 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 			logger.Error(err, "unable to set the controller reference to the ApplicationHealth")
 			return ctrl.Result{}, err
 		}
-		if err := r.Client.Create(ctx, &appHealth); err != nil {
+		if err := r.Create(ctx, &appHealth); err != nil {
 			logger.Error(err, "unable to create an ApplicationHealth")
 			return ctrl.Result{}, err
 		}

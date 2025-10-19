@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
 )
 
 type Server struct {
