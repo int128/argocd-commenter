@@ -37,15 +37,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: ApplicationHealthSpec defines the desired state of ApplicationHealth
+            description: spec defines the desired state of ApplicationHealth
             type: object
           status:
-            description: ApplicationHealthStatus defines the observed state of ApplicationHealth
+            description: status defines the observed state of ApplicationHealth
             properties:
               lastHealthyRevision:
                 description: Last revision when the application is healthy.
                 type: string
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true
