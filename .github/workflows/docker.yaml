@@ -113,11 +113,14 @@ jobs:
       - run: make -C e2e_test cluster
       - run: make -C e2e_test deploy-argocd
 
+      # Download the modules during cluster setup.
+      - run: go mod download
+
       - uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
         id: metadata
         with:
           images: ghcr.io/${{ github.repository }}
-          # set outputs.tags to single tag
+          # Retrieve single tag
           flavor: latest=false
       - uses: int128/wait-for-docker-image-action@4975bd239c55b16ec86bbcca9cab53ac056f8e07 # v1.8.0
         with:
