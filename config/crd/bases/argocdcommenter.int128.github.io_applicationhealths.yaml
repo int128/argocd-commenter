@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: applicationhealths.argocdcommenter.int128.github.io
 spec:
   group: argocdcommenter.int128.github.io
@@ -37,15 +37,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: ApplicationHealthSpec defines the desired state of ApplicationHealth
+            description: spec defines the desired state of ApplicationHealth
             type: object
           status:
-            description: ApplicationHealthStatus defines the observed state of ApplicationHealth
+            description: status defines the observed state of ApplicationHealth
             properties:
               lastHealthyRevision:
                 description: Last revision when the application is healthy.
                 type: string
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true
