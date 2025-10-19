@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/int128/argocd-commenter/internal/controller/githubmock"
 	"github.com/int128/argocd-commenter/internal/github"
 	"github.com/int128/argocd-commenter/internal/notification"
@@ -73,7 +73,7 @@ var _ = BeforeSuite(func() {
 	By("Finding the Argo CD Application CRD")
 	crdPaths, err := filepath.Glob(filepath.Join(
 		build.Default.GOPATH, "pkg", "mod",
-		"github.com", "argoproj", "argo-cd", "v2@*", "manifests", "crds", "application-crd.yaml",
+		"github.com", "argoproj", "argo-cd", "v3@*", "manifests", "crds", "application-crd.yaml",
 	))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crdPaths).NotTo(BeEmpty())
