@@ -9,11 +9,11 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v75 v75.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
-	github.com/int128/oauth2-github-app v1.2.0
+	github.com/int128/oauth2-github-app v1.2.1
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	go.uber.org/zap v1.27.0
-	golang.org/x/oauth2 v0.31.0
+	golang.org/x/oauth2 v0.32.0
 	k8s.io/api v0.33.1
 	k8s.io/apimachinery v0.33.1
 	k8s.io/client-go v0.33.1
