@@ -3,7 +3,6 @@
   "extends": [
     "github>int128/renovate-base",
     "github>int128/go-renovate-config#v1.7.2",
-    "github>int128/go-renovate-config:go-directive#v1.7.2",
     "github>int128/go-renovate-config:github-actions#v1.7.2",
     "github>int128/go-renovate-config:kubebuilder#v1.7.2",
     "github>int128/go-renovate-config:kustomization-github-releases#v1.7.2",
@@ -29,6 +28,16 @@
         "major"
       ],
       "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Update go.mod with Dockerfile",
+      "customType": "regex",
+      "managerFilePatterns": ["go.mod"],
+      "matchStrings": ["go\\s+(?<currentValue>[\\d\\.]+)"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "golang"
     }
   ]
 }
