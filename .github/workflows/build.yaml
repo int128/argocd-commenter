@@ -38,9 +38,6 @@ jobs:
     outputs:
       image-uri: ${{ steps.build-metadata.outputs.image-uri }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - id: go-version
-        run: echo "go-version=$(sed -ne '/^go /s/^go //p' go.mod)" >> "$GITHUB_OUTPUT"
       - uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
@@ -64,8 +61,6 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
-          build-args: |
-            go_version=${{ steps.go-version.outputs.go-version }}
           platforms: |
             linux/amd64
             linux/arm64
