@@ -9,7 +9,7 @@
 #   - all
 registries:
 - type: standard
-  ref: v4.429.0 # renovate: depName=aquaproj/aqua-registry
+  ref: v4.430.0 # renovate: depName=aquaproj/aqua-registry
 packages:
 - name: kubernetes/kubernetes/kubectl@v1.34.1
 - name: kubernetes-sigs/kustomize@kustomize/v5.7.1
