@@ -44,4 +44,4 @@ jobs:
       - run: bash hack/fix_go_mod_replace.sh
       - run: make fmt
       - run: make generate manifests
-      - uses: int128/update-generated-files-action@9f29a0254cdbb49f0682e439d44c1cf7f05db7bf # v2.63.0
+      - uses: int128/update-generated-files-action@57b7ce80d0aca361f4dc61f09717043daa7d0956 # v2.65.0
