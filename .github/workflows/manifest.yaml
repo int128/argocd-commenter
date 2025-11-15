@@ -48,7 +48,7 @@ jobs:
           base: ${{ steps.kustomize-base.outputs.directory }}
           head: ${{ steps.kustomize-head.outputs.directory }}
           comment: false
-      - uses: int128/comment-action@043d58e8bdcc47c1bae55c5553669749578ba982 # v1.43.0
+      - uses: int128/comment-action@095eeace5d220236baf4e08cd26d1d6ca65db87a # v1.45.0
         with:
           update-if-exists: replace
           post: |
