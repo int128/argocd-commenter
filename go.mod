@@ -7,7 +7,7 @@ require (
 	github.com/argoproj/gitops-engine v0.7.1-0.20250905160054-e48120133eec
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-github/v76 v76.0.0
+	github.com/google/go-github/v78 v78.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/int128/oauth2-github-app v1.2.1
 	github.com/onsi/ginkgo/v2 v2.27.2
