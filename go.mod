@@ -12,7 +12,7 @@ require (
 	github.com/int128/oauth2-github-app v1.2.1
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.33.0
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
