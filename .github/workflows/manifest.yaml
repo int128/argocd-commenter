@@ -42,15 +42,14 @@ jobs:
             config/default/kustomization.yaml
             e2e_test/**/kustomization.yaml
 
-      - uses: int128/diff-action@4829f22189ff4c107f497424c0eb2778f6a167c3 # v1.59.0
+      - uses: int128/diff-action@28f0c57bbc27ba95290bece7e83087f1d5494b73 # v2.0.0
         id: diff
         with:
           base: ${{ steps.kustomize-base.outputs.directory }}
           head: ${{ steps.kustomize-head.outputs.directory }}
-          comment: false
       - uses: int128/comment-action@2e7e2d8e385ee24454ea30ef135d5c5867011410 # v1.46.0
         with:
           update-if-exists: replace
           post: |
-            ## kustomize diff
-            ${{ steps.diff.outputs.comment-body }}
+            ## ${{ github.workflow }} / ${{ github.job }}
+            ${{ steps.diff.outputs.comment-body || 'No diff' }}
