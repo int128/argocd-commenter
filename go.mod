@@ -11,7 +11,7 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/int128/oauth2-github-app v1.2.1
 	github.com/onsi/ginkgo/v2 v2.27.3
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.38.3
 	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.34.0
 	k8s.io/api v0.34.1
