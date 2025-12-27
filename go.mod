@@ -3,8 +3,8 @@ module github.com/int128/argocd-commenter
 go 1.25.5
 
 require (
-	github.com/argoproj/argo-cd/v3 v3.2.1
-	github.com/argoproj/gitops-engine v0.7.1-0.20251108235403-13d5172d3ee2
+	github.com/argoproj/argo-cd/v3 v3.2.2
+	github.com/argoproj/gitops-engine v0.7.1-0.20251217140045-5baed5604d2d
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v80 v80.0.0
@@ -174,7 +174,7 @@ require (
 	k8s.io/kube-aggregator v0.34.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
 	k8s.io/kubectl v0.34.0 // indirect
-	k8s.io/kubernetes v1.34.0 // indirect
+	k8s.io/kubernetes v1.34.2 // indirect
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
