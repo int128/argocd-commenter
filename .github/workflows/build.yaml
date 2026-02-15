@@ -64,10 +64,11 @@ jobs:
           platforms: |
             linux/amd64
             linux/arm64
-      - uses: int128/docker-build-metadata-action@d61321835e5c186001003fb9cfc71aede8302e80 # v1.3.0
+      - uses: int128/docker-build-metadata-action@84d7e640b499144c1ea8f428a9cdf83b5fc7bb35 # v2.0.0
         id: build-metadata
         with:
-          metadata: ${{ steps.build.outputs.metadata }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          digest: ${{ steps.build.outputs.digest }}
 
   manifest:
     needs: container
