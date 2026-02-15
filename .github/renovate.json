@@ -14,21 +14,19 @@
     {
       "description": "Ignore replaced Go packages in github.com/argoproj/argo-cd/v2",
       "matchPackageNames": [
-        "github.com/argoproj/gitops-engine"
-      ],
-      "matchPackagePrefixes": [
-        "k8s.io/"
+        "github.com/argoproj/gitops-engine",
+        "k8s.io/**"
       ],
       "enabled": false
     },
     {
-      "matchPackagePrefixes": [
-        "github.com/google/go-github/v"
-      ],
       "matchUpdateTypes": [
         "major"
       ],
-      "automerge": true
+      "automerge": true,
+      "matchPackageNames": [
+        "github.com/google/go-github/v*"
+      ]
     }
   ],
   "platformAutomerge": true
