@@ -67,7 +67,8 @@ jobs:
       - uses: int128/docker-build-metadata-action@84d7e640b499144c1ea8f428a9cdf83b5fc7bb35 # v2.0.0
         id: build-metadata
         with:
-          metadata: ${{ steps.build.outputs.metadata }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          digest: ${{ steps.build.outputs.digest }}
 
   manifest:
     needs: container
