@@ -55,7 +55,7 @@ func generateDeploymentStatusOnHealthChanged(app argocdv1alpha1.Application, arg
 
 func generateDeploymentStatusDescriptionOnHealthChanged(app argocdv1alpha1.Application) string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("%s:\n", app.Status.Health.Status))
+	fmt.Fprintf(&b, "%s:\n", app.Status.Health.Status)
 	for _, r := range app.Status.Resources {
 		if r.Health == nil {
 			continue
@@ -63,7 +63,7 @@ func generateDeploymentStatusDescriptionOnHealthChanged(app argocdv1alpha1.Appli
 		namespacedName := r.Namespace + "/" + r.Name
 		switch r.Health.Status {
 		case health.HealthStatusDegraded, health.HealthStatusMissing:
-			b.WriteString(fmt.Sprintf("%s: %s: %s\n", namespacedName, r.Health.Status, r.Health.Message))
+			fmt.Fprintf(&b, "%s: %s: %s\n", namespacedName, r.Health.Status, r.Health.Message)
 		}
 	}
 	return b.String()
