@@ -77,12 +77,12 @@ func generateDeploymentStatusDescriptionOnPhaseChanged(app argocdv1alpha1.Applic
 	}
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("%s:\n", phase))
+	fmt.Fprintf(&b, "%s:\n", phase)
 	for _, r := range syncResult.Resources {
 		namespacedName := r.Namespace + "/" + r.Name
 		switch r.Status {
 		case synccommon.ResultCodeSyncFailed:
-			b.WriteString(fmt.Sprintf("%s: %s\n", namespacedName, r.Message))
+			fmt.Fprintf(&b, "%s: %s\n", namespacedName, r.Message)
 		}
 	}
 	return b.String()
