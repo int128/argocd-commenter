@@ -22,7 +22,11 @@ var SyncOperationPhasesForComment = []synccommon.OperationPhase{
 func (c client) CreateCommentsOnPhaseChanged(ctx context.Context, app argocdv1alpha1.Application, argocdURL string) error {
 	var errs []error
 	sourceRevisions := argocd.GetSourceRevisions(app)
+	repoFilter := argocd.NewRepoURLFilter(app)
 	for _, sourceRevision := range sourceRevisions {
+		if !repoFilter.Allows(sourceRevision.Source.RepoURL) {
+			continue
+		}
 		comment := generateCommentOnPhaseChanged(app, argocdURL, sourceRevision)
 		if comment == nil {
 			continue
