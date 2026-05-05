@@ -79,7 +79,7 @@ func generateCommentResourcesOnHealthChanged(app argocdv1alpha1.Application) str
 		namespacedName := r.Namespace + "/" + r.Name
 		switch r.Health.Status {
 		case health.HealthStatusDegraded, health.HealthStatusMissing:
-			b.WriteString(fmt.Sprintf("- %s `%s`: %s\n", r.Health.Status, namespacedName, r.Health.Message))
+			fmt.Fprintf(&b, "- %s `%s`: %s\n", r.Health.Status, namespacedName, r.Health.Message)
 		}
 	}
 	return b.String()

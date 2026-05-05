@@ -88,7 +88,7 @@ func generateCommentResourcesOnPhaseChanged(syncResult *argocdv1alpha1.SyncOpera
 		namespacedName := r.Namespace + "/" + r.Name
 		switch r.Status {
 		case synccommon.ResultCodeSyncFailed, synccommon.ResultCodePruneSkipped:
-			b.WriteString(fmt.Sprintf("- %s `%s`: %s\n", r.Status, namespacedName, r.Message))
+			fmt.Fprintf(&b, "- %s `%s`: %s\n", r.Status, namespacedName, r.Message)
 		}
 	}
 	return b.String()
