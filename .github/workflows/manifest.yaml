@@ -42,7 +42,7 @@ jobs:
             config/default/kustomization.yaml
             e2e_test/**/kustomization.yaml
 
-      - uses: int128/diff-action@b0bc0ea799d424de77a5836a9d2417a99e897f8b # v2.24.0
+      - uses: int128/diff-action@d0e5d6ca168ff2ce0b979296c34c58c329b1488f # v2.26.0
         id: diff
         with:
           base: ${{ steps.kustomize-base.outputs.directory }}
