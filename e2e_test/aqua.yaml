@@ -13,4 +13,4 @@ registries:
 packages:
 - name: kubernetes/kubernetes/kubectl@v1.36.1
 - name: kubernetes-sigs/kustomize@kustomize/v5.8.1
-- name: kubernetes-sigs/kind@v0.31.0
+- name: kubernetes-sigs/kind@v0.32.0
