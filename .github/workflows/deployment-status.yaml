@@ -6,6 +6,9 @@ on:
 jobs:
   notify:
     name: notify / ${{ github.event.deployment.environment }} / ${{ github.event.deployment_status.state }}
+    if: |
+      github.event.deployment_status.state == 'success' ||
+      github.event.deployment_status.state == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -13,3 +16,11 @@ jobs:
         with:
           script: |
             core.info(JSON.stringify(context, undefined, 2))
+      - uses: int128/aggregate-deployments-action@v0
+        id: deployments
+      - if: steps.deployments.outputs.completed
+        uses: int128/comment-action@v1
+        with:
+          post: |
+            ## Deployed applications
+            ${{ steps.deployments.outputs.summary }}
