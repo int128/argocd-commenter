@@ -14,4 +14,4 @@ on:
 
 jobs:
   validate:
-    uses: int128/renovate-config-validator-workflow/.github/workflows/validate.yaml@a6ecad4d09dc40293c0e22c9d1946e313f53814f # main
+    uses: int128/renovate-config-validator-workflow/.github/workflows/validate.yaml@b2871a347d3d8664c0beeb69e4e65100db242d25 # main
