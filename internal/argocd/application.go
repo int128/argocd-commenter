@@ -1,12 +1,61 @@
 package argocd
 
 import (
+	"slices"
 	"strings"
 
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const (
+	AnnotationIncludeRepoURLs = "argocd-commenter.int128.github.io/include-repo-urls"
+	AnnotationExcludeRepoURLs = "argocd-commenter.int128.github.io/exclude-repo-urls"
+)
+
+type RepoURLFilter struct {
+	includeURLs []string
+	excludeURLs []string
+}
+
+// NewRepoURLFilter creates a filter from Application annotations.
+// If include-repo-urls is set, exclude-repo-urls is ignored.
+func NewRepoURLFilter(app argocdv1alpha1.Application) RepoURLFilter {
+	if app.Annotations == nil {
+		return RepoURLFilter{}
+	}
+	if include, ok := app.Annotations[AnnotationIncludeRepoURLs]; ok && include != "" {
+		return RepoURLFilter{includeURLs: parseRepoURLList(include)}
+	}
+	if exclude, ok := app.Annotations[AnnotationExcludeRepoURLs]; ok && exclude != "" {
+		return RepoURLFilter{excludeURLs: parseRepoURLList(exclude)}
+	}
+	return RepoURLFilter{}
+}
+
+func (f RepoURLFilter) Allows(repoURL string) bool {
+	normalized := strings.TrimSuffix(repoURL, ".git")
+	if f.includeURLs != nil {
+		return slices.Contains(f.includeURLs, normalized)
+	}
+	if f.excludeURLs != nil {
+		return !slices.Contains(f.excludeURLs, normalized)
+	}
+	return true
+}
+
+func parseRepoURLList(s string) []string {
+	parts := strings.Split(s, ";")
+	urls := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			urls = append(urls, strings.TrimSuffix(p, ".git"))
+		}
+	}
+	return urls
+}
 
 type SourceRevision struct {
 	Source   argocdv1alpha1.ApplicationSource
