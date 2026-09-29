@@ -61,6 +61,29 @@ metadata:
     argocd-commenter.int128.github.io/deployment-url: https://api.github.com/repos/OWNER/REPO/deployments/ID
 ```
 
+## Source repository filtering
+
+When an Application uses multi-source, you can control which source repositories receive PR and commit comments using these annotations:
+
+| Annotation | Description |
+|---|---|
+| `argocd-commenter.int128.github.io/include-repo-urls` | Semicolon-separated list of source repo URLs. If set, only these repos receive PR comments. Takes priority over exclude. |
+| `argocd-commenter.int128.github.io/exclude-repo-urls` | Semicolon-separated list of source repo URLs to exclude from PR comments. Ignored if include is set. |
+
+URLs are compared as exact strings after trimming any trailing `.git` suffix from both sides.
+
+This is useful when a `ref:`-only source (e.g., for shared Helm values) has no `path`, causing the commenter to match every file in every PR of that repository.
+
+Example — exclude a shared values repo:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    argocd-commenter.int128.github.io/exclude-repo-urls: "https://github.com/owner/helm-values"
+```
+
 Here is an example of workflow to deploy a preview environment:
 
 ```yaml
