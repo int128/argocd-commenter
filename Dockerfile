@@ -1,5 +1,7 @@
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM golang:1.27.1@sha256:3680233e3204827fbdc66088528ae6d4b3d034f51d03a99d454f6de034888244 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -9,13 +11,8 @@ COPY go.sum go.sum
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
-# Copy the go source
-COPY cmd/main.go cmd/main.go
-COPY api/ api/
-COPY internal/ internal/
-
-ARG TARGETOS
-ARG TARGETARCH
+# Copy the Go source (relies on .dockerignore to filter)
+COPY . .
 
 # Build
 # the GOARCH has no default value to allow the binary to be built according to the host where the command
