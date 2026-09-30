@@ -29,3 +29,6 @@ go.work
 # e2e test
 /e2e_test/output/
 /e2e_test/argocd-commenter-e2e-test-repository/
+
+# Kubeconfig might contain secrets
+*.kubeconfig
