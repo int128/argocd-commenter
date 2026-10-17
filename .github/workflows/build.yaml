@@ -162,19 +162,19 @@ jobs:
       - run: make -C e2e_test deploy-app1
         env:
           DEPLOYMENT_URL: ${{ steps.deployment-app1.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.e2e-setup-token.outputs.token }}
 
       - run: make -C e2e_test restart-app1
 
       - run: make -C e2e_test deploy-app2
         env:
           DEPLOYMENT_URL: ${{ steps.deployment-app2.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.e2e-setup-token.outputs.token }}
 
       - run: make -C e2e_test deploy-app3
         env:
           DEPLOYMENT_URL: ${{ steps.deployment-app3.outputs.url }}
-          GITHUB_TOKEN: ${{ steps.e2e-test-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.e2e-setup-token.outputs.token }}
 
       # Show logs
       - run: make -C e2e_test logs-controller
