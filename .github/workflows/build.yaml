@@ -140,9 +140,9 @@ jobs:
       - run: make -C e2e_test deploy-controller
         env:
           CONTROLLER_IMAGE: ${{ steps.metadata.outputs.tags }}
-          GITHUB_APP_ID: ${{ secrets.E2E_APP_CLIENT_ID }}
-          GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_APP_INSTALLATION_ID }}
-          GITHUB_APP_PRIVATE_KEY: ${{ secrets.E2E_APP_PRIVATE_KEY }}
+          GITHUB_APP_ID: ${{ secrets.E2E_CONTROLLER_APP_CLIENT_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ secrets.E2E_CONTROLLER_APP_INSTALLATION_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.E2E_CONTROLLER_APP_PRIVATE_KEY }}
 
       - run: make -C e2e_test wait-for-apps
 
