@@ -10,7 +10,7 @@ import (
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -21,7 +21,7 @@ import (
 type ApplicationDeletionDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Notification notification.Client
 }
 
@@ -50,10 +50,14 @@ func (r *ApplicationDeletionDeploymentReconciler) Reconcile(ctx context.Context,
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnDeletion(ctx, app, argocdURL); err != nil {
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"CreateDeploymentStatusError",
+			"CreateGitHubDeploymentStatus",
 			"unable to create a deployment status on deletion: %s", err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"CreatedDeploymentStatus",
+			"CreateGitHubDeploymentStatus",
 			"created a deployment status on deletion")
 	}
 	return ctrl.Result{}, nil
@@ -71,7 +75,7 @@ func isApplicationDeleting(app argocdv1alpha1.Application) bool {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationDeletionDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-deletion-deployment")
+	r.Recorder = mgr.GetEventRecorder("application-deletion-deployment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationDeletionDeployment").
 		For(&argocdv1alpha1.Application{}).

@@ -10,7 +10,7 @@ import (
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -21,7 +21,7 @@ import (
 type ApplicationPhaseCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Notification notification.Client
 }
 
@@ -50,10 +50,14 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 	}
 
 	if err := r.Notification.CreateCommentsOnPhaseChanged(ctx, app, argocdURL); err != nil {
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"CreateCommentError",
+			"CreateGitHubComment",
 			"unable to create a comment on sync operation phase %s: %s", phase, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"CreatedComment",
+			"CreateGitHubComment",
 			"created a comment on sync operation phase %s", phase)
 	}
 	return ctrl.Result{}, nil
@@ -61,7 +65,7 @@ func (r *ApplicationPhaseCommentReconciler) Reconcile(ctx context.Context, req c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-phase-comment")
+	r.Recorder = mgr.GetEventRecorder("application-phase-comment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseComment").
 		For(&argocdv1alpha1.Application{}).

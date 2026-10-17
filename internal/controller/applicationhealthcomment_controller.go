@@ -16,7 +16,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -33,7 +33,7 @@ var (
 type ApplicationHealthCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Notification notification.Client
 }
 
@@ -110,10 +110,14 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"CreateCommentError",
+			"CreateGitHubComment",
 			"unable to create a comment on health status %s: %s", app.Status.Health.Status, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"CreatedComment",
+			"CreateGitHubComment",
 			"created a comment on health status %s", app.Status.Health.Status)
 	}
 
@@ -126,14 +130,16 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		logger.Error(err, "unable to patch lastHealthyRevision")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdatedLastHealthyRevision",
+	r.Recorder.Eventf(&appHealth, nil, corev1.EventTypeNormal,
+		"UpdatedLastHealthyRevision",
+		"UpdateLastHealthyRevision",
 		"patched lastHealthyRevision to %s", currentRevision)
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-health-comment")
+	r.Recorder = mgr.GetEventRecorder("application-health-comment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthComment").
 		For(&argocdv1alpha1.Application{}).

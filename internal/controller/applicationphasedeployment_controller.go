@@ -11,7 +11,7 @@ import (
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -22,7 +22,7 @@ import (
 type ApplicationPhaseDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Notification notification.Client
 }
 
@@ -55,16 +55,22 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 		// https://github.com/int128/argocd-commenter/issues/762
 		lastOperationAt := argocd.GetLastOperationAt(app).Time
 		if time.Since(lastOperationAt) < requeueTimeoutWhenDeploymentNotFound {
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+			r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+				"DeploymentNotFound",
+				"CheckIfGitHubDeploymentIsAlreadyHealthy",
 				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
 			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
 		}
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"DeploymentNotFoundRetryTimeout",
+			"CheckIfGitHubDeploymentIsAlreadyHealthy",
 			"deployment %s not found but retry timed out", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 	if deploymentIsAlreadyHealthy {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentAlreadyHealthy",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"DeploymentAlreadyHealthy",
+			"CheckIfGitHubDeploymentIsAlreadyHealthy",
 			"skip on sync operation phase %s because deployment %s is already healthy", phase, deploymentURL)
 		return ctrl.Result{}, nil
 	}
@@ -75,10 +81,14 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnPhaseChanged(ctx, app, argocdURL); err != nil {
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"CreateDeploymentStatusError",
+			"CreateGitHubDeploymentStatus",
 			"unable to create a deployment status on sync operation phase %s: %s", phase, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"CreatedDeploymentStatus",
+			"CreateGitHubDeploymentStatus",
 			"created a deployment status on sync operation phase %s", phase)
 	}
 	return ctrl.Result{}, nil
@@ -86,7 +96,7 @@ func (r *ApplicationPhaseDeploymentReconciler) Reconcile(ctx context.Context, re
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationPhaseDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-phase-deployment")
+	r.Recorder = mgr.GetEventRecorder("application-phase-deployment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationPhaseDeployment").
 		For(&argocdv1alpha1.Application{}).
