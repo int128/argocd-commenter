@@ -116,7 +116,6 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           token: ${{ steps.e2e-setup-token.outputs.token }}
-          persist-credentials: false
           repository: int128/argocd-commenter-e2e-test
           path: e2e_test/argocd-commenter-e2e-test-repository
       - run: make -C e2e_test setup-fixture-branch
