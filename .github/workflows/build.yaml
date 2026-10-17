@@ -84,9 +84,14 @@ jobs:
           controller_image: ${{ needs.container.outputs.image-uri }}
       - run: kustomize build config/default > "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
       - run: cat "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
-      - if: github.ref_type == 'tag'
-        run: gh release upload "$GITHUB_REF_NAME" "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml" --clobber
+      - id: create-draft-release
+        uses: int128/create-draft-release-action@0cdd1b9d8001d6b3e137a4c01f5d621b699c3b24 # v0.8.0
+        with:
+          dry-run: ${{ github.event_name == 'pull_request' }}
+      - if: steps.create-draft-release.outputs.release-name
+        run: gh release upload "$RELEASE_NAME" "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
         env:
+          RELEASE_NAME: ${{ steps.create-draft-release.outputs.release-name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   e2e-test:
