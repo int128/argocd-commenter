@@ -19,7 +19,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           path: head
-      - uses: int128/kustomize-action@1cc093a17cff63e6215866362414fde7cc9c7e8f # v1.186.0
+      - uses: int128/kustomize-action@4fbeca93d7072507f0c6d4529025d17a5d209551 # v1.195.0
         id: kustomize-head
         with:
           base-directory: head
@@ -32,7 +32,7 @@ jobs:
         with:
           ref: ${{ github.base_ref }}
           path: base
-      - uses: int128/kustomize-action@1cc093a17cff63e6215866362414fde7cc9c7e8f # v1.186.0
+      - uses: int128/kustomize-action@4fbeca93d7072507f0c6d4529025d17a5d209551 # v1.195.0
         id: kustomize-base
         with:
           base-directory: base
@@ -42,12 +42,12 @@ jobs:
             config/default/kustomization.yaml
             e2e_test/**/kustomization.yaml
 
-      - uses: int128/diff-action@c8988a2606d2c85af614a5675addf44b94c66989 # v2.40.0
+      - uses: int128/diff-action@274034d712aef611adcbd41e5a647f43e4edd5a5 # v2.41.0
         id: diff
         with:
           base: ${{ steps.kustomize-base.outputs.directory }}
           head: ${{ steps.kustomize-head.outputs.directory }}
-      - uses: int128/comment-action@7acaa0f6c06c7d9688209dfad956a3a57664c392 # v1.78.0
+      - uses: int128/comment-action@57130c0b08c149c4ba778ea2dbf5d9e2ac5d1917 # v1.79.0
         with:
           update-if-exists: replace
           post: |
