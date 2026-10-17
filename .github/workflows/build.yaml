@@ -110,7 +110,7 @@ jobs:
       - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         id: e2e-setup-token
         with:
-          app-id: ${{ secrets.E2E_SETUP_APP_ID }}
+          app-id: ${{ secrets.E2E_SETUP_APP_CLIENT_ID }}
           private-key: ${{ secrets.E2E_SETUP_APP_PRIVATE_KEY }}
           repositories: argocd-commenter-e2e-test
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
