@@ -11,5 +11,7 @@ jobs:
   delete:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      deployments: write
     steps:
       - uses: int128/delete-deployments-action@699618b90c0ee45a644acecb5f55231bddefd77a # v1.69.0
