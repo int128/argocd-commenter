@@ -14,7 +14,6 @@
     {
       "description": "Ignore replaced Go packages in github.com/argoproj/argo-cd/v2",
       "matchPackageNames": [
-        "github.com/argoproj/gitops-engine",
         "k8s.io/**"
       ],
       "enabled": false
