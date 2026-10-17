@@ -1,19 +1,3 @@
-/*
-Copyright 2021.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controller
 
 import (
@@ -21,9 +5,9 @@ import (
 	"slices"
 	"time"
 
+	"github.com/argoproj/argo-cd/gitops-engine/pkg/health"
+	synccommon "github.com/argoproj/argo-cd/gitops-engine/pkg/sync/common"
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	argocdcommenterv1 "github.com/int128/argocd-commenter/api/v1"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
@@ -32,7 +16,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -49,7 +33,7 @@ var (
 type ApplicationHealthCommentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Notification notification.Client
 }
 
@@ -126,10 +110,14 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	if err := r.Notification.CreateCommentsOnHealthChanged(ctx, app, argocdURL); err != nil {
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateCommentError",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"CreateCommentError",
+			"CreateGitHubComment",
 			"unable to create a comment on health status %s: %s", app.Status.Health.Status, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedComment",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"CreatedComment",
+			"CreateGitHubComment",
 			"created a comment on health status %s", app.Status.Health.Status)
 	}
 
@@ -142,14 +130,16 @@ func (r *ApplicationHealthCommentReconciler) Reconcile(ctx context.Context, req 
 		logger.Error(err, "unable to patch lastHealthyRevision")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	r.Recorder.Eventf(&appHealth, corev1.EventTypeNormal, "UpdatedLastHealthyRevision",
+	r.Recorder.Eventf(&appHealth, nil, corev1.EventTypeNormal,
+		"UpdatedLastHealthyRevision",
+		"UpdateLastHealthyRevision",
 		"patched lastHealthyRevision to %s", currentRevision)
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationHealthCommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-health-comment")
+	r.Recorder = mgr.GetEventRecorder("application-health-comment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthComment").
 		For(&argocdv1alpha1.Application{}).

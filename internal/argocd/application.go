@@ -3,8 +3,8 @@ package argocd
 import (
 	"strings"
 
+	synccommon "github.com/argoproj/argo-cd/gitops-engine/pkg/sync/common"
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

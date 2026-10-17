@@ -1,19 +1,3 @@
-/*
-Copyright 2021.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controller
 
 import (
@@ -21,14 +5,14 @@ import (
 	"slices"
 	"time"
 
+	synccommon "github.com/argoproj/argo-cd/gitops-engine/pkg/sync/common"
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/int128/argocd-commenter/internal/argocd"
 	"github.com/int128/argocd-commenter/internal/controller/eventfilter"
 	"github.com/int128/argocd-commenter/internal/notification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -51,7 +35,7 @@ var (
 type ApplicationHealthDeploymentReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+	Recorder     events.EventRecorder
 	Notification notification.Client
 }
 
@@ -82,16 +66,22 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 		// https://github.com/int128/argocd-commenter/issues/762
 		lastOperationAt := argocd.GetLastOperationAt(app).Time
 		if time.Since(lastOperationAt) < requeueTimeoutWhenDeploymentNotFound {
-			r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentNotFound",
+			r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+				"DeploymentNotFound",
+				"CheckIfGitHubDeploymentIsAlreadyHealthy",
 				"deployment %s not found, retry after %s", deploymentURL, requeueIntervalWhenDeploymentNotFound)
 			return ctrl.Result{RequeueAfter: requeueIntervalWhenDeploymentNotFound}, nil
 		}
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "DeploymentNotFoundRetryTimeout",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"DeploymentNotFoundRetryTimeout",
+			"CheckIfGitHubDeploymentIsAlreadyHealthy",
 			"deployment %s not found but retry timed out", deploymentURL)
 		return ctrl.Result{}, nil
 	}
 	if deploymentIsAlreadyHealthy {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "DeploymentAlreadyHealthy",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"DeploymentAlreadyHealthy",
+			"CheckIfGitHubDeploymentIsAlreadyHealthy",
 			"skip on status %s because deployment %s is already healthy", app.Status.Health.Status, deploymentURL)
 		return ctrl.Result{}, nil
 	}
@@ -121,10 +111,14 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if err := r.Notification.CreateDeploymentStatusOnHealthChanged(ctx, app, argocdURL); err != nil {
-		r.Recorder.Eventf(&app, corev1.EventTypeWarning, "CreateDeploymentStatusError",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeWarning,
+			"CreateDeploymentStatusError",
+			"CreateGitHubDeploymentStatus",
 			"unable to create a deployment status on health status %s: %s", app.Status.Health.Status, err)
 	} else {
-		r.Recorder.Eventf(&app, corev1.EventTypeNormal, "CreatedDeploymentStatus",
+		r.Recorder.Eventf(&app, nil, corev1.EventTypeNormal,
+			"CreatedDeploymentStatus",
+			"CreateGitHubDeploymentStatus",
 			"created a deployment status on health status %s", app.Status.Health.Status)
 	}
 	return ctrl.Result{}, nil
@@ -132,7 +126,7 @@ func (r *ApplicationHealthDeploymentReconciler) Reconcile(ctx context.Context, r
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ApplicationHealthDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.Recorder = mgr.GetEventRecorderFor("application-health-deployment")
+	r.Recorder = mgr.GetEventRecorder("application-health-deployment")
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("applicationHealthDeployment").
 		For(&argocdv1alpha1.Application{}).
