@@ -3,7 +3,7 @@ module github.com/int128/argocd-commenter
 go 1.26.3
 
 require (
-	github.com/argoproj/argo-cd/gitops-engine v0.7.1-0.20250908182407-97ad5b59a627
+	github.com/argoproj/argo-cd/gitops-engine c158f568db97
 	github.com/argoproj/argo-cd/v3 v3.5.5
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
@@ -193,7 +193,7 @@ require (
 )
 
 replace (
-	github.com/argoproj/argo-cd/gitops-engine => github.com/argoproj/argo-cd/gitops-engine v0.0.0-20261012100433-a5038b0e2bba
+	github.com/argoproj/argo-cd/gitops-engine => github.com/argoproj/argo-cd/gitops-engine c158f568db97
 	// https://github.com/argoproj/argo-cd/blob/v3.2.6/go.mod
 	k8s.io/api => k8s.io/api v0.36.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.36.1
