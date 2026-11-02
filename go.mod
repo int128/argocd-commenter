@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/argoproj/argo-cd/gitops-engine v0.7.1-0.20250908182407-97ad5b59a627
-	github.com/argoproj/argo-cd/v3 v3.5.5
+	github.com/argoproj/argo-cd/v3 v3.5.6
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v80 v80.0.0
