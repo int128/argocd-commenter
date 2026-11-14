@@ -1,6 +1,6 @@
 module github.com/int128/argocd-commenter
 
-go 1.26.3
+go 1.27.3
 
 require (
 	github.com/argoproj/argo-cd/gitops-engine v0.7.1-0.20250908182407-97ad5b59a627
