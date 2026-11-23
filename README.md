@@ -143,11 +143,8 @@ Argo CD is running in your Kubernetes cluster.
 
 ### Setup
 
-To deploy the manifest:
-
-```shell
-kubectl apply -f https://github.com/int128/argocd-commenter/releases/download/v1.20.1/argocd-commenter.yaml
-```
+Deploy the Helm chart from [ghcr.io/int128/argocd-commenter/charts/argocd-commenter](https://github.com/int128/argocd-commenter/pkgs/container/argocd-commenter%2Fcharts%2Fargocd-commenter).
+See [values.yaml](charts/chart/values.yaml) of the chart.
 
 You need to create either Personal Access Token or GitHub App.
 
