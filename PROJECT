@@ -6,13 +6,16 @@ cliVersion: 4.16.0
 domain: int128.github.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v2-alpha:
+    manifests: install.yaml
+    output: charts
 projectName: argocd-commenter
 repo: github.com/int128/argocd-commenter
 resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: false
   domain: int128.github.io
   group: argocdcommenter
   kind: ApplicationHealth

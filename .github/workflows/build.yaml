@@ -70,29 +70,24 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           digest: ${{ steps.build.outputs.digest }}
 
-  manifest:
+  chart:
     needs: container
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
+      packages: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-      - run: kustomize edit set image controller="$controller_image"
-        working-directory: config/manager
-        env:
-          controller_image: ${{ needs.container.outputs.image-uri }}
-      - run: kustomize build config/default > "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
-      - run: cat "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
-      - id: create-draft-release
-        uses: int128/create-draft-release-action@d262be95a5c732719729c468a7adaa0d2cd386a4 # v0.10.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
         with:
-          dry-run: ${{ github.event_name == 'pull_request' }}
-      - if: steps.create-draft-release.outputs.release-name
-        run: gh release upload "$RELEASE_NAME" "${RUNNER_TEMP}/${GITHUB_REPOSITORY##*/}.yaml"
+          aqua_version: v2.65.2
+      - run: helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GITHUB_TOKEN"
         env:
-          RELEASE_NAME: ${{ steps.create-draft-release.outputs.release-name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: bash hack/release-helm-chart.sh
+        env:
+          IMG: ${{ needs.container.outputs.image-uri }}
 
   e2e-test:
     runs-on: ubuntu-latest

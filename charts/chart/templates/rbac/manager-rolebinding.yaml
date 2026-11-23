@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if .Values.rbac.namespaced }}
+kind: RoleBinding
+{{- else }}
+kind: ClusterRoleBinding
+{{- end }}
+metadata:
+{{- if .Values.rbac.namespaced }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ include "argocd-commenter.name" . }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  name: {{ include "argocd-commenter.resourceName" (dict "suffix" "manager-rolebinding" "context" $) }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  {{- if .Values.rbac.namespaced }}
+  kind: Role
+  {{- else }}
+  kind: ClusterRole
+  {{- end }}
+  name: {{ include "argocd-commenter.resourceName" (dict "suffix" "manager-role" "context" $) }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "argocd-commenter.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
