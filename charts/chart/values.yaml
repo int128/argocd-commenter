@@ -1,0 +1,239 @@
+## String to partially override chart.fullname template (will maintain the release name)
+##
+# nameOverride: ""
+
+## String to fully override chart.fullname template
+##
+# fullnameOverride: ""
+
+## Configure the controller manager deployment
+##
+manager:
+  ## Set to false to skip manager installation
+  ##
+  enabled: true
+
+  replicas: 1
+
+  image:
+    repository: controller
+    ## Image tag (defaults to Chart.appVersion if not set)
+    ##
+    # tag: ""
+    pullPolicy: IfNotPresent
+
+  ## Arguments
+  ##
+  args:
+    - --leader-elect
+
+  ## Health probes.
+  ## The manager serves the liveness (/healthz) and readiness (/readyz) endpoints on this port.
+  ##
+  healthProbe:
+    # Health probe server port
+    port: 8081
+
+  ## Environment variables
+  ##
+  env:
+    - name: GITHUB_TOKEN
+      valueFrom:
+        secretKeyRef:
+          key: GITHUB_TOKEN
+          name: controller-manager
+          optional: true
+    - name: GITHUB_APP_ID
+      valueFrom:
+        secretKeyRef:
+          key: GITHUB_APP_ID
+          name: controller-manager
+          optional: true
+    - name: GITHUB_APP_INSTALLATION_ID
+      valueFrom:
+        secretKeyRef:
+          key: GITHUB_APP_INSTALLATION_ID
+          name: controller-manager
+          optional: true
+    - name: GITHUB_APP_PRIVATE_KEY
+      valueFrom:
+        secretKeyRef:
+          key: GITHUB_APP_PRIVATE_KEY
+          name: controller-manager
+          optional: true
+    - name: GITHUB_ENTERPRISE_URL
+      valueFrom:
+        secretKeyRef:
+          key: GITHUB_ENTERPRISE_URL
+          name: controller-manager
+          optional: true
+
+  ## Env overrides (--set manager.envOverrides.VAR=value)
+  ## Same name in env above: this value takes precedence.
+  ##
+  envOverrides: {}
+
+  ## Image pull secrets
+  ##
+  # imagePullSecrets:
+  #   - name: myregistrykey
+
+  ## Pod-level security settings
+  ##
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  ## Container-level security settings
+  ##
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+
+  ## Resource limits and requests
+  ##
+  resources:
+    limits:
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+  ## Manager pod's affinity
+  ##
+  affinity: {}
+
+  ## Manager pod's node selector
+  ##
+  nodeSelector: {}
+
+  ## Manager pod's tolerations
+  ##
+  tolerations: []
+
+  ## Deployment strategy
+  ##
+  # strategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  ## Priority class name
+  ##
+  # priorityClassName: ""
+
+  ## Topology spread constraints
+  ##
+  # topologySpreadConstraints: []
+
+  ## Termination grace period seconds
+  ##
+  terminationGracePeriodSeconds: 10
+
+  ## Custom Deployment labels
+  ##
+  # labels: {}
+
+  ## Custom Deployment annotations
+  ##
+  # annotations: {}
+
+  ## Custom Pod labels and annotations
+  ##
+  # pod:
+  #   labels: {}
+  #   annotations: {}
+
+## RBAC configuration
+##
+rbac:
+  ## RBAC resource scope
+  ## - false (default): ClusterRole/ClusterRoleBinding (all namespaces)
+  ## - true: Role/RoleBinding (release namespace only)
+  ##
+  namespaced: false
+
+  ## Helper roles for CRD management (admin/editor/viewer)
+  ##
+  helpers:
+    ## Install convenience admin/editor/viewer roles for CRDs
+    ##
+    enabled: false
+
+## ServiceAccount configuration
+##
+serviceAccount:
+  # Install default ServiceAccount provided
+  enabled: true
+
+  ## Existing ServiceAccount name (required when enabled=false)
+  ## Set to "default" to use the namespace default ServiceAccount
+  ## Note: When enabled=true, respects nameOverride/fullnameOverride
+  ##
+  # name: ""
+
+  ## Custom ServiceAccount annotations
+  ##
+  # annotations: {}
+
+  ## Custom ServiceAccount labels
+  ##
+  # labels: {}
+
+## Custom Resource Definitions
+##
+crd:
+  # Install CRDs with the chart
+  enabled: true
+  # Keep CRDs when uninstalling
+  keep: true
+
+## Controller metrics endpoint.
+## Enable to expose /metrics endpoint
+##
+metrics:
+  enabled: true
+  # Metrics server port
+  port: 8443
+  # Enable secure metrics: HTTPS with certs/auth (true) or HTTP (false).
+  # Note: Metrics authn/authz needs ClusterRole access.
+  secure: true
+
+## Cert-manager integration for TLS certificates.
+## Required for webhook certificates and metrics endpoint certificates.
+##
+certManager:
+  enabled: false
+
+## Webhook server configuration
+##
+webhook:
+  enabled: false
+  # Webhook server port
+  port: 9443
+
+## Prometheus ServiceMonitor for metrics scraping.
+## Requires prometheus-operator to be installed in the cluster.
+##
+prometheus:
+  enabled: false
+
+  ## Custom ServiceMonitor labels
+  ##
+  # labels: {}
+
+  ## Custom ServiceMonitor annotations
+  ##
+  # annotations: {}
+
+## Network policies for controlling traffic flow.
+## Enable to restrict ingress to the controller manager.
+##
+networkPolicy:
+  enabled: false
+
